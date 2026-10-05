@@ -227,6 +227,36 @@
                     </button>
                 </div>
 
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-xs font-bold text-white">Quick Add</h3>
+                            <p class="text-[10px] text-slate-500">Your most-used work and expenses</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-slate-500 uppercase font-bold mb-2">Income</p>
+                        <div id="quick-income-buttons" class="flex flex-wrap gap-2"></div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-slate-500 uppercase font-bold mb-2">Expenses</p>
+                        <div id="quick-expense-buttons" class="flex flex-wrap gap-2"></div>
+                    </div>
+                </div>
+
+                <button onclick="openCalendarModal()" class="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between transition group">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-calendar-days"></i>
+                        </div>
+                        <div class="text-left">
+                            <h4 class="text-xs font-bold text-white group-hover:text-blue-400 transition">Calendar</h4>
+                            <p class="text-[10px] text-slate-400">Review income, expenses and mileage by day</p>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-slate-500"></i>
+                </button>
+
                 <button onclick="switchTab('scan')" class="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between transition group">
                     <div class="flex items-center space-x-3">
                         <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm">
@@ -461,6 +491,64 @@
             </button>
         </nav>
 
+        <!-- Calendar Modal -->
+        <div id="calendar-modal" class="hidden absolute inset-0 bg-slate-950 z-[55] overflow-y-auto">
+            <div class="p-5 space-y-4">
+                <div class="flex items-center justify-between">
+                    <button onclick="closeCalendarModal()" class="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 flex items-center justify-center">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <div class="text-center">
+                        <h2 class="text-lg font-bold text-white">Activity Calendar</h2>
+                        <p class="text-[10px] text-slate-500">Tap a day to see the summary</p>
+                    </div>
+                    <button onclick="calendarGoToday()" class="text-[11px] font-bold text-emerald-400">Today</button>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <button onclick="changeCalendarMonth(-1)" class="w-8 h-8 rounded-xl bg-slate-800 text-slate-300"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                        <h3 id="calendar-month-title" class="text-sm font-bold text-white"></h3>
+                        <button onclick="changeCalendarMonth(1)" class="w-8 h-8 rounded-xl bg-slate-800 text-slate-300"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                    </div>
+                    <div class="grid grid-cols-7 gap-1 text-center text-[9px] font-bold text-slate-500 mb-2">
+                        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                    </div>
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
+                </div>
+
+                <div id="calendar-day-summary" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 id="calendar-selected-date" class="text-sm font-bold text-white">Select a day</h3>
+                        <span class="text-[10px] text-slate-500">Daily summary</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-slate-950/50 rounded-xl p-3">
+                            <p class="text-[10px] text-slate-500 uppercase font-bold">Income</p>
+                            <p id="calendar-day-income" class="text-base font-extrabold text-emerald-400 mt-1">£0.00</p>
+                        </div>
+                        <div class="bg-slate-950/50 rounded-xl p-3">
+                            <p class="text-[10px] text-slate-500 uppercase font-bold">Expenses</p>
+                            <p id="calendar-day-expense" class="text-base font-extrabold text-rose-400 mt-1">£0.00</p>
+                        </div>
+                        <div class="bg-slate-950/50 rounded-xl p-3">
+                            <p class="text-[10px] text-slate-500 uppercase font-bold">Profit</p>
+                            <p id="calendar-day-profit" class="text-base font-extrabold text-white mt-1">£0.00</p>
+                        </div>
+                        <div class="bg-slate-950/50 rounded-xl p-3">
+                            <p class="text-[10px] text-slate-500 uppercase font-bold">Mileage</p>
+                            <p id="calendar-day-mileage" class="text-base font-extrabold text-blue-400 mt-1">0 mi</p>
+                        </div>
+                    </div>
+                    <div id="calendar-day-items" class="space-y-2"></div>
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button onclick="quickAddForSelectedDay('income')" class="bg-emerald-500 text-slate-950 font-bold py-2.5 rounded-xl text-xs">+ Income</button>
+                        <button onclick="quickAddForSelectedDay('expense')" class="bg-rose-500 text-white font-bold py-2.5 rounded-xl text-xs">+ Expense</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Add Mileage Modal -->
         <div id="mileage-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
@@ -644,6 +732,8 @@
             selectedWorkType: '',
             selectedPlatforms: [],
             selectedExpenses: [],
+            calendarDate: new Date(),
+            selectedCalendarDate: new Date().toISOString().split('T')[0],
             activeFilter: 'all',
             authMode: 'signin'
         };
@@ -1148,6 +1238,8 @@
             `).join('');
             document.getElementById('full-expenses-list').innerHTML = fullHtml || '<p class="text-center text-xs text-slate-500 py-6">No expenses found.</p>';
 
+            renderQuickAddButtons();
+
             // Mileage totals
             const now = new Date();
             const todayStr = now.toISOString().split('T')[0];
@@ -1206,6 +1298,142 @@
             if (savedEl) savedEl.textContent = `£${totalReserveSaved.toFixed(2)}`;
             if (shortEl) shortEl.textContent = `£${reserveShortfall.toFixed(2)}`;
             if (weeklyEl) weeklyEl.textContent = `£${suggestedWeekly.toFixed(2)}`;
+        }
+
+        function renderQuickAddButtons() {
+            const incomeBox = document.getElementById('quick-income-buttons');
+            const expenseBox = document.getElementById('quick-expense-buttons');
+            if (incomeBox) {
+                const sources = [...new Set([...(appState.selectedPlatforms || []), 'Other'])].slice(0, 6);
+                incomeBox.innerHTML = sources.map(v => `
+                    <button type="button" onclick="quickOpenIncome('${v.replace(/'/g,"\\'")}')" class="px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold">${v}</button>
+                `).join('');
+            }
+            if (expenseBox) {
+                const cats = [...new Set([...(appState.selectedExpenses || []), 'Other'])].slice(0, 8);
+                expenseBox.innerHTML = cats.map(v => `
+                    <button type="button" onclick="quickOpenExpense('${v.replace(/'/g,"\\'")}')" class="px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[11px] font-bold">${v}</button>
+                `).join('');
+            }
+        }
+
+        function quickOpenIncome(source) {
+            openIncomeModal();
+            const select = document.getElementById('income-source');
+            if (select) {
+                const exists = [...select.options].some(o => o.value === source);
+                if (!exists) select.add(new Option(source, source));
+                select.value = source;
+            }
+            setTimeout(() => document.getElementById('income-amount')?.focus(), 50);
+        }
+
+        function quickOpenExpense(category) {
+            openExpenseModal();
+            const select = document.getElementById('expense-category');
+            if (select) {
+                const exists = [...select.options].some(o => o.value === category);
+                if (!exists) select.add(new Option(category, category));
+                select.value = category;
+            }
+            setTimeout(() => document.getElementById('expense-amount')?.focus(), 50);
+        }
+
+        function openCalendarModal() {
+            document.getElementById('calendar-modal').classList.remove('hidden');
+            renderCalendar();
+            showCalendarDay(appState.selectedCalendarDate || new Date().toISOString().split('T')[0]);
+        }
+
+        function closeCalendarModal() {
+            document.getElementById('calendar-modal').classList.add('hidden');
+        }
+
+        function calendarGoToday() {
+            appState.calendarDate = new Date();
+            appState.selectedCalendarDate = new Date().toISOString().split('T')[0];
+            renderCalendar();
+            showCalendarDay(appState.selectedCalendarDate);
+        }
+
+        function changeCalendarMonth(delta) {
+            const d = new Date(appState.calendarDate);
+            d.setMonth(d.getMonth() + delta);
+            appState.calendarDate = d;
+            renderCalendar();
+        }
+
+        function getDayActivity(dateStr) {
+            const tx = appState.transactions.filter(t => t.date === dateStr);
+            const income = tx.filter(t => t.type === 'income').reduce((s,t) => s + Number(t.amount || 0), 0);
+            const expenses = tx.filter(t => t.type === 'expense').reduce((s,t) => s + Number(t.amount || 0), 0);
+            const mileage = appState.mileageTrips.filter(t => t.trip_date === dateStr).reduce((s,t) => s + Number(t.business_miles || 0), 0);
+            const reserve = appState.taxReserveEntries.filter(t => t.saved_on === dateStr).reduce((s,t) => s + Number(t.amount || 0), 0);
+            return { tx, income, expenses, mileage, reserve };
+        }
+
+        function renderCalendar() {
+            const d = new Date(appState.calendarDate);
+            const year = d.getFullYear();
+            const month = d.getMonth();
+            const title = document.getElementById('calendar-month-title');
+            if (title) title.textContent = d.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+
+            const first = new Date(year, month, 1);
+            const days = new Date(year, month + 1, 0).getDate();
+            const mondayIndex = (first.getDay() + 6) % 7;
+            const grid = document.getElementById('calendar-grid');
+            if (!grid) return;
+            let html = '';
+            for (let i=0;i<mondayIndex;i++) html += '<div></div>';
+            for (let day=1; day<=days; day++) {
+                const ds = year + '-' + String(month+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+                const a = getDayActivity(ds);
+                const selected = ds === appState.selectedCalendarDate;
+                const today = ds === new Date().toISOString().split('T')[0];
+                html += `
+                    <button type="button" onclick="showCalendarDay('${ds}')" class="min-h-[48px] rounded-xl border p-1 flex flex-col items-center justify-center ${selected ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-800 bg-slate-950/50'}">
+                        <span class="text-[11px] font-bold ${today ? 'text-emerald-400' : 'text-slate-200'}">${day}</span>
+                        <div class="flex gap-0.5 mt-1">
+                            ${a.income > 0 ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>' : ''}
+                            ${a.expenses > 0 ? '<span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>' : ''}
+                            ${a.mileage > 0 ? '<span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>' : ''}
+                            ${a.reserve > 0 ? '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>' : ''}
+                        </div>
+                    </button>`;
+            }
+            grid.innerHTML = html;
+        }
+
+        function showCalendarDay(dateStr) {
+            appState.selectedCalendarDate = dateStr;
+            renderCalendar();
+            const a = getDayActivity(dateStr);
+            const date = new Date(dateStr + 'T12:00:00');
+            document.getElementById('calendar-selected-date').textContent = date.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+            document.getElementById('calendar-day-income').textContent = '£' + a.income.toFixed(2);
+            document.getElementById('calendar-day-expense').textContent = '£' + a.expenses.toFixed(2);
+            document.getElementById('calendar-day-profit').textContent = '£' + (a.income-a.expenses).toFixed(2);
+            document.getElementById('calendar-day-mileage').textContent = a.mileage.toFixed(1).replace('.0','') + ' mi';
+
+            const items = [];
+            a.tx.forEach(t => items.push(`<div class="flex justify-between text-xs bg-slate-950/50 rounded-xl p-2.5"><span class="text-slate-300">${t.type === 'income' ? (t.source || 'Income') : (t.category || 'Expense')}</span><span class="${t.type==='income'?'text-emerald-400':'text-rose-400'} font-bold">${t.type==='income'?'+':'-'}£${Number(t.amount).toFixed(2)}</span></div>`));
+            appState.mileageTrips.filter(t => t.trip_date === dateStr).forEach(t => items.push(`<div class="flex justify-between text-xs bg-slate-950/50 rounded-xl p-2.5"><span class="text-slate-300">${t.purpose || 'Mileage'}</span><span class="text-blue-400 font-bold">${Number(t.business_miles).toFixed(1).replace('.0','')} mi</span></div>`));
+            if (a.reserve > 0) items.push(`<div class="flex justify-between text-xs bg-slate-950/50 rounded-xl p-2.5"><span class="text-slate-300">Tax reserve saved</span><span class="text-amber-400 font-bold">£${a.reserve.toFixed(2)}</span></div>`);
+            document.getElementById('calendar-day-items').innerHTML = items.join('') || '<p class="text-center text-xs text-slate-500 py-2">No activity recorded for this day.</p>';
+        }
+
+        function quickAddForSelectedDay(type) {
+            const date = appState.selectedCalendarDate || new Date().toISOString().split('T')[0];
+            if (type === 'income') {
+                closeCalendarModal();
+                openIncomeModal();
+                document.getElementById('income-date').value = date;
+            } else {
+                closeCalendarModal();
+                openExpenseModal();
+                document.getElementById('expense-date').value = date;
+            }
         }
 
         function getCategoryIcon(cat) {
