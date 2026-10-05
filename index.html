@@ -734,6 +734,8 @@
             selectedExpenses: [],
             calendarDate: new Date(),
             selectedCalendarDate: new Date().toISOString().split('T')[0],
+            dailyEntryMode: false,
+            dailyEntryDate: null,
             activeFilter: 'all',
             authMode: 'signin'
         };
@@ -766,7 +768,6 @@
                     document.getElementById('auth-screen').classList.add('hidden');
                     document.getElementById('user-display-name').textContent = session.user.email?.split('@')[0] || 'Driver';
                     await fetchUserData(session.user.id);
-                await checkAndShowOnboarding(session.user.id);
                     await checkAndShowOnboarding(session.user.id);
                 } else if (event === 'SIGNED_OUT') {
                     appState.currentUser = null;
@@ -1392,7 +1393,7 @@
                 const selected = ds === appState.selectedCalendarDate;
                 const today = ds === new Date().toISOString().split('T')[0];
                 html += `
-                    <button type="button" onclick="showCalendarDay('${ds}')" class="min-h-[48px] rounded-xl border p-1 flex flex-col items-center justify-center ${selected ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-800 bg-slate-950/50'}">
+                    <button type="button" onclick="startDailyEntry('${ds}')" class="min-h-[48px] rounded-xl border p-1 flex flex-col items-center justify-center ${selected ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-800 bg-slate-950/50'}">
                         <span class="text-[11px] font-bold ${today ? 'text-emerald-400' : 'text-slate-200'}">${day}</span>
                         <div class="flex gap-0.5 mt-1">
                             ${a.income > 0 ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>' : ''}
@@ -1423,6 +1424,32 @@
             document.getElementById('calendar-day-items').innerHTML = items.join('') || '<p class="text-center text-xs text-slate-500 py-2">No activity recorded for this day.</p>';
         }
 
+        function startDailyEntry(dateStr) {
+            appState.selectedCalendarDate = dateStr;
+            appState.dailyEntryMode = true;
+            appState.dailyEntryDate = dateStr;
+
+            closeCalendarModal();
+            openIncomeModal();
+
+            const incomeDate = document.getElementById('income-date');
+            const incomeAmount = document.getElementById('income-amount');
+            const incomeNotes = document.getElementById('income-notes');
+            if (incomeDate) incomeDate.value = dateStr;
+            if (incomeAmount) incomeAmount.value = '';
+            if (incomeNotes) incomeNotes.value = '';
+
+            setTimeout(() => incomeAmount?.focus(), 50);
+        }
+
+        function finishDailyEntry() {
+            const dateStr = appState.dailyEntryDate || appState.selectedCalendarDate || new Date().toISOString().split('T')[0];
+            appState.dailyEntryMode = false;
+            appState.dailyEntryDate = null;
+            openCalendarModal();
+            showCalendarDay(dateStr);
+        }
+
         function quickAddForSelectedDay(type) {
             const date = appState.selectedCalendarDate || new Date().toISOString().split('T')[0];
             if (type === 'income') {
@@ -1447,9 +1474,15 @@
         }
 
         function openIncomeModal() { document.getElementById('income-modal').classList.remove('hidden'); }
-        function closeIncomeModal() { document.getElementById('income-modal').classList.add('hidden'); }
+        function closeIncomeModal(cancelDailyEntry = true) {
+            document.getElementById('income-modal').classList.add('hidden');
+            if (cancelDailyEntry && appState.dailyEntryMode) finishDailyEntry();
+        }
         function openExpenseModal() { document.getElementById('expense-modal').classList.remove('hidden'); }
-        function closeExpenseModal() { document.getElementById('expense-modal').classList.add('hidden'); }
+        function closeExpenseModal(cancelDailyEntry = true) {
+            document.getElementById('expense-modal').classList.add('hidden');
+            if (cancelDailyEntry && appState.dailyEntryMode) finishDailyEntry();
+        }
 
         function openMileageModal() {
             document.getElementById('mileage-modal').classList.remove('hidden');
@@ -1566,10 +1599,21 @@
                 if (error) throw error;
 
                 showToast("Income saved");
-                closeIncomeModal();
+                closeIncomeModal(false);
                 document.getElementById('income-form').reset();
                 document.getElementById('income-date').value = new Date().toISOString().split('T')[0];
                 await fetchUserData(appState.currentUser.id);
+
+                if (appState.dailyEntryMode) {
+                    openExpenseModal();
+                    const expenseDate = document.getElementById('expense-date');
+                    const expenseAmount = document.getElementById('expense-amount');
+                    const expenseNotes = document.getElementById('expense-notes');
+                    if (expenseDate) expenseDate.value = appState.dailyEntryDate || earned_on;
+                    if (expenseAmount) expenseAmount.value = '';
+                    if (expenseNotes) expenseNotes.value = '';
+                    setTimeout(() => expenseAmount?.focus(), 50);
+                }
             } catch (err) {
                 console.error("Save income error:", err);
                 showToast("Failed to save. Click retry.");
@@ -1608,10 +1652,14 @@
                 if (error) throw error;
 
                 showToast("Expense saved");
-                closeExpenseModal();
+                closeExpenseModal(false);
                 document.getElementById('expense-form').reset();
                 document.getElementById('expense-date').value = new Date().toISOString().split('T')[0];
                 await fetchUserData(appState.currentUser.id);
+
+                if (appState.dailyEntryMode) {
+                    finishDailyEntry();
+                }
             } catch (err) {
                 console.error("Save expense error:", err);
                 showToast("Failed to save expense. Retry?");
