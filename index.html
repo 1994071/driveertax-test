@@ -263,7 +263,44 @@
                 </div>
             </section>
 
-            <!-- VIEW 4: TAX SUMMARY -->
+            <!-- VIEW 4: MILEAGE -->
+            <section id="view-mileage" class="p-5 space-y-4 hidden">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Mileage Tracker</h2>
+                    <p class="text-xs text-slate-400">Record business miles for your driving work.</p>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 text-center">
+                        <p class="text-[10px] text-slate-500 uppercase font-bold">Today</p>
+                        <p id="mileage-today" class="text-lg font-extrabold text-white mt-1">0</p>
+                        <p class="text-[10px] text-slate-500">miles</p>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 text-center">
+                        <p class="text-[10px] text-slate-500 uppercase font-bold">Month</p>
+                        <p id="mileage-month" class="text-lg font-extrabold text-white mt-1">0</p>
+                        <p class="text-[10px] text-slate-500">miles</p>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 text-center">
+                        <p class="text-[10px] text-slate-500 uppercase font-bold">Tax Year</p>
+                        <p id="mileage-tax-year" class="text-lg font-extrabold text-emerald-400 mt-1">0</p>
+                        <p class="text-[10px] text-slate-500">miles</p>
+                    </div>
+                </div>
+
+                <button onclick="openMileageModal()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-road"></i> Add Mileage
+                </button>
+
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-xs font-bold text-white uppercase tracking-wider">Recent Trips</h3>
+                    </div>
+                    <div id="mileage-list" class="space-y-2.5"></div>
+                </div>
+            </section>
+
+            <!-- VIEW 5: TAX SUMMARY -->
             <section id="view-tax" class="p-5 space-y-5 hidden">
                 <div>
                     <h2 class="text-lg font-bold text-white">Estimated Tax Summary</h2>
@@ -293,6 +330,32 @@
                     </div>
                 </div>
 
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-bold text-white">Tax Reserve</h3>
+                            <p class="text-[10px] text-slate-500">Money you have put aside for tax</p>
+                        </div>
+                        <button onclick="openReserveModal()" class="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-xl text-[11px] font-bold">
+                            + Add Saved
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-slate-950/50 rounded-xl p-3">
+                            <p class="text-[10px] text-slate-500 uppercase font-bold">Saved</p>
+                            <p id="reserve-saved" class="text-base font-extrabold text-emerald-400 mt-1">£0.00</p>
+                        </div>
+                        <div class="bg-slate-950/50 rounded-xl p-3">
+                            <p class="text-[10px] text-slate-500 uppercase font-bold">Shortfall</p>
+                            <p id="reserve-shortfall" class="text-base font-extrabold text-amber-400 mt-1">£0.00</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between text-xs pt-1">
+                        <span class="text-slate-400">Suggested weekly saving</span>
+                        <span id="reserve-weekly" class="font-bold text-white">£0.00</span>
+                    </div>
+                </div>
+
                 <p class="text-[10px] text-slate-500 leading-relaxed">This is a simple estimate for testing only and is not an official HMRC calculation. A full UK tax engine will be added before launch.</p>
 
                 <div class="space-y-2.5">
@@ -308,7 +371,7 @@
         </main>
 
         <!-- Navigation Bar -->
-        <nav class="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-4 py-2.5 flex justify-around items-center z-40">
+        <nav class="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-2 py-2.5 flex justify-around items-center z-40">
             <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex flex-col items-center space-y-1 text-emerald-400 transition">
                 <i class="fa-solid fa-house text-base"></i>
                 <span class="text-[10px] font-semibold">Dashboard</span>
@@ -316,6 +379,10 @@
             <button onclick="switchTab('expenses')" id="nav-expenses" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-200 transition">
                 <i class="fa-solid fa-wallet text-base"></i>
                 <span class="text-[10px] font-semibold">Expenses</span>
+            </button>
+            <button onclick="switchTab('mileage')" id="nav-mileage" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-200 transition">
+                <i class="fa-solid fa-road text-base"></i>
+                <span class="text-[10px] font-semibold">Mileage</span>
             </button>
             <button onclick="switchTab('scan')" id="nav-scan" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-200 transition">
                 <i class="fa-solid fa-camera text-base"></i>
@@ -326,6 +393,72 @@
                 <span class="text-[10px] font-semibold">Tax</span>
             </button>
         </nav>
+
+        <!-- Add Mileage Modal -->
+        <div id="mileage-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                        <i class="fa-solid fa-road text-emerald-400"></i> Add Mileage
+                    </h3>
+                    <button onclick="closeMileageModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
+                </div>
+                <form id="mileage-form" onsubmit="handleSaveMileage(event)" class="space-y-3">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-400 block mb-1">Business Miles</label>
+                            <input type="number" min="0.1" step="0.1" id="mileage-miles" required placeholder="0.0" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-400 block mb-1">Date</label>
+                            <input type="date" id="mileage-date" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-400 block mb-1">Purpose</label>
+                        <input type="text" id="mileage-purpose" required placeholder="e.g. Passenger work, deliveries" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-400 block mb-1">Optional Notes</label>
+                        <input type="text" id="mileage-notes" placeholder="e.g. Birmingham city centre" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <button type="submit" id="mileage-submit-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition mt-2">Save Mileage</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add Tax Reserve Modal -->
+        <div id="reserve-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                        <i class="fa-solid fa-piggy-bank text-emerald-400"></i> Add Tax Savings
+                    </h3>
+                    <button onclick="closeReserveModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
+                </div>
+                <form id="reserve-form" onsubmit="handleSaveReserve(event)" class="space-y-3">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-400 block mb-1">Amount Saved (£)</label>
+                            <input type="number" min="0.01" step="0.01" id="reserve-amount" required placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-400 block mb-1">Date</label>
+                            <input type="date" id="reserve-date" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-400 block mb-1">Optional Notes</label>
+                        <input type="text" id="reserve-notes" placeholder="e.g. Moved to savings account" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <button type="submit" id="reserve-submit-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition mt-2">Save Tax Reserve</button>
+                </form>
+            </div>
+        </div>
 
         <!-- Add Income Modal -->
         <div id="income-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -440,6 +573,8 @@
             monthlyEarnings: 0.00,
             monthlyExpenses: 0.00,
             transactions: [],
+            mileageTrips: [],
+            taxReserveEntries: [],
             activeFilter: 'all',
             authMode: 'signin'
         };
@@ -459,8 +594,12 @@
             const todayIso = new Date().toISOString().split('T')[0];
             const incDate = document.getElementById('income-date');
             const expDate = document.getElementById('expense-date');
+            const mileageDate = document.getElementById('mileage-date');
+            const reserveDate = document.getElementById('reserve-date');
             if (incDate) incDate.value = todayIso;
             if (expDate) expDate.value = todayIso;
+            if (mileageDate) mileageDate.value = todayIso;
+            if (reserveDate) reserveDate.value = todayIso;
 
             supabaseClient.auth.onAuthStateChange(async (event, session) => {
                 if (session?.user) {
@@ -622,13 +761,17 @@
             try {
                 const todayIso = new Date().toISOString().split('T')[0];
 
-                const [incomeRes, expenseRes] = await Promise.all([
+                const [incomeRes, expenseRes, mileageRes, reserveRes] = await Promise.all([
                     supabaseClient.from('income').select('*').eq('user_id', userId),
-                    supabaseClient.from('expenses').select('*').eq('user_id', userId)
+                    supabaseClient.from('expenses').select('*').eq('user_id', userId),
+                    supabaseClient.from('mileage').select('*').eq('user_id', userId).order('trip_date', { ascending: false }),
+                    supabaseClient.from('tax_reserve').select('*').eq('user_id', userId).order('saved_on', { ascending: false })
                 ]);
 
                 if (incomeRes.error) throw incomeRes.error;
                 if (expenseRes.error) throw expenseRes.error;
+                if (mileageRes.error) throw mileageRes.error;
+                if (reserveRes.error) throw reserveRes.error;
 
                 let transactions = [];
                 let totalInc = 0;
@@ -676,6 +819,8 @@
                 appState.monthlyEarnings = totalInc;
                 appState.monthlyExpenses = totalExp;
                 appState.transactions = transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+                appState.mileageTrips = mileageRes.data || [];
+                appState.taxReserveEntries = reserveRes.data || [];
 
                 renderUI();
             } catch (err) {
@@ -769,6 +914,65 @@
                 </div>
             `).join('');
             document.getElementById('full-expenses-list').innerHTML = fullHtml || '<p class="text-center text-xs text-slate-500 py-6">No expenses found.</p>';
+
+            // Mileage totals
+            const now = new Date();
+            const todayStr = now.toISOString().split('T')[0];
+            const monthPrefix = todayStr.slice(0, 7);
+            const currentYear = now.getFullYear();
+            const taxYearStartYear = (now.getMonth() > 3 || (now.getMonth() === 3 && now.getDate() >= 6)) ? currentYear : currentYear - 1;
+            const taxYearStart = new Date(taxYearStartYear, 3, 6);
+            const taxYearEnd = new Date(taxYearStartYear + 1, 3, 6);
+
+            const mileageToday = appState.mileageTrips
+                .filter(t => t.trip_date === todayStr)
+                .reduce((sum, t) => sum + Number(t.business_miles || 0), 0);
+            const mileageMonth = appState.mileageTrips
+                .filter(t => (t.trip_date || '').startsWith(monthPrefix))
+                .reduce((sum, t) => sum + Number(t.business_miles || 0), 0);
+            const mileageTaxYear = appState.mileageTrips
+                .filter(t => {
+                    const d = new Date((t.trip_date || todayStr) + 'T12:00:00');
+                    return d >= taxYearStart && d < taxYearEnd;
+                })
+                .reduce((sum, t) => sum + Number(t.business_miles || 0), 0);
+
+            const mt = document.getElementById('mileage-today');
+            const mm = document.getElementById('mileage-month');
+            const my = document.getElementById('mileage-tax-year');
+            if (mt) mt.textContent = mileageToday.toFixed(1).replace('.0','');
+            if (mm) mm.textContent = mileageMonth.toFixed(1).replace('.0','');
+            if (my) my.textContent = mileageTaxYear.toFixed(1).replace('.0','');
+
+            const mileageList = document.getElementById('mileage-list');
+            if (mileageList) {
+                mileageList.innerHTML = appState.mileageTrips.slice(0, 20).map(t => `
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex justify-between items-center">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-road"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-white">${t.purpose || 'Business journey'}</h4>
+                                <span class="text-[10px] text-slate-400">${t.trip_date} • ${Number(t.business_miles || 0).toFixed(1).replace('.0','')} miles</span>
+                            </div>
+                        </div>
+                        <button onclick="deleteMileage('${t.id}')" class="text-slate-500 hover:text-rose-400 text-xs"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `).join('') || '<p class="text-center text-xs text-slate-500 py-6">No mileage recorded yet.</p>';
+            }
+
+            // Tax reserve tracker
+            const totalReserveSaved = appState.taxReserveEntries.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+            const reserveTarget = Math.max(0, monthlyTaxReserve);
+            const reserveShortfall = Math.max(0, reserveTarget - totalReserveSaved);
+            const suggestedWeekly = reserveShortfall / 4.33;
+            const savedEl = document.getElementById('reserve-saved');
+            const shortEl = document.getElementById('reserve-shortfall');
+            const weeklyEl = document.getElementById('reserve-weekly');
+            if (savedEl) savedEl.textContent = `£${totalReserveSaved.toFixed(2)}`;
+            if (shortEl) shortEl.textContent = `£${reserveShortfall.toFixed(2)}`;
+            if (weeklyEl) weeklyEl.textContent = `£${suggestedWeekly.toFixed(2)}`;
         }
 
         function getCategoryIcon(cat) {
@@ -785,6 +989,96 @@
         function closeIncomeModal() { document.getElementById('income-modal').classList.add('hidden'); }
         function openExpenseModal() { document.getElementById('expense-modal').classList.remove('hidden'); }
         function closeExpenseModal() { document.getElementById('expense-modal').classList.add('hidden'); }
+
+        function openMileageModal() {
+            document.getElementById('mileage-modal').classList.remove('hidden');
+            const el = document.getElementById('mileage-date');
+            if (el && !el.value) el.value = new Date().toISOString().split('T')[0];
+        }
+        function closeMileageModal() { document.getElementById('mileage-modal').classList.add('hidden'); }
+
+        function openReserveModal() {
+            document.getElementById('reserve-modal').classList.remove('hidden');
+            const el = document.getElementById('reserve-date');
+            if (el && !el.value) el.value = new Date().toISOString().split('T')[0];
+        }
+        function closeReserveModal() { document.getElementById('reserve-modal').classList.add('hidden'); }
+
+        async function handleSaveMileage(e) {
+            e.preventDefault();
+            if (!appState.currentUser) return;
+            const btn = document.getElementById('mileage-submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Saving to Cloud...';
+
+            const business_miles = parseFloat(document.getElementById('mileage-miles').value);
+            const trip_date = document.getElementById('mileage-date').value || new Date().toISOString().split('T')[0];
+            const purpose = document.getElementById('mileage-purpose').value.trim();
+            const notes = document.getElementById('mileage-notes').value.trim();
+
+            try {
+                const { error } = await supabaseClient.from('mileage').insert([{
+                    user_id: appState.currentUser.id,
+                    trip_date,
+                    business_miles,
+                    purpose,
+                    source: 'manual',
+                    notes
+                }]);
+                if (error) throw error;
+                showToast('Mileage saved');
+                closeMileageModal();
+                document.getElementById('mileage-form').reset();
+                document.getElementById('mileage-date').value = new Date().toISOString().split('T')[0];
+                await fetchUserData(appState.currentUser.id);
+            } catch (err) {
+                console.error('Save mileage error:', err);
+                showToast('Failed to save mileage. Retry?');
+            }
+            btn.textContent = 'Save Mileage';
+            btn.disabled = false;
+        }
+
+        async function deleteMileage(id) {
+            if (!appState.currentUser) return;
+            const { error } = await supabaseClient.from('mileage').delete().eq('id', id).eq('user_id', appState.currentUser.id);
+            if (error) return showToast('Delete failed');
+            showToast('Mileage deleted');
+            await fetchUserData(appState.currentUser.id);
+        }
+
+        async function handleSaveReserve(e) {
+            e.preventDefault();
+            if (!appState.currentUser) return;
+            const btn = document.getElementById('reserve-submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Saving to Cloud...';
+
+            const amount = parseFloat(document.getElementById('reserve-amount').value);
+            const saved_on = document.getElementById('reserve-date').value || new Date().toISOString().split('T')[0];
+            const notes = document.getElementById('reserve-notes').value.trim();
+
+            try {
+                const { error } = await supabaseClient.from('tax_reserve').insert([{
+                    user_id: appState.currentUser.id,
+                    amount,
+                    saved_on,
+                    method: 'manual',
+                    notes
+                }]);
+                if (error) throw error;
+                showToast('Tax savings updated');
+                closeReserveModal();
+                document.getElementById('reserve-form').reset();
+                document.getElementById('reserve-date').value = new Date().toISOString().split('T')[0];
+                await fetchUserData(appState.currentUser.id);
+            } catch (err) {
+                console.error('Save reserve error:', err);
+                showToast('Failed to save tax reserve. Retry?');
+            }
+            btn.textContent = 'Save Tax Reserve';
+            btn.disabled = false;
+        }
 
         async function handleSaveIncome(e) {
             e.preventDefault();
