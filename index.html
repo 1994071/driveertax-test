@@ -550,7 +550,7 @@
         </div>
 
         <!-- Add Mileage Modal -->
-        <div id="mileage-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div id="mileage-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-sm text-white flex items-center gap-2">
@@ -588,7 +588,10 @@
                         <label class="text-[11px] font-semibold text-slate-400 block mb-1">Notes <span class="text-slate-600">(optional)</span></label>
                         <input type="text" id="mileage-notes" placeholder="Skip unless needed" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
                     </div>
-                    <button type="submit" id="mileage-submit-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition mt-2">Save Mileage</button>
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        <button type="button" id="mileage-skip-btn" onclick="skipDailyMileage()" class="hidden w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition">Skip</button>
+                        <button type="submit" id="mileage-submit-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition col-span-2">Save Mileage</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -625,7 +628,7 @@
         </div>
 
         <!-- Add Income Modal -->
-        <div id="income-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div id="income-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-sm text-white flex items-center gap-2">
@@ -657,15 +660,18 @@
                         <label class="text-[11px] font-semibold text-slate-400 block mb-1">Optional Notes</label>
                         <input type="text" id="income-notes" placeholder="e.g. Airport run, peak multiplier" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
                     </div>
-                    <button type="submit" id="income-submit-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition mt-2">
-                        Save Income
-                    </button>
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        <button type="button" id="income-skip-btn" onclick="skipDailyIncome()" class="hidden w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition">Skip</button>
+                        <button type="submit" id="income-submit-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition col-span-2">
+                            Save Income
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
 
         <!-- Add Expense Modal -->
-        <div id="expense-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div id="expense-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-sm text-white flex items-center gap-2">
@@ -697,9 +703,12 @@
                         <label class="text-[11px] font-semibold text-slate-400 block mb-1">Optional Notes</label>
                         <input type="text" id="expense-notes" placeholder="e.g. Full tank V-Power" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
                     </div>
-                    <button type="submit" id="expense-submit-btn" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 rounded-xl text-xs transition mt-2">
-                        Save Expense
-                    </button>
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        <button type="button" id="expense-skip-btn" onclick="skipDailyExpense()" class="hidden w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition">Skip</button>
+                        <button type="submit" id="expense-submit-btn" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 rounded-xl text-xs transition col-span-2">
+                            Save Expense
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -1428,9 +1437,10 @@
             appState.selectedCalendarDate = dateStr;
             appState.dailyEntryMode = true;
             appState.dailyEntryDate = dateStr;
+            showCalendarDay(dateStr);
 
-            closeCalendarModal();
             openIncomeModal();
+            setDailyEntryButtons('income');
 
             const incomeDate = document.getElementById('income-date');
             const incomeAmount = document.getElementById('income-amount');
@@ -1446,9 +1456,56 @@
             const dateStr = appState.dailyEntryDate || appState.selectedCalendarDate || new Date().toISOString().split('T')[0];
             appState.dailyEntryMode = false;
             appState.dailyEntryDate = null;
-            openCalendarModal();
+            setDailyEntryButtons(null);
+            document.getElementById('income-modal').classList.add('hidden');
+            document.getElementById('expense-modal').classList.add('hidden');
+            document.getElementById('mileage-modal').classList.add('hidden');
             showCalendarDay(dateStr);
         }
+
+        function setDailyEntryButtons(step) {
+            const ids = ['income','expense','mileage'];
+            ids.forEach(name => {
+                const skip = document.getElementById(name + '-skip-btn');
+                const save = document.getElementById(name + '-submit-btn');
+                if (!skip || !save) return;
+                const active = appState.dailyEntryMode && name === step;
+                skip.classList.toggle('hidden', !active);
+                save.classList.toggle('col-span-2', !active);
+            });
+        }
+
+        function openDailyExpenseStep() {
+            document.getElementById('income-modal').classList.add('hidden');
+            openExpenseModal();
+            setDailyEntryButtons('expense');
+            const date = appState.dailyEntryDate || appState.selectedCalendarDate;
+            const expenseDate = document.getElementById('expense-date');
+            const expenseAmount = document.getElementById('expense-amount');
+            const expenseNotes = document.getElementById('expense-notes');
+            if (expenseDate) expenseDate.value = date;
+            if (expenseAmount) expenseAmount.value = '';
+            if (expenseNotes) expenseNotes.value = '';
+            setTimeout(() => expenseAmount?.focus(), 50);
+        }
+
+        function openDailyMileageStep() {
+            document.getElementById('expense-modal').classList.add('hidden');
+            openMileageModal();
+            setDailyEntryButtons('mileage');
+            const date = appState.dailyEntryDate || appState.selectedCalendarDate;
+            const mileageDate = document.getElementById('mileage-date');
+            const mileageMiles = document.getElementById('mileage-miles');
+            const mileageNotes = document.getElementById('mileage-notes');
+            if (mileageDate) mileageDate.value = date;
+            if (mileageMiles) mileageMiles.value = '';
+            if (mileageNotes) mileageNotes.value = '';
+            setTimeout(() => mileageMiles?.focus(), 50);
+        }
+
+        function skipDailyIncome() { openDailyExpenseStep(); }
+        function skipDailyExpense() { openDailyMileageStep(); }
+        function skipDailyMileage() { finishDailyEntry(); }
 
         function quickAddForSelectedDay(type) {
             const date = appState.selectedCalendarDate || new Date().toISOString().split('T')[0];
@@ -1489,7 +1546,10 @@
             const el = document.getElementById('mileage-date');
             if (el && !el.value) el.value = new Date().toISOString().split('T')[0];
         }
-        function closeMileageModal() { document.getElementById('mileage-modal').classList.add('hidden'); }
+        function closeMileageModal(cancelDailyEntry = true) {
+            document.getElementById('mileage-modal').classList.add('hidden');
+            if (cancelDailyEntry && appState.dailyEntryMode) finishDailyEntry();
+        }
 
         function openReserveModal() {
             document.getElementById('reserve-modal').classList.remove('hidden');
@@ -1521,10 +1581,11 @@
                 }]);
                 if (error) throw error;
                 showToast('Mileage saved');
-                closeMileageModal();
+                closeMileageModal(false);
                 document.getElementById('mileage-form').reset();
                 document.getElementById('mileage-date').value = new Date().toISOString().split('T')[0];
                 await fetchUserData(appState.currentUser.id);
+                if (appState.dailyEntryMode) finishDailyEntry();
             } catch (err) {
                 console.error('Save mileage error:', err);
                 showToast('Failed to save mileage. Retry?');
@@ -1605,14 +1666,7 @@
                 await fetchUserData(appState.currentUser.id);
 
                 if (appState.dailyEntryMode) {
-                    openExpenseModal();
-                    const expenseDate = document.getElementById('expense-date');
-                    const expenseAmount = document.getElementById('expense-amount');
-                    const expenseNotes = document.getElementById('expense-notes');
-                    if (expenseDate) expenseDate.value = appState.dailyEntryDate || earned_on;
-                    if (expenseAmount) expenseAmount.value = '';
-                    if (expenseNotes) expenseNotes.value = '';
-                    setTimeout(() => expenseAmount?.focus(), 50);
+                    openDailyExpenseStep();
                 }
             } catch (err) {
                 console.error("Save income error:", err);
@@ -1658,7 +1712,7 @@
                 await fetchUserData(appState.currentUser.id);
 
                 if (appState.dailyEntryMode) {
-                    finishDailyEntry();
+                    openDailyMileageStep();
                 }
             } catch (err) {
                 console.error("Save expense error:", err);
