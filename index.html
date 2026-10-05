@@ -183,6 +183,42 @@
             </section>
 
             <!-- VIEW 2: EXPENSES -->
+            <div class="space-y-3">
+  <h2 class="text-lg font-bold text-white">Expense Tracker</h2>
+<option value="Fuel">Fuel</option>
+<option value="Maintenance">Maintenance</option>
+<option value="Insurance">Insurance</option>
+<option value="Phone">Phone</option>
+<option value="Cleaning / Car Wash">Cleaning / Car Wash</option>
+<option value="Parking & Tolls">Parking & Tolls</option>
+<option value="Licensing">Licensing</option>
+<option value="Other">Other</option>
+  <button onclick="openExpenseModal()"
+    class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold px-3 py-2.5 rounded-xl transition">
+    <i class="fa-solid fa-plus text-[10px] mr-1"></i>
+    Add Manual
+  </button>
+
+  <div class="flex flex-wrap gap-2">
+    <button onclick="filterExpenses('all')" class="exp-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500 text-slate-950">All</button>
+
+    <button onclick="filterExpenses('Fuel')" class="exp-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">Fuel</button>
+
+    <button onclick="filterExpenses('Maintenance')" class="exp-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">Maintenance</button>
+
+    <button onclick="filterExpenses('Insurance')" class="exp-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">Insurance</button>
+
+    <button onclick="filterExpenses('Phone')" class="exp-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">Phone</button>
+
+    <button onclick="filterExpenses('Cleaning / Car Wash')" class="exp-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">Cleaning / Car Wash</button>
+
+    <button onclick="filterExpenses('Parking & Tolls')" class="exp-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">Parking & Tolls</button>
+
+    <button onclick="filterExpenses('Licensing')" class="exp-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">Licensing</button>
+
+    <button onclick="filterExpenses('Other')" class="exp-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">Other</button>
+  </div>
+</div>
             <section id="view-expenses" class="p-5 space-y-4 hidden">
                 <div class="flex justify-between items-center">
                     <h2 class="text-lg font-bold text-white">Expense Tracker</h2>
