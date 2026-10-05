@@ -554,7 +554,7 @@
             <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-sm text-white flex items-center gap-2">
-                        <i class="fa-solid fa-road text-emerald-400"></i> Add Mileage
+                        <i class="fa-solid fa-road text-emerald-400"></i> <span id="mileage-modal-title">Add Mileage</span>
                     </h3>
                     <button onclick="closeMileageModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
                         <i class="fa-solid fa-xmark text-xs"></i>
@@ -589,7 +589,7 @@
                         <input type="text" id="mileage-notes" placeholder="Skip unless needed" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
                     </div>
                     <div class="grid grid-cols-2 gap-2 mt-2">
-                        <button type="button" id="mileage-skip-btn" onclick="skipDailyMileage()" class="hidden w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition">Skip</button>
+                        <button type="button" id="mileage-skip-btn" onclick="skipDailyMileage()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition">Skip</button>
                         <button type="submit" id="mileage-submit-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition col-span-2">Save Mileage</button>
                     </div>
                 </form>
@@ -632,7 +632,7 @@
             <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-sm text-white flex items-center gap-2">
-                        <i class="fa-solid fa-plus-circle text-emerald-400"></i> Add Income
+                        <i class="fa-solid fa-plus-circle text-emerald-400"></i> <span id="income-modal-title">Add Income</span>
                     </h3>
                     <button onclick="closeIncomeModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
                         <i class="fa-solid fa-xmark text-xs"></i>
@@ -661,7 +661,7 @@
                         <input type="text" id="income-notes" placeholder="e.g. Airport run, peak multiplier" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
                     </div>
                     <div class="grid grid-cols-2 gap-2 mt-2">
-                        <button type="button" id="income-skip-btn" onclick="skipDailyIncome()" class="hidden w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition">Skip</button>
+                        <button type="button" id="income-skip-btn" onclick="skipDailyIncome()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition">Skip</button>
                         <button type="submit" id="income-submit-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition col-span-2">
                             Save Income
                         </button>
@@ -675,7 +675,7 @@
             <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-sm text-white flex items-center gap-2">
-                        <i class="fa-solid fa-minus-circle text-rose-400"></i> Add Expense
+                        <i class="fa-solid fa-minus-circle text-rose-400"></i> <span id="expense-modal-title">Add Expense</span>
                     </h3>
                     <button onclick="closeExpenseModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
                         <i class="fa-solid fa-xmark text-xs"></i>
@@ -704,7 +704,7 @@
                         <input type="text" id="expense-notes" placeholder="e.g. Full tank V-Power" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
                     </div>
                     <div class="grid grid-cols-2 gap-2 mt-2">
-                        <button type="button" id="expense-skip-btn" onclick="skipDailyExpense()" class="hidden w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition">Skip</button>
+                        <button type="button" id="expense-skip-btn" onclick="skipDailyExpense()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition">Skip</button>
                         <button type="submit" id="expense-submit-btn" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 rounded-xl text-xs transition col-span-2">
                             Save Expense
                         </button>
@@ -1471,10 +1471,16 @@
                 const save = document.getElementById(name + '-submit-btn');
                 if (!skip || !save) return;
 
-                const active = appState.dailyEntryMode && name === step;
-                skip.classList.toggle('hidden', !active);
+                const active = Boolean(appState.dailyEntryMode && name === step);
+                skip.style.display = active ? 'block' : 'none';
                 save.classList.toggle('col-span-2', !active);
             });
+            const it = document.getElementById('income-modal-title');
+            const et = document.getElementById('expense-modal-title');
+            const mt = document.getElementById('mileage-modal-title');
+            if (it) it.textContent = appState.dailyEntryMode ? 'Step 1 of 3 · Income' : 'Add Income';
+            if (et) et.textContent = appState.dailyEntryMode ? 'Step 2 of 3 · Expense' : 'Add Expense';
+            if (mt) mt.textContent = appState.dailyEntryMode ? 'Step 3 of 3 · Mileage' : 'Add Mileage';
         }
 
         function openDailyExpenseStep() {
@@ -1547,12 +1553,18 @@
             }
         }
 
-        function openIncomeModal() { document.getElementById('income-modal').classList.remove('hidden'); }
+        function openIncomeModal() {
+            document.getElementById('income-modal').classList.remove('hidden');
+            setDailyEntryButtons(appState.dailyEntryMode ? 'income' : null);
+        }
         function closeIncomeModal(cancelDailyEntry = true) {
             document.getElementById('income-modal').classList.add('hidden');
             if (cancelDailyEntry && appState.dailyEntryMode) finishDailyEntry();
         }
-        function openExpenseModal() { document.getElementById('expense-modal').classList.remove('hidden'); }
+        function openExpenseModal() {
+            document.getElementById('expense-modal').classList.remove('hidden');
+            setDailyEntryButtons(appState.dailyEntryMode ? 'expense' : null);
+        }
         function closeExpenseModal(cancelDailyEntry = true) {
             document.getElementById('expense-modal').classList.add('hidden');
             if (cancelDailyEntry && appState.dailyEntryMode) finishDailyEntry();
@@ -1560,6 +1572,7 @@
 
         function openMileageModal() {
             document.getElementById('mileage-modal').classList.remove('hidden');
+            setDailyEntryButtons(appState.dailyEntryMode ? 'mileage' : null);
             const el = document.getElementById('mileage-date');
             if (el && !el.value) el.value = new Date().toISOString().split('T')[0];
         }
