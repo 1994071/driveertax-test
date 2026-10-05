@@ -52,7 +52,7 @@
                     <i class="fa-solid fa-taxi"></i>
                 </div>
                 <h1 class="text-2xl font-black text-white">CabTax UK</h1>
-                <p class="text-xs text-slate-400 max-w-[260px] mx-auto">Fast expense logging & automated tax estimates for UK PCO/Taxi drivers.</p>
+                <p class="text-xs text-slate-400 max-w-[260px] mx-auto">Simple income, expenses, mileage & tax estimates for UK self-employed drivers.</p>
             </div>
 
             <!-- Auth Form Container -->
@@ -61,6 +61,20 @@
                     <button type="button" onclick="switchAuthMode('signin')" id="auth-tab-signin" class="flex-1 text-xs font-bold text-emerald-400 pb-1 border-b-2 border-emerald-400 transition">Sign In</button>
                     <button type="button" onclick="switchAuthMode('signup')" id="auth-tab-signup" class="flex-1 text-xs font-semibold text-slate-400 pb-1 transition">Sign Up</button>
                     <button type="button" onclick="switchAuthMode('forgot')" id="auth-tab-forgot" class="flex-1 text-xs font-semibold text-slate-400 pb-1 transition">Reset</button>
+                </div>
+
+                <div class="space-y-2">
+                    <button type="button" onclick="signInWithProvider('google')" class="w-full bg-white text-slate-900 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2">
+                        <i class="fa-brands fa-google"></i> Continue with Google
+                    </button>
+                    <button type="button" onclick="signInWithProvider('apple')" class="w-full bg-black border border-slate-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2">
+                        <i class="fa-brands fa-apple"></i> Continue with Apple
+                    </button>
+                    <div class="flex items-center gap-2 py-1">
+                        <div class="h-px bg-slate-800 flex-1"></div>
+                        <span class="text-[10px] text-slate-500">or use email</span>
+                        <div class="h-px bg-slate-800 flex-1"></div>
+                    </div>
                 </div>
 
                 <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-3">
@@ -89,6 +103,59 @@
 
             <div class="text-center text-[10px] text-slate-500 pb-2">
                 Secured by Supabase RLS &bull; Security enabled with Supabase RLS
+            </div>
+        </div>
+
+        <!-- ONBOARDING OVERLAY -->
+        <div id="onboarding-screen" class="hidden absolute inset-0 bg-slate-950 z-[60] overflow-y-auto p-5">
+            <div class="max-w-sm mx-auto py-6 space-y-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] uppercase tracking-widest text-emerald-400 font-bold">Quick setup</p>
+                        <h2 id="onboarding-title" class="text-xl font-black text-white mt-1">What type of driving work do you do?</h2>
+                    </div>
+                    <span id="onboarding-step-label" class="text-[10px] text-slate-500">1 of 3</span>
+                </div>
+
+                <div class="h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                    <div id="onboarding-progress" class="h-full bg-emerald-500 rounded-full transition-all" style="width:33%"></div>
+                </div>
+
+                <div id="onboarding-step-1" class="space-y-2">
+                    <button type="button" onclick="selectWorkType(this,'Taxi / Private Hire')" class="work-option w-full text-left bg-slate-900 border border-slate-800 rounded-2xl p-4 text-sm font-bold text-white">🚕 Taxi / Private Hire</button>
+                    <button type="button" onclick="selectWorkType(this,'Food Delivery')" class="work-option w-full text-left bg-slate-900 border border-slate-800 rounded-2xl p-4 text-sm font-bold text-white">🍔 Food Delivery</button>
+                    <button type="button" onclick="selectWorkType(this,'Parcel / Courier')" class="work-option w-full text-left bg-slate-900 border border-slate-800 rounded-2xl p-4 text-sm font-bold text-white">📦 Parcel / Courier</button>
+                    <button type="button" onclick="selectWorkType(this,'Vehicle / Business Driving')" class="work-option w-full text-left bg-slate-900 border border-slate-800 rounded-2xl p-4 text-sm font-bold text-white">🚗 Vehicle / Business Driving</button>
+                    <button type="button" onclick="selectWorkType(this,'Multiple Platforms')" class="work-option w-full text-left bg-slate-900 border border-slate-800 rounded-2xl p-4 text-sm font-bold text-white">🔁 Multiple Platforms</button>
+                    <button type="button" onclick="selectWorkType(this,'Other')" class="work-option w-full text-left bg-slate-900 border border-slate-800 rounded-2xl p-4 text-sm font-bold text-white">➕ Other</button>
+                    <button type="button" id="onboarding-next-1" onclick="showOnboardingStep(2)" disabled class="w-full bg-emerald-500 disabled:opacity-40 text-slate-950 font-bold py-3 rounded-xl text-xs mt-3">Continue</button>
+                </div>
+
+                <div id="onboarding-step-2" class="hidden space-y-3">
+                    <p class="text-xs text-slate-400">Choose the apps or types of work you use. You can select more than one.</p>
+                    <div id="platform-options" class="grid grid-cols-2 gap-2"></div>
+                    <div id="custom-platform-wrap" class="hidden">
+                        <label class="text-[11px] font-semibold text-slate-400 block mb-1">Other platform/company</label>
+                        <div class="flex gap-2">
+                            <input id="custom-platform-input" type="text" placeholder="Type once, save forever" class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white">
+                            <button type="button" onclick="addCustomPlatform()" class="px-4 rounded-xl bg-slate-800 text-white text-xs font-bold">Add</button>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 pt-2">
+                        <button type="button" onclick="showOnboardingStep(1)" class="w-1/3 bg-slate-900 border border-slate-800 text-white font-bold py-3 rounded-xl text-xs">Back</button>
+                        <button type="button" onclick="showOnboardingStep(3)" class="flex-1 bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs">Continue</button>
+                    </div>
+                </div>
+
+                <div id="onboarding-step-3" class="hidden space-y-3">
+                    <p class="text-xs text-slate-400">Which expenses do you normally have? Select the ones you want quick access to.</p>
+                    <div id="expense-preference-options" class="grid grid-cols-2 gap-2"></div>
+                    <div class="flex gap-2 pt-2">
+                        <button type="button" onclick="showOnboardingStep(2)" class="w-1/3 bg-slate-900 border border-slate-800 text-white font-bold py-3 rounded-xl text-xs">Back</button>
+                        <button type="button" onclick="finishOnboarding()" id="finish-onboarding-btn" class="flex-1 bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs">Finish Setup</button>
+                    </div>
+                    <p class="text-[10px] text-slate-500 text-center">You can always use “Other” later if something is not listed.</p>
+                </div>
             </div>
         </div>
 
@@ -485,10 +552,6 @@
                     <div>
                         <label class="text-[11px] font-semibold text-slate-400 block mb-1">Income Source</label>
                         <select id="income-source" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
-                            <option value="Uber">Uber</option>
-                            <option value="Bolt">Bolt</option>
-                            <option value="FREENOW">FREENOW</option>
-                            <option value="Private Job">Private Job</option>
                             <option value="Other">Other</option>
                         </select>
                     </div>
@@ -530,13 +593,6 @@
                         <div>
                             <label class="text-[11px] font-semibold text-slate-400 block mb-1">Category</label>
                             <select id="expense-category" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
-                                <option value="Fuel">Fuel</option>
-                                <option value="Maintenance">Maintenance</option>
-                                <option value="Insurance">Insurance</option>
-                                <option value="Phone">Phone</option>
-                                <option value="Cleaning / Car Wash">Cleaning / Car Wash</option>
-                                <option value="Parking & Tolls">Parking & Tolls</option>
-                                <option value="Licensing">Licensing</option>
                                 <option value="Other">Other</option>
                             </select>
                         </div>
@@ -584,6 +640,10 @@
             transactions: [],
             mileageTrips: [],
             taxReserveEntries: [],
+            profile: null,
+            selectedWorkType: '',
+            selectedPlatforms: [],
+            selectedExpenses: [],
             activeFilter: 'all',
             authMode: 'signin'
         };
@@ -616,6 +676,8 @@
                     document.getElementById('auth-screen').classList.add('hidden');
                     document.getElementById('user-display-name').textContent = session.user.email?.split('@')[0] || 'Driver';
                     await fetchUserData(session.user.id);
+                await checkAndShowOnboarding(session.user.id);
+                    await checkAndShowOnboarding(session.user.id);
                 } else if (event === 'SIGNED_OUT') {
                     appState.currentUser = null;
                     document.getElementById('auth-screen').classList.remove('hidden');
@@ -719,6 +781,7 @@
                     document.getElementById('auth-screen').classList.add('hidden');
                     document.getElementById('user-display-name').textContent = data.user.email?.split('@')[0] || 'Driver';
                     await fetchUserData(data.user.id);
+                    await checkAndShowOnboarding(data.user.id);
                     showToast('Signed in successfully');
                 } else if (appState.authMode === 'signup') {
                     const fullName = document.getElementById('auth-name').value.trim();
@@ -738,6 +801,7 @@
                         document.getElementById('auth-screen').classList.add('hidden');
                         document.getElementById('user-display-name').textContent = fullName || email.split('@')[0];
                         await fetchUserData(data.session.user.id);
+                        await checkAndShowOnboarding(data.session.user.id);
                         showToast('Account created successfully');
                     } else if (data?.user) {
                         switchAuthMode('signin');
@@ -759,6 +823,158 @@
             }
         }
 
+        async function signInWithProvider(provider) {
+            hideAuthMessages();
+            const { error } = await supabaseClient.auth.signInWithOAuth({
+                provider,
+                options: { redirectTo: window.location.origin + window.location.pathname }
+            });
+            if (error) showAuthError(provider === 'google'
+                ? 'Google sign-in is not enabled yet. We will connect it in Supabase next.'
+                : 'Apple sign-in is not enabled yet. We will connect it in Supabase next.');
+        }
+
+        const platformMap = {
+            'Taxi / Private Hire': ['Uber','Bolt','FREENOW','Private Customers','Other'],
+            'Food Delivery': ['Uber Eats','Deliveroo','Just Eat','Other'],
+            'Parcel / Courier': ['Amazon Flex','Courier Company','Private Courier Work','Other'],
+            'Vehicle / Business Driving': ['Business Travel','Vehicle Collection / Delivery','Private Work','Other'],
+            'Multiple Platforms': ['Uber','Bolt','FREENOW','Uber Eats','Deliveroo','Just Eat','Amazon Flex','Private Work','Other'],
+            'Other': ['Other']
+        };
+
+        const defaultExpenses = ['Fuel','Insurance','Maintenance','Phone','Cleaning / Car Wash','Parking & Tolls','Licensing','Other'];
+
+        async function checkAndShowOnboarding(userId) {
+            const { data, error } = await supabaseClient.from('profiles').select('*').eq('id', userId).single();
+            if (error) return;
+            appState.profile = data;
+            if (!data?.onboarding_completed) {
+                appState.selectedWorkType = data?.primary_work_type || '';
+                appState.selectedPlatforms = data?.platforms || [];
+                appState.selectedExpenses = data?.usual_expenses || [];
+                document.getElementById('onboarding-screen').classList.remove('hidden');
+                showOnboardingStep(1);
+            } else {
+                document.getElementById('onboarding-screen').classList.add('hidden');
+            }
+        }
+
+        function selectWorkType(btn, type) {
+            appState.selectedWorkType = type;
+            document.querySelectorAll('.work-option').forEach(b => {
+                b.classList.remove('border-emerald-500','bg-emerald-500/10');
+                b.classList.add('border-slate-800');
+            });
+            btn.classList.remove('border-slate-800');
+            btn.classList.add('border-emerald-500','bg-emerald-500/10');
+            document.getElementById('onboarding-next-1').disabled = false;
+        }
+
+        function showOnboardingStep(step) {
+            [1,2,3].forEach(n => document.getElementById('onboarding-step-'+n).classList.toggle('hidden', n !== step));
+            document.getElementById('onboarding-step-label').textContent = step + ' of 3';
+            document.getElementById('onboarding-progress').style.width = (step * 33.33) + '%';
+            const titles = {
+                1:'What type of driving work do you do?',
+                2:'Which platforms do you use?',
+                3:'Which expenses do you usually have?'
+            };
+            document.getElementById('onboarding-title').textContent = titles[step];
+            if (step === 2) renderPlatformOptions();
+            if (step === 3) renderExpensePreferenceOptions();
+        }
+
+        function renderPlatformOptions() {
+            const options = platformMap[appState.selectedWorkType] || ['Other'];
+            const box = document.getElementById('platform-options');
+            box.innerHTML = options.map(p => {
+                const active = appState.selectedPlatforms.includes(p);
+                return `<button type="button" onclick="togglePlatform('${p.replace(/'/g,"\\'")}', this)" class="platform-option rounded-xl border p-3 text-xs font-bold text-left ${active ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300' : 'border-slate-800 bg-slate-900 text-white'}">${p}</button>`;
+            }).join('');
+            document.getElementById('custom-platform-wrap').classList.toggle('hidden', !appState.selectedPlatforms.includes('Other'));
+        }
+
+        function togglePlatform(platform, btn) {
+            if (appState.selectedPlatforms.includes(platform)) {
+                appState.selectedPlatforms = appState.selectedPlatforms.filter(p => p !== platform);
+            } else {
+                appState.selectedPlatforms.push(platform);
+            }
+            renderPlatformOptions();
+        }
+
+        function addCustomPlatform() {
+            const input = document.getElementById('custom-platform-input');
+            const value = input.value.trim();
+            if (!value) return;
+            appState.selectedPlatforms = appState.selectedPlatforms.filter(p => p !== 'Other');
+            if (!appState.selectedPlatforms.includes(value)) appState.selectedPlatforms.push(value);
+            input.value = '';
+            renderPlatformOptions();
+        }
+
+        function renderExpensePreferenceOptions() {
+            const box = document.getElementById('expense-preference-options');
+            box.innerHTML = defaultExpenses.map(e => {
+                const active = appState.selectedExpenses.includes(e);
+                return `<button type="button" onclick="toggleExpensePreference('${e.replace(/'/g,"\\'")}', this)" class="rounded-xl border p-3 text-xs font-bold text-left ${active ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300' : 'border-slate-800 bg-slate-900 text-white'}">${e}</button>`;
+            }).join('');
+        }
+
+        function toggleExpensePreference(expense) {
+            if (appState.selectedExpenses.includes(expense)) {
+                appState.selectedExpenses = appState.selectedExpenses.filter(e => e !== expense);
+            } else {
+                appState.selectedExpenses.push(expense);
+            }
+            renderExpensePreferenceOptions();
+        }
+
+        async function finishOnboarding() {
+            if (!appState.currentUser || !appState.selectedWorkType) return;
+            const btn = document.getElementById('finish-onboarding-btn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            if (!appState.selectedPlatforms.length) appState.selectedPlatforms = ['Other'];
+            if (!appState.selectedExpenses.length) appState.selectedExpenses = [...defaultExpenses];
+
+            const { error } = await supabaseClient.from('profiles').update({
+                primary_work_type: appState.selectedWorkType,
+                work_types: [appState.selectedWorkType],
+                platforms: appState.selectedPlatforms,
+                usual_expenses: appState.selectedExpenses,
+                onboarding_completed: true
+            }).eq('id', appState.currentUser.id);
+
+            if (error) {
+                showToast('Could not save setup. Please retry.');
+                btn.disabled = false;
+                btn.textContent = 'Finish Setup';
+                return;
+            }
+            document.getElementById('onboarding-screen').classList.add('hidden');
+            await fetchUserData(appState.currentUser.id);
+            showToast('Setup complete');
+            btn.disabled = false;
+            btn.textContent = 'Finish Setup';
+        }
+
+        function populateIncomeSources() {
+            const select = document.getElementById('income-source');
+            if (!select) return;
+            const sources = [...new Set([...(appState.selectedPlatforms || []), 'Other'])];
+            select.innerHTML = sources.map(v => `<option value="${v.replace(/"/g,'&quot;')}">${v}</option>`).join('');
+        }
+
+        function populateExpenseCategories() {
+            const select = document.getElementById('expense-category');
+            if (!select) return;
+            const cats = [...new Set([...(appState.selectedExpenses || []), 'Other'])];
+            select.innerHTML = cats.map(v => `<option value="${v.replace(/"/g,'&quot;')}">${v}</option>`).join('');
+        }
+
         async function signOutUser() {
             await supabaseClient.auth.signOut();
             appState.currentUser = null;
@@ -770,13 +986,15 @@
             try {
                 const todayIso = new Date().toISOString().split('T')[0];
 
-                const [incomeRes, expenseRes, mileageRes, reserveRes] = await Promise.all([
+                const [profileRes, incomeRes, expenseRes, mileageRes, reserveRes] = await Promise.all([
+                    supabaseClient.from('profiles').select('*').eq('id', userId).single(),
                     supabaseClient.from('income').select('*').eq('user_id', userId),
                     supabaseClient.from('expenses').select('*').eq('user_id', userId),
                     supabaseClient.from('mileage').select('*').eq('user_id', userId).order('trip_date', { ascending: false }),
                     supabaseClient.from('tax_reserve').select('*').eq('user_id', userId).order('saved_on', { ascending: false })
                 ]);
 
+                if (profileRes.error) throw profileRes.error;
                 if (incomeRes.error) throw incomeRes.error;
                 if (expenseRes.error) throw expenseRes.error;
                 if (mileageRes.error) throw mileageRes.error;
@@ -830,6 +1048,12 @@
                 appState.transactions = transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
                 appState.mileageTrips = mileageRes.data || [];
                 appState.taxReserveEntries = reserveRes.data || [];
+                appState.profile = profileRes.data || null;
+                appState.selectedWorkType = profileRes.data?.primary_work_type || '';
+                appState.selectedPlatforms = profileRes.data?.platforms || [];
+                appState.selectedExpenses = profileRes.data?.usual_expenses || [];
+                populateIncomeSources();
+                populateExpenseCategories();
 
                 renderUI();
             } catch (err) {
