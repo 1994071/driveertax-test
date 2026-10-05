@@ -1437,8 +1437,8 @@
             appState.selectedCalendarDate = dateStr;
             appState.dailyEntryMode = true;
             appState.dailyEntryDate = dateStr;
-            showCalendarDay(dateStr);
 
+            showCalendarDay(dateStr);
             openIncomeModal();
             setDailyEntryButtons('income');
 
@@ -1448,27 +1448,29 @@
             if (incomeDate) incomeDate.value = dateStr;
             if (incomeAmount) incomeAmount.value = '';
             if (incomeNotes) incomeNotes.value = '';
-
             setTimeout(() => incomeAmount?.focus(), 50);
         }
 
         function finishDailyEntry() {
             const dateStr = appState.dailyEntryDate || appState.selectedCalendarDate || new Date().toISOString().split('T')[0];
+
+            document.getElementById('income-modal')?.classList.add('hidden');
+            document.getElementById('expense-modal')?.classList.add('hidden');
+            document.getElementById('mileage-modal')?.classList.add('hidden');
+
             appState.dailyEntryMode = false;
             appState.dailyEntryDate = null;
             setDailyEntryButtons(null);
-            document.getElementById('income-modal').classList.add('hidden');
-            document.getElementById('expense-modal').classList.add('hidden');
-            document.getElementById('mileage-modal').classList.add('hidden');
+
             showCalendarDay(dateStr);
         }
 
         function setDailyEntryButtons(step) {
-            const ids = ['income','expense','mileage'];
-            ids.forEach(name => {
+            ['income','expense','mileage'].forEach(name => {
                 const skip = document.getElementById(name + '-skip-btn');
                 const save = document.getElementById(name + '-submit-btn');
                 if (!skip || !save) return;
+
                 const active = appState.dailyEntryMode && name === step;
                 skip.classList.toggle('hidden', !active);
                 save.classList.toggle('col-span-2', !active);
@@ -1476,13 +1478,15 @@
         }
 
         function openDailyExpenseStep() {
-            document.getElementById('income-modal').classList.add('hidden');
+            document.getElementById('income-modal')?.classList.add('hidden');
             openExpenseModal();
             setDailyEntryButtons('expense');
+
             const date = appState.dailyEntryDate || appState.selectedCalendarDate;
             const expenseDate = document.getElementById('expense-date');
             const expenseAmount = document.getElementById('expense-amount');
             const expenseNotes = document.getElementById('expense-notes');
+
             if (expenseDate) expenseDate.value = date;
             if (expenseAmount) expenseAmount.value = '';
             if (expenseNotes) expenseNotes.value = '';
@@ -1490,22 +1494,35 @@
         }
 
         function openDailyMileageStep() {
-            document.getElementById('expense-modal').classList.add('hidden');
+            document.getElementById('expense-modal')?.classList.add('hidden');
             openMileageModal();
             setDailyEntryButtons('mileage');
+
             const date = appState.dailyEntryDate || appState.selectedCalendarDate;
             const mileageDate = document.getElementById('mileage-date');
             const mileageMiles = document.getElementById('mileage-miles');
             const mileageNotes = document.getElementById('mileage-notes');
+
             if (mileageDate) mileageDate.value = date;
             if (mileageMiles) mileageMiles.value = '';
             if (mileageNotes) mileageNotes.value = '';
             setTimeout(() => mileageMiles?.focus(), 50);
         }
 
-        function skipDailyIncome() { openDailyExpenseStep(); }
-        function skipDailyExpense() { openDailyMileageStep(); }
-        function skipDailyMileage() { finishDailyEntry(); }
+        function skipDailyIncome() {
+            if (!appState.dailyEntryMode) return;
+            openDailyExpenseStep();
+        }
+
+        function skipDailyExpense() {
+            if (!appState.dailyEntryMode) return;
+            openDailyMileageStep();
+        }
+
+        function skipDailyMileage() {
+            if (!appState.dailyEntryMode) return;
+            finishDailyEntry();
+        }
 
         function quickAddForSelectedDay(type) {
             const date = appState.selectedCalendarDate || new Date().toISOString().split('T')[0];
