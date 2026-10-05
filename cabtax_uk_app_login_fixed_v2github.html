@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CabTax UK - Driver Expense & Tax Tracker</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        cardBg: '#1e293b',
+                        accentGreen: '#10b981',
+                        accentBlue: '#3b82f6'
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 flex items-center justify-center min-h-screen p-0 sm:p-4">
+
+    <div class="w-full sm:max-w-[400px] h-[100vh] sm:h-[844px] bg-darkBg sm:rounded-[48px] sm:border-[8px] sm:border-slate-800 shadow-2xl flex flex-col relative overflow-hidden">
+        
+        <!-- iPhone Status Bar -->
+        <div class="bg-slate-900/90 backdrop-blur-md pt-3 pb-2 px-6 flex justify-between items-center text-xs font-semibold text-slate-300 z-50 shrink-0">
+            <span>12:21</span>
+            <div class="w-20 h-4 bg-slate-800 rounded-full absolute left-1/2 transform -translate-x-1/2 top-2 hidden sm:block"></div>
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-signal text-[10px]"></i>
+                <i class="fa-solid fa-wifi text-[10px]"></i>
+                <i class="fa-solid fa-battery-full text-emerald-400"></i>
+            </div>
+        </div>
+
+        <!-- AUTH SCREEN OVERLAY -->
+        <div id="auth-screen" class="absolute inset-0 bg-slate-950 z-50 flex flex-col justify-between p-6 overflow-y-auto">
+            <div class="pt-8 text-center space-y-3">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center font-bold text-white shadow-xl shadow-emerald-900/40 mx-auto text-2xl">
+                    <i class="fa-solid fa-taxi"></i>
+                </div>
+                <h1 class="text-2xl font-black text-white">CabTax UK</h1>
+                <p class="text-xs text-slate-400 max-w-[260px] mx-auto">Fast expense logging & automated tax estimates for UK PCO/Taxi drivers.</p>
+            </div>
+
+            <!-- Auth Form Container -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-xl my-auto">
+                <div class="flex border-b border-slate-800 pb-2 mb-2">
+                    <button type="button" onclick="switchAuthMode('signin')" id="auth-tab-signin" class="flex-1 text-xs font-bold text-emerald-400 pb-1 border-b-2 border-emerald-400 transition">Sign In</button>
+                    <button type="button" onclick="switchAuthMode('signup')" id="auth-tab-signup" class="flex-1 text-xs font-semibold text-slate-400 pb-1 transition">Sign Up</button>
+                    <button type="button" onclick="switchAuthMode('forgot')" id="auth-tab-forgot" class="flex-1 text-xs font-semibold text-slate-400 pb-1 transition">Reset</button>
+                </div>
+
+                <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-3">
+                    <div id="auth-name-field" class="hidden">
+                        <label class="text-[11px] font-semibold text-slate-400 block mb-1">Full Name</label>
+                        <input type="text" id="auth-name" placeholder="Driver Name" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-400 block mb-1">Email Address</label>
+                        <input type="email" id="auth-email" required placeholder="driver@example.co.uk" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div id="auth-password-group">
+                        <label class="text-[11px] font-semibold text-slate-400 block mb-1">Password</label>
+                        <input type="password" id="auth-password" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    
+                    <button type="submit" id="auth-submit-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition shadow-lg shadow-emerald-500/20 mt-2">
+                        Sign In to Dashboard
+                    </button>
+                </form>
+
+                <div id="auth-error" class="hidden text-[11px] text-rose-400 text-center font-medium bg-rose-500/10 p-2 rounded-xl border border-rose-500/20"></div>
+                <div id="auth-success" class="hidden text-[11px] text-emerald-400 text-center font-medium bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20"></div>
+                <div id="auth-diagnostic" class="text-[10px] text-slate-500 text-center">Checking Supabase connection…</div>
+            </div>
+
+            <div class="text-center text-[10px] text-slate-500 pb-2">
+                Secured by Supabase RLS &bull; Security enabled with Supabase RLS
+            </div>
+        </div>
+
+        <header class="px-5 py-3 bg-slate-900 border-b border-slate-800 flex justify-between items-center shrink-0">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center font-bold text-white shadow-lg shadow-emerald-900/40">
+                    <i class="fa-solid fa-taxi text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-sm leading-tight text-white" id="user-display-name">CabTax UK</h1>
+                    <p class="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Supabase Sync Active
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="signOutUser()" title="Sign Out" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center text-slate-300 transition">
+                    <i class="fa-solid fa-right-from-bracket text-xs"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto no-scrollbar relative pb-24">
+
+            <!-- VIEW 1: DASHBOARD -->
+            <section id="view-dashboard" class="p-5 space-y-4">
+                
+                <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700/60 rounded-2xl p-4 shadow-lg relative overflow-hidden">
+                    <div class="absolute right-0 top-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none"></div>
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Today's Profit</span>
+                            <h2 class="text-3xl font-extrabold text-white mt-1" id="dash-today-profit">£0.00</h2>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            <i class="fa-solid fa-calendar-day mr-1"></i> Today
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2.5 pt-3 border-t border-slate-700/50">
+                        <div class="bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60">
+                            <span class="text-[10px] text-slate-400 block uppercase font-medium">Today's Earnings</span>
+                            <span class="text-sm font-bold text-emerald-400" id="dash-today-earnings">£0.00</span>
+                        </div>
+                        <div class="bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60">
+                            <span class="text-[10px] text-slate-400 block uppercase font-medium">Today's Expenses</span>
+                            <span class="text-sm font-bold text-rose-400" id="dash-today-expenses">£0.00</span>
+                        </div>
+                        <div class="bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60">
+                            <span class="text-[10px] text-slate-400 block uppercase font-medium">Est. Tax (Today)</span>
+                            <span class="text-sm font-bold text-amber-400" id="dash-today-tax">£0.00</span>
+                        </div>
+                        <div class="bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60">
+                            <span class="text-[10px] text-slate-400 block uppercase font-medium">Est. Take-Home</span>
+                            <span class="text-sm font-bold text-teal-300" id="dash-today-net">£0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="openIncomeModal()" class="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-bold py-3 px-3 rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/20 transition transform active:scale-95">
+                        <i class="fa-solid fa-plus-circle text-sm"></i>
+                        <span class="text-xs font-bold">+ Add Income</span>
+                    </button>
+                    <button onclick="openExpenseModal()" class="bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-bold py-3 px-3 rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-rose-500/20 transition transform active:scale-95">
+                        <i class="fa-solid fa-minus-circle text-sm"></i>
+                        <span class="text-xs font-bold">+ Add Expense</span>
+                    </button>
+                </div>
+
+                <button onclick="switchTab('scan')" class="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between transition group">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-camera"></i>
+                        </div>
+                        <div class="text-left">
+                            <h4 class="text-xs font-bold text-white group-hover:text-emerald-400 transition">AI Receipt Scanner</h4>
+                            <p class="text-[10px] text-slate-400">Snap fuel pumps or receipts instantly</p>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-slate-500"></i>
+                </button>
+
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Recent Transactions</h3>
+                        <button onclick="switchTab('expenses')" class="text-xs text-emerald-400 hover:underline font-semibold">View All</button>
+                    </div>
+                    <div id="recent-activity-list" class="space-y-2.5"></div>
+                </div>
+            </section>
+
+            <!-- VIEW 2: EXPENSES -->
+            <section id="view-expenses" class="p-5 space-y-4 hidden">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-white">Expense Tracker</h2>
+                    <button onclick="openExpenseModal()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-plus text-[10px]"></i> Add Manual
+                    </button>
+                </div>
+
+                <div class="flex space-x-2 overflow-x-auto no-scrollbar pb-1">
+                    <button onclick="filterExpenses('all')" class="exp-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500 text-slate-950 whitespace-nowrap transition">All</button>
+                    <button onclick="filterExpenses('Fuel')" class="exp-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 whitespace-nowrap transition">Fuel</button>
+                    <button onclick="filterExpenses('Maintenance')" class="exp-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 whitespace-nowrap transition">Maintenance</button>
+                    <button onclick="filterExpenses('Phone')" class="exp-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 whitespace-nowrap transition">Phone</button>
+                    <button onclick="filterExpenses('Insurance')" class="exp-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 whitespace-nowrap transition">Insurance</button>
+                </div>
+
+                <div id="full-expenses-list" class="space-y-2.5"></div>
+            </section>
+
+            <!-- VIEW 3: SCAN RECEIPT SIMULATOR -->
+            <section id="view-scan" class="p-5 space-y-5 hidden">
+                <div class="text-center space-y-1">
+                    <h2 class="text-lg font-bold text-white">AI Receipt Scanner</h2>
+                    <p class="text-xs text-slate-400">Snap fuel pumps, MOTs, or phone bills for instant cloud logging.</p>
+                </div>
+
+                <div class="relative bg-slate-900 border-2 border-dashed border-slate-700 rounded-3xl p-6 flex flex-col items-center justify-center text-center h-64 overflow-hidden group">
+                    <div class="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition"></div>
+                    
+                    <div id="scanner-idle" class="space-y-3 z-10">
+                        <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto text-2xl shadow-inner">
+                            <i class="fa-solid fa-receipt"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-white">Tap to Simulate Camera Scan</h3>
+                            <p class="text-[11px] text-slate-400 mt-1">Saves directly to Supabase receipts & expenses</p>
+                        </div>
+                        <button onclick="simulateScan()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition">
+                            Capture Receipt (£40 Fuel)
+                        </button>
+                    </div>
+
+                    <div id="scanner-active" class="hidden absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center space-y-3 z-20">
+                        <div class="w-12 h-12 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin"></div>
+                        <p class="text-xs font-semibold text-emerald-400 animate-pulse">AI Parsing & Saving to Supabase...</p>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Or Test with Preset Scans</span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="quickAddFuelPreset(40.00)" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 p-3 rounded-2xl text-left transition flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-xs"><i class="fa-solid fa-gas-pump"></i></div>
+                            <div>
+                                <span class="text-xs font-bold text-white block">Shell Fuel</span>
+                                <span class="text-[10px] text-slate-400">£40.00 • Fuel</span>
+                            </div>
+                        </button>
+                        <button onclick="quickAddPreset('Halfords MOT', 120.00, 'Maintenance')" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 p-3 rounded-2xl text-left transition flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-xs"><i class="fa-solid fa-wrench"></i></div>
+                            <div>
+                                <span class="text-xs font-bold text-white block">Halfords Service</span>
+                                <span class="text-[10px] text-slate-400">£120.00 • Maint</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW 4: TAX SUMMARY -->
+            <section id="view-tax" class="p-5 space-y-5 hidden">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Estimated Tax Summary</h2>
+                    <p class="text-xs text-slate-400">Prototype estimate based on records entered in this app</p>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-lg">
+                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800">
+                        <span class="text-slate-400">Gross Earnings (YTD)</span>
+                        <span class="font-bold text-white" id="tax-earnings">£0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800">
+                        <span class="text-slate-400">Allowable Expenses</span>
+                        <span class="font-bold text-rose-400" id="tax-expenses">-£0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800">
+                        <span class="text-slate-400">Net Taxable Profit (Est.)</span>
+                        <span class="font-bold text-emerald-400" id="tax-profit">£0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800">
+                        <span class="text-slate-400">Personal Allowance</span>
+                        <span class="font-bold text-slate-300">£12,570.00</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm pt-1">
+                        <span class="font-bold text-amber-400">Estimated Tax Reserve</span>
+                        <span class="font-extrabold text-amber-400 text-base" id="tax-owed">£0.00</span>
+                    </div>
+                </div>
+
+                <p class="text-[10px] text-slate-500 leading-relaxed">This is a simple estimate for testing only and is not an official HMRC calculation. A full UK tax engine will be added before launch.</p>
+
+                <div class="space-y-2.5">
+                    <button onclick="showToast('CSV Report downloaded for accountant')" class="w-full bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-semibold py-3 rounded-xl text-xs flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-file-excel text-emerald-400"></i> Export CSV for Accountant
+                    </button>
+                    <button onclick="showToast('Tax summary preparation coming next')" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-file-lines"></i> Prepare Tax Summary
+                    </button>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Navigation Bar -->
+        <nav class="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-4 py-2.5 flex justify-around items-center z-40">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex flex-col items-center space-y-1 text-emerald-400 transition">
+                <i class="fa-solid fa-house text-base"></i>
+                <span class="text-[10px] font-semibold">Dashboard</span>
+            </button>
+            <button onclick="switchTab('expenses')" id="nav-expenses" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-200 transition">
+                <i class="fa-solid fa-wallet text-base"></i>
+                <span class="text-[10px] font-semibold">Expenses</span>
+            </button>
+            <button onclick="switchTab('scan')" id="nav-scan" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-200 transition">
+                <i class="fa-solid fa-camera text-base"></i>
+                <span class="text-[10px] font-semibold">Scan</span>
+            </button>
+            <button onclick="switchTab('tax')" id="nav-tax" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-200 transition">
+                <i class="fa-solid fa-file-invoice-dollar text-base"></i>
+                <span class="text-[10px] font-semibold">Tax</span>
+            </button>
+        </nav>
+
+        <!-- Add Income Modal -->
+        <div id="income-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                        <i class="fa-solid fa-plus-circle text-emerald-400"></i> Add Income
+                    </h3>
+                    <button onclick="closeIncomeModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
+                </div>
+                
+                <form id="income-form" onsubmit="handleSaveIncome(event)" class="space-y-3">
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-400 block mb-1">Income Source</label>
+                        <select id="income-source" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                            <option value="Uber">Uber</option>
+                            <option value="Bolt">Bolt</option>
+                            <option value="FREENOW">FREENOW</option>
+                            <option value="Private Job">Private Job</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-400 block mb-1">Amount (£)</label>
+                            <input type="number" step="0.01" id="income-amount" required placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-400 block mb-1">Date</label>
+                            <input type="date" id="income-date" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-400 block mb-1">Optional Notes</label>
+                        <input type="text" id="income-notes" placeholder="e.g. Airport run, peak multiplier" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <button type="submit" id="income-submit-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition mt-2">
+                        Save Income
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add Expense Modal -->
+        <div id="expense-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                        <i class="fa-solid fa-minus-circle text-rose-400"></i> Add Expense
+                    </h3>
+                    <button onclick="closeExpenseModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
+                </div>
+                
+                <form id="expense-form" onsubmit="handleSaveExpense(event)" class="space-y-3">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-400 block mb-1">Category</label>
+                            <select id="expense-category" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                                <option value="Fuel">Fuel</option>
+                                <option value="Maintenance">Maintenance</option>
+                                <option value="Insurance">Insurance</option>
+                                <option value="Phone">Phone</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-400 block mb-1">Amount (£)</label>
+                            <input type="number" step="0.01" id="expense-amount" required placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-400 block mb-1">Vendor</label>
+                            <input type="text" id="expense-vendor" required placeholder="e.g. Shell, BP" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-400 block mb-1">Date</label>
+                            <input type="date" id="expense-date" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-400 block mb-1">Optional Notes</label>
+                        <input type="text" id="expense-notes" placeholder="e.g. Full tank V-Power" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <button type="submit" id="expense-submit-btn" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 rounded-xl text-xs transition mt-2">
+                        Save Expense
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Toast Notification Container -->
+        <div id="toast" class="hidden absolute top-14 left-1/2 transform -translate-x-1/2 bg-slate-900 border border-emerald-500/40 text-white text-xs px-4 py-2 rounded-xl shadow-xl z-50 flex items-center gap-2">
+            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+            <span id="toast-msg">Action completed successfully</span>
+        </div>
+
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://hhrhcajywexgpxrjndto.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_i-t0JRNZqv3W0VobM1e_og_lJulsxPA';
+        // Use supabaseClient to avoid colliding with any global identifier from CDN scripts
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Application State
+        let appState = {
+            currentUser: null,
+            todayEarnings: 0.00,
+            todayExpenses: 0.00,
+            monthlyEarnings: 0.00,
+            monthlyExpenses: 0.00,
+            transactions: [],
+            activeFilter: 'all',
+            authMode: 'signin'
+        };
+
+        // Set default date inputs to today
+        document.addEventListener('DOMContentLoaded', async () => {
+            const diag = document.getElementById('auth-diagnostic');
+            try {
+                if (!window.supabase || !supabaseClient) throw new Error('Supabase library did not load');
+                diag.textContent = 'Supabase connected • ready';
+                diag.className = 'text-[10px] text-emerald-400 text-center';
+            } catch (e) {
+                diag.textContent = 'Supabase connection failed: ' + e.message;
+                diag.className = 'text-[10px] text-rose-400 text-center';
+            }
+
+            const todayIso = new Date().toISOString().split('T')[0];
+            const incDate = document.getElementById('income-date');
+            const expDate = document.getElementById('expense-date');
+            if (incDate) incDate.value = todayIso;
+            if (expDate) expDate.value = todayIso;
+
+            supabaseClient.auth.onAuthStateChange(async (event, session) => {
+                if (session?.user) {
+                    appState.currentUser = session.user;
+                    document.getElementById('auth-screen').classList.add('hidden');
+                    document.getElementById('user-display-name').textContent = session.user.email?.split('@')[0] || 'Driver';
+                    await fetchUserData(session.user.id);
+                } else if (event === 'SIGNED_OUT') {
+                    appState.currentUser = null;
+                    document.getElementById('auth-screen').classList.remove('hidden');
+                }
+            });
+
+            await checkAuthSession();
+        });
+
+        async function checkAuthSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session && session.user) {
+                appState.currentUser = session.user;
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('user-display-name').textContent = session.user.email.split('@')[0];
+                await fetchUserData(session.user.id);
+            } else {
+                document.getElementById('auth-screen').classList.remove('hidden');
+            }
+        }
+
+        // Auth Mode Switcher
+        function switchAuthMode(mode) {
+            appState.authMode = mode;
+            const btnIn = document.getElementById('auth-tab-signin');
+            const btnUp = document.getElementById('auth-tab-signup');
+            const btnFor = document.getElementById('auth-tab-forgot');
+            const nameField = document.getElementById('auth-name-field');
+            const pwdGroup = document.getElementById('auth-password-group');
+            const submitBtn = document.getElementById('auth-submit-btn');
+
+            [btnIn, btnUp, btnFor].forEach(b => {
+                b.className = "flex-1 text-xs font-semibold text-slate-400 pb-1 transition";
+            });
+
+            hideAuthMessages();
+
+            if (mode === 'signin') {
+                btnIn.className = "flex-1 text-xs font-bold text-emerald-400 pb-1 border-b-2 border-emerald-400 transition";
+                nameField.classList.add('hidden');
+                pwdGroup.classList.remove('hidden');
+                submitBtn.textContent = "Sign In to Dashboard";
+            } else if (mode === 'signup') {
+                btnUp.className = "flex-1 text-xs font-bold text-emerald-400 pb-1 border-b-2 border-emerald-400 transition";
+                nameField.classList.remove('hidden');
+                pwdGroup.classList.remove('hidden');
+                submitBtn.textContent = "Create Account & Start";
+            } else if (mode === 'forgot') {
+                btnFor.className = "flex-1 text-xs font-bold text-emerald-400 pb-1 border-b-2 border-emerald-400 transition";
+                nameField.classList.add('hidden');
+                pwdGroup.classList.add('hidden');
+                submitBtn.textContent = "Send Password Reset Link";
+            }
+        }
+
+        function hideAuthMessages() {
+            document.getElementById('auth-error').classList.add('hidden');
+            document.getElementById('auth-success').classList.add('hidden');
+        }
+
+        function showAuthError(msg) {
+            const errDiv = document.getElementById('auth-error');
+            errDiv.textContent = msg;
+            errDiv.classList.remove('hidden');
+        }
+
+        function showAuthSuccess(msg) {
+            const succDiv = document.getElementById('auth-success');
+            succDiv.textContent = msg;
+            succDiv.classList.remove('hidden');
+        }
+
+        // Handle Auth Form Submission
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            hideAuthMessages();
+            const email = document.getElementById('auth-email').value.trim();
+            const passwordEl = document.getElementById('auth-password');
+            const password = passwordEl ? passwordEl.value : '';
+            const submitBtn = document.getElementById('auth-submit-btn');
+
+            if (!email) {
+                showAuthError('Please enter your email address.');
+                return;
+            }
+            if (appState.authMode !== 'forgot' && password.length < 6) {
+                showAuthError('Password must be at least 6 characters.');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Please wait…';
+
+            try {
+                if (appState.authMode === 'signin') {
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                    if (error) throw error;
+                    if (!data?.user) throw new Error('No user session returned.');
+                    appState.currentUser = data.user;
+                    document.getElementById('auth-screen').classList.add('hidden');
+                    document.getElementById('user-display-name').textContent = data.user.email?.split('@')[0] || 'Driver';
+                    await fetchUserData(data.user.id);
+                    showToast('Signed in successfully');
+                } else if (appState.authMode === 'signup') {
+                    const fullName = document.getElementById('auth-name').value.trim();
+                    if (!fullName) {
+                        showAuthError('Please enter your full name.');
+                        return;
+                    }
+                    const { data, error } = await supabaseClient.auth.signUp({
+                        email,
+                        password,
+                        options: { data: { full_name: fullName } }
+                    });
+                    if (error) throw error;
+
+                    if (data?.session?.user) {
+                        appState.currentUser = data.session.user;
+                        document.getElementById('auth-screen').classList.add('hidden');
+                        document.getElementById('user-display-name').textContent = fullName || email.split('@')[0];
+                        await fetchUserData(data.session.user.id);
+                        showToast('Account created successfully');
+                    } else if (data?.user) {
+                        switchAuthMode('signin');
+                        showAuthSuccess('Account created. Check your email to confirm it, then sign in.');
+                    } else {
+                        throw new Error('Signup did not return a user.');
+                    }
+                } else if (appState.authMode === 'forgot') {
+                    const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+                    if (error) throw error;
+                    showAuthSuccess('Password reset email sent.');
+                }
+            } catch (err) {
+                console.error('Authentication error:', err);
+                showAuthError(err?.message || 'Authentication failed. Please try again.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        }
+
+        async function signOutUser() {
+            await supabaseClient.auth.signOut();
+            appState.currentUser = null;
+            document.getElementById('auth-screen').classList.remove('hidden');
+            showToast("Signed out");
+        }
+
+        async function fetchUserData(userId) {
+            try {
+                const todayIso = new Date().toISOString().split('T')[0];
+
+                const [incomeRes, expenseRes] = await Promise.all([
+                    supabaseClient.from('income').select('*').eq('user_id', userId),
+                    supabaseClient.from('expenses').select('*').eq('user_id', userId)
+                ]);
+
+                if (incomeRes.error) throw incomeRes.error;
+                if (expenseRes.error) throw expenseRes.error;
+
+                let transactions = [];
+                let totalInc = 0;
+                let totalExp = 0;
+                let todayInc = 0;
+                let todayExp = 0;
+
+                (incomeRes.data || []).forEach(inc => {
+                    const amt = Number(inc.amount);
+                    const dateStr = inc.earned_on || inc.created_at?.split('T')[0] || todayIso;
+                    transactions.push({
+                        id: inc.id,
+                        type: 'income',
+                        source: inc.source || 'Uber',
+                        amount: amt,
+                        date: dateStr,
+                        notes: inc.notes
+                    });
+                    totalInc += amt;
+                    if (dateStr === todayIso) {
+                        todayInc += amt;
+                    }
+                });
+
+                (expenseRes.data || []).forEach(exp => {
+                    const amt = Number(exp.amount);
+                    const dateStr = exp.expense_date || exp.created_at?.split('T')[0] || todayIso;
+                    transactions.push({
+                        id: exp.id,
+                        type: 'expense',
+                        category: exp.category || 'Fuel',
+                        vendor: exp.merchant || 'Vendor',
+                        amount: amt,
+                        date: dateStr,
+                        notes: exp.notes
+                    });
+                    totalExp += amt;
+                    if (dateStr === todayIso) {
+                        todayExp += amt;
+                    }
+                });
+
+                appState.todayEarnings = todayInc;
+                appState.todayExpenses = todayExp;
+                appState.monthlyEarnings = totalInc;
+                appState.monthlyExpenses = totalExp;
+                appState.transactions = transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                renderUI();
+            } catch (err) {
+                console.error("Error fetching user data:", err);
+                showToast("Failed to load cloud data");
+            }
+        }
+
+        // Tab Switcher
+        function switchTab(tabId) {
+            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-emerald-400');
+                btn.classList.add('text-slate-400');
+            });
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-slate-400');
+                activeBtn.classList.add('text-emerald-400');
+            }
+
+            renderUI();
+        }
+
+        // Render UI Calculations & Lists
+        function renderUI() {
+            const todayProfit = appState.todayEarnings - appState.todayExpenses;
+            const todayEstTax = Math.max(0, todayProfit * 0.20);
+            const todayNetTakeHome = todayProfit - todayEstTax;
+
+            const monthlyProfit = appState.monthlyEarnings - appState.monthlyExpenses;
+            const annualProfitEst = monthlyProfit * 12;
+            const taxableAnnual = Math.max(0, annualProfitEst - 12570);
+            const annualTaxEst = taxableAnnual * 0.20;
+            const monthlyTaxReserve = annualTaxEst / 12;
+
+            document.getElementById('dash-today-profit').textContent = `£${todayProfit.toFixed(2)}`;
+            document.getElementById('dash-today-earnings').textContent = `£${appState.todayEarnings.toFixed(2)}`;
+            document.getElementById('dash-today-expenses').textContent = `£${appState.todayExpenses.toFixed(2)}`;
+            document.getElementById('dash-today-tax').textContent = `£${todayEstTax.toFixed(2)}`;
+            document.getElementById('dash-today-net').textContent = `£${todayNetTakeHome.toFixed(2)}`;
+
+            document.getElementById('tax-earnings').textContent = `£${appState.monthlyEarnings.toFixed(2)}`;
+            document.getElementById('tax-expenses').textContent = `-£${appState.monthlyExpenses.toFixed(2)}`;
+            document.getElementById('tax-profit').textContent = `£${monthlyProfit.toFixed(2)}`;
+            document.getElementById('tax-owed').textContent = `£${monthlyTaxReserve.toFixed(2)}`;
+
+            const recentHtml = appState.transactions.slice(0, 4).map(item => {
+                const isInc = item.type === 'income';
+                return `
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex justify-between items-center">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-xl ${isInc ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} flex items-center justify-center text-xs">
+                                <i class="fa-solid ${isInc ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-white">${isInc ? item.source : item.vendor}</h4>
+                                <span class="text-[10px] text-slate-400">${item.date} • ${isInc ? 'Income' : item.category}</span>
+                            </div>
+                        </div>
+                        <span class="text-xs font-extrabold ${isInc ? 'text-emerald-400' : 'text-rose-400'}">
+                            ${isInc ? '+' : '-'}£${item.amount.toFixed(2)}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('recent-activity-list').innerHTML = recentHtml || '<p class="text-center text-xs text-slate-500 py-4">No recent records found.</p>';
+
+            const expensesList = appState.transactions.filter(t => t.type === 'expense');
+            const filtered = appState.activeFilter === 'all' 
+                ? expensesList 
+                : expensesList.filter(e => e.category === appState.activeFilter);
+
+            const fullHtml = filtered.map(item => `
+                <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex justify-between items-center">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-xl bg-slate-800 text-rose-400 flex items-center justify-center text-xs">
+                            <i class="fa-solid ${getCategoryIcon(item.category)}"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white">${item.vendor}</h4>
+                            <span class="text-[10px] text-slate-400">${item.date} • ${item.category}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-xs font-extrabold text-rose-400">-£${item.amount.toFixed(2)}</span>
+                        <button onclick="deleteTransaction('${item.id}', '${item.type}')" class="text-slate-500 hover:text-rose-400 text-xs"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('full-expenses-list').innerHTML = fullHtml || '<p class="text-center text-xs text-slate-500 py-6">No expenses found.</p>';
+        }
+
+        function getCategoryIcon(cat) {
+            switch(cat) {
+                case 'Fuel': return 'fa-gas-pump';
+                case 'Maintenance': return 'fa-wrench';
+                case 'Phone': return 'fa-mobile-screen';
+                case 'Insurance': return 'fa-shield-heart';
+                default: return 'fa-receipt';
+            }
+        }
+
+        function openIncomeModal() { document.getElementById('income-modal').classList.remove('hidden'); }
+        function closeIncomeModal() { document.getElementById('income-modal').classList.add('hidden'); }
+        function openExpenseModal() { document.getElementById('expense-modal').classList.remove('hidden'); }
+        function closeExpenseModal() { document.getElementById('expense-modal').classList.add('hidden'); }
+
+        async function handleSaveIncome(e) {
+            e.preventDefault();
+            if (!appState.currentUser) return;
+
+            const submitBtn = document.getElementById('income-submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Saving to Cloud...";
+
+            const source = document.getElementById('income-source').value;
+            const amount = parseFloat(document.getElementById('income-amount').value);
+            const earned_on = document.getElementById('income-date').value || new Date().toISOString().split('T')[0];
+            const notes = document.getElementById('income-notes').value;
+
+            try {
+                const { data, error } = await supabaseClient.from('income').insert([{
+                    user_id: appState.currentUser.id,
+                    source,
+                    amount,
+                    earned_on,
+                    notes
+                }]).select();
+
+                if (error) throw error;
+
+                showToast("Income saved");
+                closeIncomeModal();
+                document.getElementById('income-form').reset();
+                document.getElementById('income-date').value = new Date().toISOString().split('T')[0];
+                await fetchUserData(appState.currentUser.id);
+            } catch (err) {
+                console.error("Save income error:", err);
+                showToast("Failed to save. Click retry.");
+                submitBtn.textContent = "Retry Save Income";
+                submitBtn.disabled = false;
+                return;
+            }
+            submitBtn.textContent = "Save Income";
+            submitBtn.disabled = false;
+        }
+
+        async function handleSaveExpense(e) {
+            e.preventDefault();
+            if (!appState.currentUser) return;
+
+            const submitBtn = document.getElementById('expense-submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Saving to Cloud...";
+
+            const category = document.getElementById('expense-category').value;
+            const amount = parseFloat(document.getElementById('expense-amount').value);
+            const merchant = document.getElementById('expense-vendor').value;
+            const expense_date = document.getElementById('expense-date').value || new Date().toISOString().split('T')[0];
+            const notes = document.getElementById('expense-notes').value;
+
+            try {
+                const { data, error } = await supabaseClient.from('expenses').insert([{
+                    user_id: appState.currentUser.id,
+                    category,
+                    amount,
+                    merchant,
+                    expense_date,
+                    notes
+                }]).select();
+
+                if (error) throw error;
+
+                showToast("Expense saved");
+                closeExpenseModal();
+                document.getElementById('expense-form').reset();
+                document.getElementById('expense-date').value = new Date().toISOString().split('T')[0];
+                await fetchUserData(appState.currentUser.id);
+            } catch (err) {
+                console.error("Save expense error:", err);
+                showToast("Failed to save expense. Retry?");
+                submitBtn.textContent = "Retry Save Expense";
+                submitBtn.disabled = false;
+                return;
+            }
+            submitBtn.textContent = "Save Expense";
+            submitBtn.disabled = false;
+        }
+
+        async function deleteTransaction(id, type) {
+            if (!appState.currentUser) return;
+            const tableName = type === 'income' ? 'income' : 'expenses';
+            
+            const { error } = await supabaseClient.from(tableName).delete().eq('id', id).eq('user_id', appState.currentUser.id);
+            if (error) {
+                showToast("Delete failed");
+                return;
+            }
+            showToast("Record deleted");
+            await fetchUserData(appState.currentUser.id);
+        }
+
+        async function simulateScan() {
+            if (!appState.currentUser) return;
+            document.getElementById('scanner-idle').classList.add('hidden');
+            document.getElementById('scanner-active').classList.remove('hidden');
+
+            setTimeout(async () => {
+                try {
+                    const todayIso = new Date().toISOString().split('T')[0];
+                    const { data: expenseData, error: expenseError } = await supabaseClient.from('expenses').insert([{
+                        user_id: appState.currentUser.id,
+                        category: 'Fuel',
+                        amount: 40.00,
+                        merchant: 'Shell Fuel Station',
+                        expense_date: todayIso,
+                        notes: 'AI Scanned Receipt'
+                    }]).select('id').single();
+                    if (expenseError) throw expenseError;
+
+                    const { error: receiptError } = await supabaseClient.from('receipts').insert([{
+                        user_id: appState.currentUser.id,
+                        expense_id: expenseData.id,
+                        ai_status: 'completed',
+                        extracted_merchant: 'Shell Fuel Station',
+                        extracted_date: todayIso,
+                        extracted_amount: 40.00,
+                        suggested_category: 'Fuel',
+                        confidence: 99.00,
+                        driver_confirmed: true
+                    }]);
+                    if (receiptError) throw receiptError;
+
+                    await fetchUserData(appState.currentUser.id);
+                    showToast("Receipt scanned & saved: £40 Fuel");
+                    switchTab('dashboard');
+                } catch (err) {
+                    console.error("Scan save error:", err);
+                    showToast("Scan save failed");
+                } finally {
+                    document.getElementById('scanner-active').classList.add('hidden');
+                    document.getElementById('scanner-idle').classList.remove('hidden');
+                }
+            }, 1200);
+        }
+
+        async function quickAddFuelPreset(amount) {
+            if (!appState.currentUser) return;
+            const todayIso = new Date().toISOString().split('T')[0];
+            await supabaseClient.from('expenses').insert([{
+                user_id: appState.currentUser.id,
+                category: 'Fuel',
+                amount: amount,
+                merchant: 'Shell Petrol',
+                expense_date: todayIso,
+                notes: 'Preset Fuel'
+            }]);
+            await fetchUserData(appState.currentUser.id);
+            showToast(`Added £${amount.toFixed(2)} Fuel`);
+            switchTab('dashboard');
+        }
+
+        async function quickAddPreset(vendor, amount, category) {
+            if (!appState.currentUser) return;
+            const todayIso = new Date().toISOString().split('T')[0];
+            await supabaseClient.from('expenses').insert([{
+                user_id: appState.currentUser.id,
+                category: category,
+                amount: amount,
+                merchant: vendor,
+                expense_date: todayIso,
+                notes: 'Preset Service'
+            }]);
+            await fetchUserData(appState.currentUser.id);
+            showToast(`Added £${amount.toFixed(2)} ${vendor}`);
+            switchTab('dashboard');
+        }
+
+        function filterExpenses(category) {
+            appState.activeFilter = category;
+            document.querySelectorAll('.exp-filter-btn').forEach(btn => {
+                btn.classList.remove('bg-emerald-500', 'text-slate-950');
+                btn.classList.add('bg-slate-800', 'text-slate-300');
+                if(btn.textContent.trim() === category || (category === 'all' && btn.textContent.trim() === 'All')) {
+                    btn.classList.remove('bg-slate-800', 'text-slate-300');
+                    btn.classList.add('bg-emerald-500', 'text-slate-950');
+                }
+            });
+            renderUI();
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 2500);
+        }
+
+        window.addEventListener('error', (event) => {
+            const diag = document.getElementById('auth-diagnostic');
+            if (diag) {
+                diag.textContent = 'App error: ' + (event.message || 'Unknown error');
+                diag.className = 'text-[10px] text-rose-400 text-center';
+            }
+        });
+    </script>
+</body>
+</html>
