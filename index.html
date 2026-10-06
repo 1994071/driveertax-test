@@ -499,10 +499,22 @@
                         <i class="fa-solid fa-chevron-left"></i>
                     </button>
                     <div class="text-center">
-                        <h2 class="text-lg font-bold text-white">Activity Calendar</h2>
-                        <p class="text-[10px] text-slate-500">Tap a day to see the summary</p>
+                        <h2 class="text-lg font-bold text-white">Home Calendar</h2>
+                        <p id="calendar-help-text" class="text-[10px] text-slate-500">Tap a date to enter your day</p>
                     </div>
                     <button onclick="calendarGoToday()" class="text-[11px] font-bold text-emerald-400">Today</button>
+                </div>
+
+                <div class="grid grid-cols-5 gap-1.5">
+                    <button onclick="selectCalendarPreset('today')" class="bg-slate-900 border border-slate-800 rounded-xl py-2 text-[10px] font-bold text-slate-200">Today</button>
+                    <button onclick="selectCalendarPreset('week')" class="bg-slate-900 border border-slate-800 rounded-xl py-2 text-[10px] font-bold text-slate-200">Week</button>
+                    <button onclick="selectCalendarPreset('month')" class="bg-slate-900 border border-slate-800 rounded-xl py-2 text-[10px] font-bold text-slate-200">Month</button>
+                    <button onclick="selectCalendarPreset('taxyear')" class="bg-slate-900 border border-slate-800 rounded-xl py-2 text-[10px] font-bold text-slate-200">Tax Year</button>
+                    <button onclick="startCustomRangeSelection()" class="bg-blue-500/10 border border-blue-500/30 rounded-xl py-2 text-[10px] font-bold text-blue-300">Custom</button>
+                </div>
+
+                <div id="calendar-range-status" class="hidden bg-blue-500/10 border border-blue-500/25 rounded-xl px-3 py-2 text-[10px] text-blue-200">
+                    Select the start date, then the end date.
                 </div>
 
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
@@ -520,7 +532,7 @@
                 <div id="calendar-day-summary" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
                     <div class="flex items-center justify-between">
                         <h3 id="calendar-selected-date" class="text-sm font-bold text-white">Select a day</h3>
-                        <span class="text-[10px] text-slate-500">Daily summary</span>
+                        <span id="calendar-summary-label" class="text-[10px] text-slate-500">Daily summary</span>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <div class="bg-slate-950/50 rounded-xl p-3">
@@ -743,6 +755,10 @@
             selectedExpenses: [],
             calendarDate: new Date(),
             selectedCalendarDate: new Date().toISOString().split('T')[0],
+            calendarSelectionMode: 'day',
+            calendarRangeStart: null,
+            calendarRangeEnd: null,
+            homeCalendarOpened: false,
             dailyEntryMode: false,
             dailyEntryDate: null,
             activeFilter: 'all',
@@ -778,6 +794,7 @@
                     document.getElementById('user-display-name').textContent = session.user.email?.split('@')[0] || 'Driver';
                     await fetchUserData(session.user.id);
                     await checkAndShowOnboarding(session.user.id);
+                    maybeOpenHomeCalendar();
                 } else if (event === 'SIGNED_OUT') {
                     appState.currentUser = null;
                     document.getElementById('auth-screen').classList.remove('hidden');
@@ -794,6 +811,8 @@
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('user-display-name').textContent = session.user.email.split('@')[0];
                 await fetchUserData(session.user.id);
+                await checkAndShowOnboarding(session.user.id);
+                maybeOpenHomeCalendar();
             } else {
                 document.getElementById('auth-screen').classList.remove('hidden');
             }
@@ -882,6 +901,7 @@
                     document.getElementById('user-display-name').textContent = data.user.email?.split('@')[0] || 'Driver';
                     await fetchUserData(data.user.id);
                     await checkAndShowOnboarding(data.user.id);
+                    maybeOpenHomeCalendar();
                     showToast('Signed in successfully');
                 } else if (appState.authMode === 'signup') {
                     const fullName = document.getElementById('auth-name').value.trim();
@@ -958,6 +978,12 @@
             } else {
                 document.getElementById('onboarding-screen').classList.add('hidden');
             }
+        }
+
+        function maybeOpenHomeCalendar() {
+            if (!appState.currentUser || !appState.profile?.onboarding_completed || appState.homeCalendarOpened) return;
+            appState.homeCalendarOpened = true;
+            setTimeout(() => openCalendarModal(), 120);
         }
 
         function selectWorkType(btn, type) {
@@ -1056,6 +1082,8 @@
             }
             document.getElementById('onboarding-screen').classList.add('hidden');
             await fetchUserData(appState.currentUser.id);
+            appState.homeCalendarOpened = false;
+            maybeOpenHomeCalendar();
             showToast('Setup complete');
             btn.disabled = false;
             btn.textContent = 'Finish Setup';
@@ -1352,7 +1380,11 @@
         function openCalendarModal() {
             document.getElementById('calendar-modal').classList.remove('hidden');
             renderCalendar();
-            showCalendarDay(appState.selectedCalendarDate || new Date().toISOString().split('T')[0]);
+            if (appState.calendarRangeStart && appState.calendarRangeEnd && appState.calendarSelectionMode === 'range') {
+                showCalendarRange(appState.calendarRangeStart, appState.calendarRangeEnd);
+            } else {
+                showCalendarDay(appState.selectedCalendarDate || isoDate(new Date()));
+            }
         }
 
         function closeCalendarModal() {
@@ -1360,10 +1392,7 @@
         }
 
         function calendarGoToday() {
-            appState.calendarDate = new Date();
-            appState.selectedCalendarDate = new Date().toISOString().split('T')[0];
-            renderCalendar();
-            showCalendarDay(appState.selectedCalendarDate);
+            selectCalendarPreset('today');
         }
 
         function changeCalendarMonth(delta) {
@@ -1373,13 +1402,119 @@
             renderCalendar();
         }
 
+        function isoDate(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth()+1).padStart(2,'0');
+            const d = String(date.getDate()).padStart(2,'0');
+            return y + '-' + m + '-' + d;
+        }
+
+        function parseIsoDate(dateStr) {
+            return new Date(dateStr + 'T12:00:00');
+        }
+
         function getDayActivity(dateStr) {
             const tx = appState.transactions.filter(t => t.date === dateStr);
-            const income = tx.filter(t => t.type === 'income').reduce((s,t) => s + Number(t.amount || 0), 0);
-            const expenses = tx.filter(t => t.type === 'expense').reduce((s,t) => s + Number(t.amount || 0), 0);
-            const mileage = appState.mileageTrips.filter(t => t.trip_date === dateStr).reduce((s,t) => s + Number(t.business_miles || 0), 0);
-            const reserve = appState.taxReserveEntries.filter(t => t.saved_on === dateStr).reduce((s,t) => s + Number(t.amount || 0), 0);
+            const income = tx.filter(t => t.type === 'income').reduce((sum,t) => sum + Number(t.amount || 0), 0);
+            const expenses = tx.filter(t => t.type === 'expense').reduce((sum,t) => sum + Number(t.amount || 0), 0);
+            const mileage = appState.mileageTrips.filter(t => t.trip_date === dateStr).reduce((sum,t) => sum + Number(t.business_miles || 0), 0);
+            const reserve = appState.taxReserveEntries.filter(t => t.saved_on === dateStr).reduce((sum,t) => sum + Number(t.amount || 0), 0);
             return { tx, income, expenses, mileage, reserve };
+        }
+
+        function getRangeActivity(startStr, endStr) {
+            const start = parseIsoDate(startStr);
+            const end = parseIsoDate(endStr);
+            const inRange = (dateStr) => {
+                if (!dateStr) return false;
+                const d = parseIsoDate(dateStr);
+                return d >= start && d <= end;
+            };
+            const tx = appState.transactions.filter(t => inRange(t.date));
+            const income = tx.filter(t => t.type === 'income').reduce((sum,t) => sum + Number(t.amount || 0), 0);
+            const expenses = tx.filter(t => t.type === 'expense').reduce((sum,t) => sum + Number(t.amount || 0), 0);
+            const mileage = appState.mileageTrips.filter(t => inRange(t.trip_date)).reduce((sum,t) => sum + Number(t.business_miles || 0), 0);
+            const reserve = appState.taxReserveEntries.filter(t => inRange(t.saved_on)).reduce((sum,t) => sum + Number(t.amount || 0), 0);
+            return { tx, income, expenses, mileage, reserve };
+        }
+
+        function selectCalendarPreset(type) {
+            const now = new Date();
+            let start = new Date(now);
+            let end = new Date(now);
+
+            if (type === 'week') {
+                const mondayOffset = (now.getDay() + 6) % 7;
+                start.setDate(now.getDate() - mondayOffset);
+                end = new Date(start);
+                end.setDate(start.getDate() + 6);
+            } else if (type === 'month') {
+                start = new Date(now.getFullYear(), now.getMonth(), 1);
+                end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            } else if (type === 'taxyear') {
+                const startYear = (now.getMonth() > 3 || (now.getMonth() === 3 && now.getDate() >= 6)) ? now.getFullYear() : now.getFullYear() - 1;
+                start = new Date(startYear, 3, 6);
+                end = new Date(startYear + 1, 3, 5);
+            }
+
+            appState.calendarDate = new Date(start);
+            appState.calendarRangeStart = isoDate(start);
+            appState.calendarRangeEnd = isoDate(end);
+            appState.calendarSelectionMode = type === 'today' ? 'day' : 'range';
+
+            const status = document.getElementById('calendar-range-status');
+            if (status) status.classList.add('hidden');
+
+            if (type === 'today') {
+                appState.selectedCalendarDate = isoDate(now);
+                showCalendarDay(appState.selectedCalendarDate);
+            } else {
+                showCalendarRange(appState.calendarRangeStart, appState.calendarRangeEnd);
+            }
+        }
+
+        function startCustomRangeSelection() {
+            appState.calendarSelectionMode = 'range-select';
+            appState.calendarRangeStart = null;
+            appState.calendarRangeEnd = null;
+            const status = document.getElementById('calendar-range-status');
+            if (status) {
+                status.textContent = 'Tap the first date, then tap the last date.';
+                status.classList.remove('hidden');
+            }
+            const help = document.getElementById('calendar-help-text');
+            if (help) help.textContent = 'Choose a start date and an end date';
+            renderCalendar();
+        }
+
+        function handleCalendarDateClick(dateStr) {
+            if (appState.calendarSelectionMode !== 'range-select') {
+                appState.calendarSelectionMode = 'day';
+                appState.calendarRangeStart = null;
+                appState.calendarRangeEnd = null;
+                startDailyEntry(dateStr);
+                return;
+            }
+
+            if (!appState.calendarRangeStart) {
+                appState.calendarRangeStart = dateStr;
+                appState.calendarRangeEnd = null;
+                const status = document.getElementById('calendar-range-status');
+                if (status) status.textContent = 'Start selected: ' + parseIsoDate(dateStr).toLocaleDateString('en-GB') + ' · Now tap the end date.';
+                renderCalendar();
+                return;
+            }
+
+            let start = appState.calendarRangeStart;
+            let end = dateStr;
+            if (parseIsoDate(end) < parseIsoDate(start)) [start, end] = [end, start];
+            appState.calendarRangeStart = start;
+            appState.calendarRangeEnd = end;
+            appState.calendarSelectionMode = 'range';
+
+            const status = document.getElementById('calendar-range-status');
+            if (status) status.classList.add('hidden');
+            showCalendarRange(start, end);
         }
 
         function renderCalendar() {
@@ -1400,9 +1535,18 @@
                 const ds = year + '-' + String(month+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
                 const a = getDayActivity(ds);
                 const selected = ds === appState.selectedCalendarDate;
-                const today = ds === new Date().toISOString().split('T')[0];
+                const today = ds === isoDate(new Date());
+                const inRange = appState.calendarRangeStart && appState.calendarRangeEnd &&
+                    parseIsoDate(ds) >= parseIsoDate(appState.calendarRangeStart) &&
+                    parseIsoDate(ds) <= parseIsoDate(appState.calendarRangeEnd);
+                const rangeStart = ds === appState.calendarRangeStart;
+                const rangeEnd = ds === appState.calendarRangeEnd;
+                const activeClass = inRange || rangeStart || rangeEnd
+                    ? 'border-blue-400 bg-blue-500/15'
+                    : (selected ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-800 bg-slate-950/50');
+
                 html += `
-                    <button type="button" onclick="startDailyEntry('${ds}')" class="min-h-[48px] rounded-xl border p-1 flex flex-col items-center justify-center ${selected ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-800 bg-slate-950/50'}">
+                    <button type="button" onclick="handleCalendarDateClick('${ds}')" class="min-h-[48px] rounded-xl border p-1 flex flex-col items-center justify-center ${activeClass}">
                         <span class="text-[11px] font-bold ${today ? 'text-emerald-400' : 'text-slate-200'}">${day}</span>
                         <div class="flex gap-0.5 mt-1">
                             ${a.income > 0 ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>' : ''}
@@ -1415,9 +1559,47 @@
             grid.innerHTML = html;
         }
 
+        function showCalendarRange(startStr, endStr) {
+            renderCalendar();
+            const a = getRangeActivity(startStr, endStr);
+            const start = parseIsoDate(startStr);
+            const end = parseIsoDate(endStr);
+            const label = start.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) + ' → ' + end.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+
+            document.getElementById('calendar-selected-date').textContent = label;
+            const summaryLabel = document.getElementById('calendar-summary-label');
+            if (summaryLabel) summaryLabel.textContent = 'Period summary';
+            const help = document.getElementById('calendar-help-text');
+            if (help) help.textContent = 'Selected period totals';
+
+            document.getElementById('calendar-day-income').textContent = '£' + a.income.toFixed(2);
+            document.getElementById('calendar-day-expense').textContent = '£' + a.expenses.toFixed(2);
+            document.getElementById('calendar-day-profit').textContent = '£' + (a.income-a.expenses).toFixed(2);
+            document.getElementById('calendar-day-mileage').textContent = a.mileage.toFixed(1).replace('.0','') + ' mi';
+
+            const days = Math.floor((end - start) / 86400000) + 1;
+            const estTaxReserve = Math.max(0, (a.income - a.expenses) * 0.20);
+            document.getElementById('calendar-day-items').innerHTML = `
+                <div class="bg-slate-950/50 rounded-xl p-3 space-y-2">
+                    <div class="flex justify-between text-xs"><span class="text-slate-400">Days selected</span><span class="font-bold text-white">${days}</span></div>
+                    <div class="flex justify-between text-xs"><span class="text-slate-400">Tax reserve saved</span><span class="font-bold text-amber-400">£${a.reserve.toFixed(2)}</span></div>
+                    <div class="flex justify-between text-xs"><span class="text-slate-400">Estimated tax reserve*</span><span class="font-bold text-amber-400">£${estTaxReserve.toFixed(2)}</span></div>
+                    <p class="text-[9px] text-slate-600">*Prototype estimate only. The proper UK tax engine will replace this.</p>
+                </div>`;
+
+            const addButtons = document.querySelector('#calendar-day-summary .grid.grid-cols-2.gap-2.pt-1');
+            if (addButtons) addButtons.classList.add('hidden');
+        }
+
         function showCalendarDay(dateStr) {
             appState.selectedCalendarDate = dateStr;
             renderCalendar();
+            const summaryLabel = document.getElementById('calendar-summary-label');
+            if (summaryLabel) summaryLabel.textContent = 'Daily summary';
+            const help = document.getElementById('calendar-help-text');
+            if (help) help.textContent = 'Tap a date to enter your day';
+            const addButtons = document.querySelector('#calendar-day-summary .grid.grid-cols-2.gap-2.pt-1');
+            if (addButtons) addButtons.classList.remove('hidden');
             const a = getDayActivity(dateStr);
             const date = new Date(dateStr + 'T12:00:00');
             document.getElementById('calendar-selected-date').textContent = date.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
