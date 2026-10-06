@@ -437,7 +437,7 @@
                             + Add Saved
                         </button>
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
+                    <div id="calendar-primary-cards" class="grid grid-cols-2 gap-2">
                         <div class="bg-slate-950/50 rounded-xl p-3">
                             <p class="text-[10px] text-slate-500 uppercase font-bold">Saved</p>
                             <p id="reserve-saved" class="text-base font-extrabold text-emerald-400 mt-1">£0.00</p>
@@ -553,10 +553,7 @@
                         </div>
                     </div>
                     <div id="calendar-day-items" class="space-y-2"></div>
-                    <div class="grid grid-cols-2 gap-2 pt-1">
-                        <button onclick="quickAddForSelectedDay('income')" class="bg-emerald-500 text-slate-950 font-bold py-2.5 rounded-xl text-xs">+ Income</button>
-                        <button onclick="quickAddForSelectedDay('expense')" class="bg-rose-500 text-white font-bold py-2.5 rounded-xl text-xs">+ Expense</button>
-                    </div>
+                    <div id="calendar-day-actions" class="grid grid-cols-2 gap-2 pt-1"></div>
                 </div>
             </div>
         </div>
@@ -595,6 +592,23 @@
                         Save Period Totals
                     </button>
                 </form>
+            </div>
+        </div>
+
+        <!-- Expense Continuation Modal -->
+        <div id="expense-next-modal" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-[76] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+                <div class="text-center space-y-2">
+                    <div class="w-11 h-11 mx-auto rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center">
+                        <i class="fa-solid fa-receipt"></i>
+                    </div>
+                    <h3 class="font-bold text-white">Expense saved</h3>
+                    <p class="text-[11px] text-slate-400">Do you have another expense for this day?</p>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="finishDailyExpenses()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-xs">Done with Expenses</button>
+                    <button onclick="addAnotherDailyExpense()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 rounded-xl text-xs">+ Add Another</button>
+                </div>
             </div>
         </div>
 
@@ -799,6 +813,9 @@
             homeCalendarOpened: false,
             dailyEntryMode: false,
             dailyEntryDate: null,
+            editingIncomeId: null,
+            editingExpenseId: null,
+            editingMileageId: null,
             activeFilter: 'all',
             authMode: 'signin'
         };
@@ -1549,7 +1566,13 @@
                 appState.calendarSelectionMode = 'day';
                 appState.calendarRangeStart = null;
                 appState.calendarRangeEnd = null;
-                startDailyEntry(dateStr);
+                const activity = getDayActivity(dateStr);
+                const hasExistingData = activity.tx.length > 0 || activity.mileage > 0 || activity.reserve > 0;
+                if (hasExistingData) {
+                    showCalendarDay(dateStr);
+                } else {
+                    startDailyEntry(dateStr);
+                }
                 return;
             }
 
@@ -1616,6 +1639,45 @@
             grid.innerHTML = html;
         }
 
+        function getRangeChartBuckets(startStr, endStr) {
+            const start = parseIsoDate(startStr);
+            const end = parseIsoDate(endStr);
+            const dayCount = Math.floor((end - start) / 86400000) + 1;
+            const daily = [];
+
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const ds = isoDate(d);
+                const a = getDayActivity(ds);
+                daily.push({
+                    date: ds,
+                    label: d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}),
+                    value: a.income - a.expenses
+                });
+            }
+
+            if (dayCount <= 14) return { buckets: daily, granularity: 'day' };
+
+            if (dayCount <= 90) {
+                const weeks = [];
+                for (let i=0;i<daily.length;i+=7) {
+                    const chunk = daily.slice(i,i+7);
+                    weeks.push({
+                        label: chunk[0].label,
+                        value: chunk.reduce((sum,x)=>sum+x.value,0)
+                    });
+                }
+                return { buckets: weeks, granularity: 'week' };
+            }
+
+            const monthly = {};
+            daily.forEach(x => {
+                const d = parseIsoDate(x.date);
+                const key = d.toLocaleDateString('en-GB',{month:'short',year:'2-digit'});
+                monthly[key] = (monthly[key] || 0) + x.value;
+            });
+            return { buckets: Object.entries(monthly).map(([label,value])=>({label,value})), granularity: 'month' };
+        }
+
         function showCalendarRange(startStr, endStr) {
             renderCalendar();
             const a = getRangeActivity(startStr, endStr);
@@ -1625,17 +1687,66 @@
 
             document.getElementById('calendar-selected-date').textContent = label;
             const summaryLabel = document.getElementById('calendar-summary-label');
-            if (summaryLabel) summaryLabel.textContent = 'Period summary';
+            if (summaryLabel) summaryLabel.textContent = 'Selected period';
             const help = document.getElementById('calendar-help-text');
-            if (help) help.textContent = 'Selected period totals';
+            if (help) help.textContent = 'Whole income, expenses and profit for your selected dates';
 
-            document.getElementById('calendar-day-income').textContent = '£' + a.income.toFixed(2);
-            document.getElementById('calendar-day-expense').textContent = '£' + a.expenses.toFixed(2);
-            document.getElementById('calendar-day-profit').textContent = '£' + (a.income-a.expenses).toFixed(2);
-            document.getElementById('calendar-day-mileage').textContent = a.mileage.toFixed(1).replace('.0','') + ' mi';
+            const primaryCards = document.getElementById('calendar-primary-cards');
+            if (primaryCards) primaryCards.classList.add('hidden');
 
+            const actions = document.getElementById('calendar-day-actions');
+            if (actions) actions.innerHTML = '';
+
+            const profit = a.income - a.expenses;
+            const estTaxReserve = Math.max(0, profit * 0.20);
+            const estimatedTakeHome = profit - estTaxReserve;
             const days = Math.floor((end - start) / 86400000) + 1;
-            const estTaxReserve = Math.max(0, (a.income - a.expenses) * 0.20);
+
+            const incomeBreakdown = {};
+            const expenseBreakdown = {};
+            (a.tx || []).forEach(t => {
+                if (t.type === 'income') {
+                    const key = t.source || 'Other Income';
+                    incomeBreakdown[key] = (incomeBreakdown[key] || 0) + Number(t.amount || 0);
+                } else if (t.type === 'expense') {
+                    const key = t.category || 'Other Expense';
+                    expenseBreakdown[key] = (expenseBreakdown[key] || 0) + Number(t.amount || 0);
+                }
+            });
+
+            (a.periodEntries || []).forEach(p => {
+                if (Number(p.income_amount || 0) > 0) {
+                    incomeBreakdown['Period totals'] = (incomeBreakdown['Period totals'] || 0) + Number(p.income_amount || 0);
+                }
+                if (Number(p.expense_amount || 0) > 0) {
+                    expenseBreakdown['Period totals'] = (expenseBreakdown['Period totals'] || 0) + Number(p.expense_amount || 0);
+                }
+            });
+
+            const incomeRows = Object.entries(incomeBreakdown)
+                .sort((x,y) => y[1]-x[1])
+                .map(([name,amount]) => `<div class="flex justify-between text-[11px]"><span class="text-slate-400">${name}</span><span class="font-bold text-emerald-400">£${amount.toFixed(2)}</span></div>`)
+                .join('');
+
+            const expenseRows = Object.entries(expenseBreakdown)
+                .sort((x,y) => y[1]-x[1])
+                .map(([name,amount]) => `<div class="flex justify-between text-[11px]"><span class="text-slate-400">${name}</span><span class="font-bold text-rose-400">£${amount.toFixed(2)}</span></div>`)
+                .join('');
+
+            const chart = getRangeChartBuckets(startStr,endStr);
+            const maxAbs = Math.max(1,...chart.buckets.map(x => Math.abs(x.value)));
+            const barWidth = Math.max(20, Math.floor(280 / Math.max(1, chart.buckets.length)));
+            const chartBars = chart.buckets.map(b => {
+                const h = Math.max(4, Math.round((Math.abs(b.value)/maxAbs)*110));
+                const positive = b.value >= 0;
+                return `
+                    <div class="flex flex-col items-center justify-end gap-1" style="min-width:${barWidth}px">
+                        <span class="text-[8px] ${positive?'text-emerald-400':'text-rose-400'} font-bold">£${Math.abs(b.value).toFixed(0)}</span>
+                        <div class="${positive?'bg-emerald-500':'bg-rose-500'} rounded-t-md w-5" style="height:${h}px"></div>
+                        <span class="text-[8px] text-slate-500 whitespace-nowrap">${b.label}</span>
+                    </div>`;
+            }).join('');
+
             const periodRows = (a.periodEntries || []).map(p => `
                 <div class="flex justify-between items-center text-[10px] bg-slate-950/50 rounded-xl p-2.5">
                     <span class="text-slate-400">${parseIsoDate(p.period_start).toLocaleDateString('en-GB')} → ${parseIsoDate(p.period_end).toLocaleDateString('en-GB')}</span>
@@ -1643,20 +1754,70 @@
                 </div>`).join('');
 
             document.getElementById('calendar-day-items').innerHTML = `
+                <div class="text-center py-2">
+                    <p class="text-[10px] uppercase tracking-wider font-bold text-slate-500">Profit for selected period</p>
+                    <p class="text-4xl font-extrabold ${profit >= 0 ? 'text-white' : 'text-rose-400'} mt-1">£${profit.toFixed(2)}</p>
+                    <p class="text-[10px] text-slate-500 mt-1">${label}</p>
+                </div>
+
+                <div class="bg-slate-950/50 rounded-2xl p-3">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <p class="text-xs font-bold text-white">Profit trend</p>
+                            <p class="text-[9px] text-slate-500">${chart.granularity === 'day' ? 'Daily' : chart.granularity === 'week' ? 'Weekly' : 'Monthly'} profit from dated entries</p>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto no-scrollbar">
+                        <div class="flex items-end gap-2 min-h-[145px] border-b border-slate-800 pb-1" style="min-width:max-content">
+                            ${chartBars || '<p class="text-[10px] text-slate-500">No dated activity yet.</p>'}
+                        </div>
+                    </div>
+                    ${(a.periodEntries || []).length ? '<p class="text-[8px] text-slate-600 mt-2">Period totals are included in the summary cards but are not spread across individual chart days.</p>' : ''}
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-3">
+                        <p class="text-[9px] uppercase font-bold text-emerald-300">Total Income</p>
+                        <p class="text-lg font-extrabold text-emerald-400 mt-1">£${a.income.toFixed(2)}</p>
+                    </div>
+                    <div class="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-3">
+                        <p class="text-[9px] uppercase font-bold text-rose-300">Total Expenses</p>
+                        <p class="text-lg font-extrabold text-rose-400 mt-1">£${a.expenses.toFixed(2)}</p>
+                    </div>
+                    <div class="bg-white/5 border border-slate-700 rounded-2xl p-3">
+                        <p class="text-[9px] uppercase font-bold text-slate-400">Total Profit</p>
+                        <p class="text-lg font-extrabold text-white mt-1">£${profit.toFixed(2)}</p>
+                    </div>
+                    <div class="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-3">
+                        <p class="text-[9px] uppercase font-bold text-blue-300">Mileage</p>
+                        <p class="text-lg font-extrabold text-blue-400 mt-1">${a.mileage.toFixed(1).replace('.0','')} mi</p>
+                    </div>
+                    <div class="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3">
+                        <p class="text-[9px] uppercase font-bold text-amber-300">Estimated Tax Reserve*</p>
+                        <p class="text-lg font-extrabold text-amber-400 mt-1">£${estTaxReserve.toFixed(2)}</p>
+                    </div>
+                    <div class="bg-teal-500/10 border border-teal-500/20 rounded-2xl p-3">
+                        <p class="text-[9px] uppercase font-bold text-teal-300">Estimated Take-Home*</p>
+                        <p class="text-lg font-extrabold text-teal-300 mt-1">£${estimatedTakeHome.toFixed(2)}</p>
+                    </div>
+                </div>
+
+                ${incomeRows ? `<div class="bg-slate-950/50 rounded-xl p-3 space-y-2"><p class="text-[10px] uppercase font-bold text-emerald-400">Income Breakdown</p>${incomeRows}</div>` : ''}
+
+                ${expenseRows ? `<div class="bg-slate-950/50 rounded-xl p-3 space-y-2"><p class="text-[10px] uppercase font-bold text-rose-400">Expense Breakdown</p>${expenseRows}</div>` : ''}
+
                 <div class="bg-slate-950/50 rounded-xl p-3 space-y-2">
                     <div class="flex justify-between text-xs"><span class="text-slate-400">Days selected</span><span class="font-bold text-white">${days}</span></div>
                     <div class="flex justify-between text-xs"><span class="text-slate-400">Tax reserve saved</span><span class="font-bold text-amber-400">£${a.reserve.toFixed(2)}</span></div>
-                    <div class="flex justify-between text-xs"><span class="text-slate-400">Estimated tax reserve*</span><span class="font-bold text-amber-400">£${estTaxReserve.toFixed(2)}</span></div>
-                    <p class="text-[9px] text-slate-600">*Prototype estimate only. The proper UK tax engine will replace this.</p>
+                    <p class="text-[9px] text-slate-600">*Prototype estimates only. The proper UK tax engine will replace these estimates.</p>
                 </div>
+
                 <button onclick="openPeriodEntryModal()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2">
                     <i class="fa-solid fa-calendar-plus"></i> Enter totals for this period
                 </button>
+
                 ${periodRows ? '<div class="space-y-2"><p class="text-[10px] uppercase font-bold text-slate-500">Saved period entries</p>'+periodRows+'</div>' : ''}
             `;
-
-            const addButtons = document.querySelector('#calendar-day-summary .grid.grid-cols-2.gap-2.pt-1');
-            if (addButtons) addButtons.classList.add('hidden');
         }
 
         function openPeriodEntryModal() {
@@ -1727,12 +1888,15 @@
         function showCalendarDay(dateStr) {
             appState.selectedCalendarDate = dateStr;
             renderCalendar();
+
+            const primaryCards = document.getElementById('calendar-primary-cards');
+            if (primaryCards) primaryCards.classList.remove('hidden');
+
             const summaryLabel = document.getElementById('calendar-summary-label');
             if (summaryLabel) summaryLabel.textContent = 'Daily summary';
             const help = document.getElementById('calendar-help-text');
-            if (help) help.textContent = 'Tap a date to enter your day';
-            const addButtons = document.querySelector('#calendar-day-summary .grid.grid-cols-2.gap-2.pt-1');
-            if (addButtons) addButtons.classList.remove('hidden');
+            if (help) help.textContent = 'Review or update this day';
+
             const a = getDayActivity(dateStr);
             const date = new Date(dateStr + 'T12:00:00');
             document.getElementById('calendar-selected-date').textContent = date.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
@@ -1742,13 +1906,147 @@
             document.getElementById('calendar-day-mileage').textContent = a.mileage.toFixed(1).replace('.0','') + ' mi';
 
             const items = [];
-            a.tx.forEach(t => items.push(`<div class="flex justify-between text-xs bg-slate-950/50 rounded-xl p-2.5"><span class="text-slate-300">${t.type === 'income' ? (t.source || 'Income') : (t.category || 'Expense')}</span><span class="${t.type==='income'?'text-emerald-400':'text-rose-400'} font-bold">${t.type==='income'?'+':'-'}£${Number(t.amount).toFixed(2)}</span></div>`));
-            appState.mileageTrips.filter(t => t.trip_date === dateStr).forEach(t => items.push(`<div class="flex justify-between text-xs bg-slate-950/50 rounded-xl p-2.5"><span class="text-slate-300">${t.purpose || 'Mileage'}</span><span class="text-blue-400 font-bold">${Number(t.business_miles).toFixed(1).replace('.0','')} mi</span></div>`));
+            a.tx.forEach(t => {
+                const isIncome = t.type === 'income';
+                items.push(`
+                    <div class="flex justify-between items-center text-xs bg-slate-950/50 rounded-xl p-2.5 gap-3">
+                        <div class="min-w-0">
+                            <p class="text-slate-300 font-semibold truncate">${isIncome ? (t.source || 'Income') : (t.category || 'Expense')}</p>
+                            <p class="text-[9px] text-slate-600">${isIncome ? 'Income' : 'Expense'} record</p>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span class="${isIncome?'text-emerald-400':'text-rose-400'} font-bold">${isIncome?'+':'-'}£${Number(t.amount).toFixed(2)}</span>
+                            <button onclick="${isIncome ? `editIncomeRecord('${t.id}')` : `editExpenseRecord('${t.id}')`}" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1.5 rounded-lg text-[9px] font-bold">Edit</button>
+                        </div>
+                    </div>`);
+            });
+
+            appState.mileageTrips.filter(t => t.trip_date === dateStr).forEach(t => items.push(`
+                <div class="flex justify-between items-center text-xs bg-slate-950/50 rounded-xl p-2.5 gap-3">
+                    <div class="min-w-0">
+                        <p class="text-slate-300 font-semibold truncate">${t.purpose || 'Mileage'}</p>
+                        <p class="text-[9px] text-slate-600">Mileage record</p>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span class="text-blue-400 font-bold">${Number(t.business_miles).toFixed(1).replace('.0','')} mi</span>
+                        <button onclick="editMileageRecord('${t.id}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1.5 rounded-lg text-[9px] font-bold">Edit</button>
+                    </div>
+                </div>`));
+
             if (a.reserve > 0) items.push(`<div class="flex justify-between text-xs bg-slate-950/50 rounded-xl p-2.5"><span class="text-slate-300">Tax reserve saved</span><span class="text-amber-400 font-bold">£${a.reserve.toFixed(2)}</span></div>`);
+
             document.getElementById('calendar-day-items').innerHTML = items.join('') || '<p class="text-center text-xs text-slate-500 py-2">No activity recorded for this day.</p>';
+
+            const actions = document.getElementById('calendar-day-actions');
+            if (!actions) return;
+
+            const hasAny = a.tx.length > 0 || a.mileage > 0 || a.reserve > 0;
+            if (!hasAny) {
+                actions.className = 'grid grid-cols-1 gap-2 pt-1';
+                actions.innerHTML = `<button onclick="startDailyEntry('${dateStr}')" class="bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-plus mr-1"></i> Enter This Day</button>`;
+            } else {
+                actions.className = 'grid grid-cols-3 gap-2 pt-1';
+                actions.innerHTML = `
+                    <button onclick="addIncomeForDay('${dateStr}')" class="bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 font-bold py-2.5 rounded-xl text-[10px]">+ Income</button>
+                    <button onclick="addExpenseForDay('${dateStr}')" class="bg-rose-500/15 border border-rose-500/25 text-rose-400 font-bold py-2.5 rounded-xl text-[10px]">+ Expense</button>
+                    <button onclick="addMileageForDay('${dateStr}')" class="bg-blue-500/15 border border-blue-500/25 text-blue-400 font-bold py-2.5 rounded-xl text-[10px]">+ Mileage</button>
+                `;
+            }
+        }
+
+        function resetEditState() {
+            appState.editingIncomeId = null;
+            appState.editingExpenseId = null;
+            appState.editingMileageId = null;
+        }
+
+        function addIncomeForDay(dateStr) {
+            resetEditState();
+            appState.dailyEntryMode = false;
+            openIncomeModal();
+            document.getElementById('income-date').value = dateStr;
+            document.getElementById('income-amount').value = '';
+            document.getElementById('income-notes').value = '';
+            setDailyEntryButtons(null);
+        }
+
+        function addExpenseForDay(dateStr) {
+            resetEditState();
+            appState.dailyEntryMode = false;
+            openExpenseModal();
+            document.getElementById('expense-date').value = dateStr;
+            document.getElementById('expense-amount').value = '';
+            document.getElementById('expense-notes').value = '';
+            setDailyEntryButtons(null);
+        }
+
+        function addMileageForDay(dateStr) {
+            resetEditState();
+            appState.dailyEntryMode = false;
+            openMileageModal();
+            document.getElementById('mileage-date').value = dateStr;
+            document.getElementById('mileage-miles').value = '';
+            document.getElementById('mileage-notes').value = '';
+            setDailyEntryButtons(null);
+        }
+
+        function editIncomeRecord(id) {
+            const t = appState.transactions.find(x => x.id === id && x.type === 'income');
+            if (!t) return;
+            resetEditState();
+            appState.editingIncomeId = id;
+            appState.dailyEntryMode = false;
+            openIncomeModal();
+
+            const sourceSelect = document.getElementById('income-source');
+            if (![...sourceSelect.options].some(o => o.value === t.source)) sourceSelect.add(new Option(t.source,t.source));
+            sourceSelect.value = t.source || 'Other';
+            document.getElementById('income-amount').value = Number(t.amount).toFixed(2);
+            document.getElementById('income-date').value = t.date;
+            document.getElementById('income-notes').value = t.notes || '';
+            document.getElementById('income-modal-title').textContent = 'Edit Income';
+            document.getElementById('income-submit-btn').textContent = 'Update Income';
+            document.getElementById('income-skip-btn').style.display = 'none';
+        }
+
+        function editExpenseRecord(id) {
+            const t = appState.transactions.find(x => x.id === id && x.type === 'expense');
+            if (!t) return;
+            resetEditState();
+            appState.editingExpenseId = id;
+            appState.dailyEntryMode = false;
+            openExpenseModal();
+
+            const categorySelect = document.getElementById('expense-category');
+            if (![...categorySelect.options].some(o => o.value === t.category)) categorySelect.add(new Option(t.category,t.category));
+            categorySelect.value = t.category || 'Other';
+            document.getElementById('expense-amount').value = Number(t.amount).toFixed(2);
+            document.getElementById('expense-date').value = t.date;
+            document.getElementById('expense-notes').value = t.notes || '';
+            document.getElementById('expense-modal-title').textContent = 'Edit Expense';
+            document.getElementById('expense-submit-btn').textContent = 'Update Expense';
+            document.getElementById('expense-skip-btn').style.display = 'none';
+        }
+
+        function editMileageRecord(id) {
+            const t = appState.mileageTrips.find(x => x.id === id);
+            if (!t) return;
+            resetEditState();
+            appState.editingMileageId = id;
+            appState.dailyEntryMode = false;
+            openMileageModal();
+
+            document.getElementById('mileage-miles').value = Number(t.business_miles);
+            document.getElementById('mileage-date').value = t.trip_date;
+            document.getElementById('mileage-purpose').value = t.purpose || 'Other Business Journey';
+            document.getElementById('mileage-notes').value = t.notes || '';
+            document.getElementById('mileage-modal-title').textContent = 'Edit Mileage';
+            document.getElementById('mileage-submit-btn').textContent = 'Update Mileage';
+            document.getElementById('mileage-skip-btn').style.display = 'none';
         }
 
         function startDailyEntry(dateStr) {
+            resetEditState();
             appState.selectedCalendarDate = dateStr;
             appState.dailyEntryMode = true;
             appState.dailyEntryDate = dateStr;
@@ -1772,6 +2070,7 @@
             document.getElementById('income-modal')?.classList.add('hidden');
             document.getElementById('expense-modal')?.classList.add('hidden');
             document.getElementById('mileage-modal')?.classList.add('hidden');
+            document.getElementById('expense-next-modal')?.classList.add('hidden');
 
             appState.dailyEntryMode = false;
             appState.dailyEntryDate = null;
@@ -1790,12 +2089,21 @@
                 skip.style.display = active ? 'block' : 'none';
                 save.classList.toggle('col-span-2', !active);
             });
+
             const it = document.getElementById('income-modal-title');
             const et = document.getElementById('expense-modal-title');
             const mt = document.getElementById('mileage-modal-title');
-            if (it) it.textContent = appState.dailyEntryMode ? 'Step 1 of 3 · Income' : 'Add Income';
-            if (et) et.textContent = appState.dailyEntryMode ? 'Step 2 of 3 · Expense' : 'Add Expense';
-            if (mt) mt.textContent = appState.dailyEntryMode ? 'Step 3 of 3 · Mileage' : 'Add Mileage';
+            const ib = document.getElementById('income-submit-btn');
+            const eb = document.getElementById('expense-submit-btn');
+            const mb = document.getElementById('mileage-submit-btn');
+
+            if (it) it.textContent = appState.editingIncomeId ? 'Edit Income' : (appState.dailyEntryMode ? 'Step 1 of 3 · Income' : 'Add Income');
+            if (et) et.textContent = appState.editingExpenseId ? 'Edit Expense' : (appState.dailyEntryMode ? 'Step 2 of 3 · Expense' : 'Add Expense');
+            if (mt) mt.textContent = appState.editingMileageId ? 'Edit Mileage' : (appState.dailyEntryMode ? 'Step 3 of 3 · Mileage' : 'Add Mileage');
+
+            if (ib) ib.textContent = appState.editingIncomeId ? 'Update Income' : 'Save Income';
+            if (eb) eb.textContent = appState.editingExpenseId ? 'Update Expense' : 'Save Expense';
+            if (mb) mb.textContent = appState.editingMileageId ? 'Update Mileage' : 'Save Mileage';
         }
 
         function openDailyExpenseStep() {
@@ -1845,17 +2153,28 @@
             finishDailyEntry();
         }
 
+        function openExpenseNextModal() {
+            document.getElementById('expense-next-modal').classList.remove('hidden');
+        }
+
+        function closeExpenseNextModal() {
+            document.getElementById('expense-next-modal').classList.add('hidden');
+        }
+
+        function addAnotherDailyExpense() {
+            closeExpenseNextModal();
+            openDailyExpenseStep();
+        }
+
+        function finishDailyExpenses() {
+            closeExpenseNextModal();
+            openDailyMileageStep();
+        }
+
         function quickAddForSelectedDay(type) {
             const date = appState.selectedCalendarDate || new Date().toISOString().split('T')[0];
-            if (type === 'income') {
-                closeCalendarModal();
-                openIncomeModal();
-                document.getElementById('income-date').value = date;
-            } else {
-                closeCalendarModal();
-                openExpenseModal();
-                document.getElementById('expense-date').value = date;
-            }
+            if (type === 'income') addIncomeForDay(date);
+            if (type === 'expense') addExpenseForDay(date);
         }
 
         function getCategoryIcon(cat) {
@@ -1874,6 +2193,10 @@
         }
         function closeIncomeModal(cancelDailyEntry = true) {
             document.getElementById('income-modal').classList.add('hidden');
+            if (cancelDailyEntry && appState.editingIncomeId) {
+                appState.editingIncomeId = null;
+                setDailyEntryButtons(null);
+            }
             if (cancelDailyEntry && appState.dailyEntryMode) finishDailyEntry();
         }
         function openExpenseModal() {
@@ -1882,6 +2205,10 @@
         }
         function closeExpenseModal(cancelDailyEntry = true) {
             document.getElementById('expense-modal').classList.add('hidden');
+            if (cancelDailyEntry && appState.editingExpenseId) {
+                appState.editingExpenseId = null;
+                setDailyEntryButtons(null);
+            }
             if (cancelDailyEntry && appState.dailyEntryMode) finishDailyEntry();
         }
 
@@ -1893,6 +2220,10 @@
         }
         function closeMileageModal(cancelDailyEntry = true) {
             document.getElementById('mileage-modal').classList.add('hidden');
+            if (cancelDailyEntry && appState.editingMileageId) {
+                appState.editingMileageId = null;
+                setDailyEntryButtons(null);
+            }
             if (cancelDailyEntry && appState.dailyEntryMode) finishDailyEntry();
         }
 
@@ -1908,35 +2239,53 @@
             if (!appState.currentUser) return;
             const btn = document.getElementById('mileage-submit-btn');
             btn.disabled = true;
-            btn.textContent = 'Saving to Cloud...';
+            btn.textContent = appState.editingMileageId ? 'Updating...' : 'Saving to Cloud...';
 
             const business_miles = parseFloat(document.getElementById('mileage-miles').value);
             const trip_date = document.getElementById('mileage-date').value || new Date().toISOString().split('T')[0];
             const purpose = document.getElementById('mileage-purpose').value.trim();
             const notes = document.getElementById('mileage-notes').value.trim();
+            const editId = appState.editingMileageId;
 
             try {
-                const { error } = await supabaseClient.from('mileage').insert([{
-                    user_id: appState.currentUser.id,
-                    trip_date,
-                    business_miles,
-                    purpose,
-                    source: 'manual',
-                    notes
-                }]);
+                let error;
+                if (editId) {
+                    ({ error } = await supabaseClient.from('mileage').update({
+                        trip_date,
+                        business_miles,
+                        purpose,
+                        notes
+                    }).eq('id',editId).eq('user_id',appState.currentUser.id));
+                } else {
+                    ({ error } = await supabaseClient.from('mileage').insert([{
+                        user_id: appState.currentUser.id,
+                        trip_date,
+                        business_miles,
+                        purpose,
+                        source: 'manual',
+                        notes
+                    }]));
+                }
                 if (error) throw error;
-                showToast('Mileage saved');
+
+                showToast(editId ? 'Mileage updated' : 'Mileage saved');
+                appState.editingMileageId = null;
                 closeMileageModal(false);
                 document.getElementById('mileage-form').reset();
                 document.getElementById('mileage-date').value = new Date().toISOString().split('T')[0];
                 await fetchUserData(appState.currentUser.id);
-                if (appState.dailyEntryMode) finishDailyEntry();
+
+                if (editId) {
+                    showCalendarDay(trip_date);
+                } else if (appState.dailyEntryMode) {
+                    finishDailyEntry();
+                }
             } catch (err) {
                 console.error('Save mileage error:', err);
-                showToast('Failed to save mileage. Retry?');
+                showToast(editId ? 'Failed to update mileage' : 'Failed to save mileage. Retry?');
             }
-            btn.textContent = 'Save Mileage';
             btn.disabled = false;
+            setDailyEntryButtons(appState.dailyEntryMode ? 'mileage' : null);
         }
 
         async function deleteMileage(id) {
@@ -1986,42 +2335,56 @@
 
             const submitBtn = document.getElementById('income-submit-btn');
             submitBtn.disabled = true;
-            submitBtn.textContent = "Saving to Cloud...";
+            submitBtn.textContent = appState.editingIncomeId ? 'Updating...' : 'Saving to Cloud...';
 
             const source = document.getElementById('income-source').value;
             const amount = parseFloat(document.getElementById('income-amount').value);
             const earned_on = document.getElementById('income-date').value || new Date().toISOString().split('T')[0];
             const notes = document.getElementById('income-notes').value;
+            const editId = appState.editingIncomeId;
 
             try {
-                const { data, error } = await supabaseClient.from('income').insert([{
-                    user_id: appState.currentUser.id,
-                    source,
-                    amount,
-                    earned_on,
-                    notes
-                }]).select();
+                let error;
+                if (editId) {
+                    ({ error } = await supabaseClient.from('income').update({
+                        source,
+                        amount,
+                        earned_on,
+                        notes
+                    }).eq('id',editId).eq('user_id',appState.currentUser.id));
+                } else {
+                    ({ error } = await supabaseClient.from('income').insert([{
+                        user_id: appState.currentUser.id,
+                        source,
+                        amount,
+                        earned_on,
+                        notes
+                    }]));
+                }
 
                 if (error) throw error;
 
-                showToast("Income saved");
+                showToast(editId ? 'Income updated' : 'Income saved');
+                appState.editingIncomeId = null;
                 closeIncomeModal(false);
                 document.getElementById('income-form').reset();
                 document.getElementById('income-date').value = new Date().toISOString().split('T')[0];
                 await fetchUserData(appState.currentUser.id);
 
-                if (appState.dailyEntryMode) {
+                if (editId) {
+                    showCalendarDay(earned_on);
+                } else if (appState.dailyEntryMode) {
                     openDailyExpenseStep();
                 }
             } catch (err) {
                 console.error("Save income error:", err);
-                showToast("Failed to save. Click retry.");
-                submitBtn.textContent = "Retry Save Income";
+                showToast(editId ? 'Failed to update income' : 'Failed to save. Click retry.');
                 submitBtn.disabled = false;
+                setDailyEntryButtons(appState.dailyEntryMode ? 'income' : null);
                 return;
             }
-            submitBtn.textContent = "Save Income";
             submitBtn.disabled = false;
+            setDailyEntryButtons(appState.dailyEntryMode ? 'income' : null);
         }
 
         async function handleSaveExpense(e) {
@@ -2030,44 +2393,59 @@
 
             const submitBtn = document.getElementById('expense-submit-btn');
             submitBtn.disabled = true;
-            submitBtn.textContent = "Saving to Cloud...";
+            submitBtn.textContent = appState.editingExpenseId ? 'Updating...' : 'Saving to Cloud...';
 
             const category = document.getElementById('expense-category').value;
             const amount = parseFloat(document.getElementById('expense-amount').value);
             const merchant = null;
             const expense_date = document.getElementById('expense-date').value || new Date().toISOString().split('T')[0];
             const notes = document.getElementById('expense-notes').value;
+            const editId = appState.editingExpenseId;
 
             try {
-                const { data, error } = await supabaseClient.from('expenses').insert([{
-                    user_id: appState.currentUser.id,
-                    category,
-                    amount,
-                    merchant,
-                    expense_date,
-                    notes
-                }]).select();
+                let error;
+                if (editId) {
+                    ({ error } = await supabaseClient.from('expenses').update({
+                        category,
+                        amount,
+                        merchant,
+                        expense_date,
+                        notes
+                    }).eq('id',editId).eq('user_id',appState.currentUser.id));
+                } else {
+                    ({ error } = await supabaseClient.from('expenses').insert([{
+                        user_id: appState.currentUser.id,
+                        category,
+                        amount,
+                        merchant,
+                        expense_date,
+                        notes
+                    }]));
+                }
 
                 if (error) throw error;
 
-                showToast("Expense saved");
+                showToast(editId ? 'Expense updated' : 'Expense saved');
+                appState.editingExpenseId = null;
                 closeExpenseModal(false);
                 document.getElementById('expense-form').reset();
                 document.getElementById('expense-date').value = new Date().toISOString().split('T')[0];
                 await fetchUserData(appState.currentUser.id);
 
-                if (appState.dailyEntryMode) {
-                    openDailyMileageStep();
+                if (editId) {
+                    showCalendarDay(expense_date);
+                } else if (appState.dailyEntryMode) {
+                    openExpenseNextModal();
                 }
             } catch (err) {
                 console.error("Save expense error:", err);
-                showToast("Failed to save expense. Retry?");
-                submitBtn.textContent = "Retry Save Expense";
+                showToast(editId ? 'Failed to update expense' : 'Failed to save expense. Retry?');
                 submitBtn.disabled = false;
+                setDailyEntryButtons(appState.dailyEntryMode ? 'expense' : null);
                 return;
             }
-            submitBtn.textContent = "Save Expense";
             submitBtn.disabled = false;
+            setDailyEntryButtons(appState.dailyEntryMode ? 'expense' : null);
         }
 
         async function deleteTransaction(id, type) {
