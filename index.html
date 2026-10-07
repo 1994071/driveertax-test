@@ -1549,7 +1549,7 @@
 
             // Tax reserve tracker
             const totalReserveSaved = appState.taxReserveEntries.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-            const reserveTarget = Math.max(0, monthlyTaxReserve);
+            const reserveTarget = Math.max(0, ts.total);
             const reserveShortfall = Math.max(0, reserveTarget - totalReserveSaved);
             const suggestedWeekly = reserveShortfall / 4.33;
             const savedEl = document.getElementById('reserve-saved');
@@ -1573,7 +1573,7 @@
             }
         }
 
-        function quickOpenIncome(source) {        function quickOpenIncome(source) {
+        function quickOpenIncome(source) {
             openIncomeModal();
             const select = document.getElementById('income-source');
             if (select) {
