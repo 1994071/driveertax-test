@@ -337,7 +337,7 @@
                     <p id="receipt-validation-msg" class="hidden text-[10px] font-semibold text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-xl p-2"></p>
                     <div class="grid grid-cols-2 gap-2">
                         <button onclick="cancelReceiptReview()" class="bg-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs">Cancel</button>
-                        <button onclick="confirmReceiptExpense()" class="bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs">Confirm & Save</button>
+                        <button id="receipt-confirm-btn" onclick="confirmReceiptExpense()" class="bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs disabled:opacity-50 disabled:cursor-not-allowed">Confirm & Save</button>
                     </div>
                 </div>
             </section>
@@ -2189,18 +2189,79 @@ function openAccountModal() {
         }
         async function confirmReceiptExpense(){
             if(!appState.currentUser||!appState.pendingReceiptPath)return;
-            if(appState.receiptSaving){showToast('Receipt is already being saved');return;}
-            appState.receiptSaving=true;
-            const amount=Number(document.getElementById('receipt-amount').value||0);
+            if(appState.receiptSaving)return;
+
+            const btn=document.getElementById('receipt-confirm-btn');
             const validation=document.getElementById('receipt-validation-msg');
-            if(!(amount>0)){validation.textContent='Please enter or confirm the receipt amount before saving.';validation.classList.remove('hidden');appState.receiptSaving=false;return;}
+            const amount=Number(document.getElementById('receipt-amount').value||0);
+
+            if(!(amount>0)){
+                validation.textContent='Please enter or confirm the receipt amount before saving.';
+                validation.classList.remove('hidden');
+                return;
+            }
+
+            appState.receiptSaving=true;
+            if(btn){btn.disabled=true;btn.textContent='Saving…';}
             validation.classList.add('hidden');
-            const merchant=document.getElementById('receipt-merchant').value.trim()||'Receipt';
-            const date=document.getElementById('receipt-date').value||isoDate(new Date());const category=document.getElementById('receipt-category').value||'Other';const vat=Number(document.getElementById('receipt-vat').value||0);
-            const {data:exp,error:e1}=await supabaseClient.from('expenses').insert([{user_id:appState.currentUser.id,category,amount,merchant,expense_date:date,notes:'Receipt scan'}]).select('id').single();if(e1){showToast('Could not save expense');appState.receiptSaving=false;return;}
-            const f=appState.pendingReceiptFile;const {error:e2}=await supabaseClient.from('receipts').insert([{user_id:appState.currentUser.id,expense_id:exp.id,file_path:appState.pendingReceiptPath,original_filename:f?.name||null,mime_type:f?.type||null,size_bytes:f?.size||null,ai_status:appState.pendingReceiptAi?'ai_extracted':'manual_review',extracted_merchant:merchant,extracted_date:date,extracted_amount:amount,extracted_vat:vat||null,suggested_category:category,driver_confirmed:true}]);if(e2){showToast('Expense saved, receipt link needs retry');appState.receiptSaving=false;return;}
-            await fetchUserData(appState.currentUser.id);cancelReceiptReview();showToast('Receipt confirmed and expense saved');switchTab('records');
-            appState.receiptSaving=false;
+
+            let createdExpenseId=null;
+
+            try{
+                const merchant=document.getElementById('receipt-merchant').value.trim()||'Receipt';
+                const date=document.getElementById('receipt-date').value||isoDate(new Date());
+                const category=document.getElementById('receipt-category').value||'Other';
+                const vat=Number(document.getElementById('receipt-vat').value||0);
+
+                const {data:exp,error:e1}=await supabaseClient.from('expenses').insert([{
+                    user_id:appState.currentUser.id,
+                    category,
+                    amount,
+                    merchant,
+                    expense_date:date,
+                    notes:'Receipt scan'
+                }]).select('id').single();
+
+                if(e1) throw e1;
+                createdExpenseId=exp.id;
+
+                const f=appState.pendingReceiptFile;
+                const {error:e2}=await supabaseClient.from('receipts').insert([{
+                    user_id:appState.currentUser.id,
+                    expense_id:createdExpenseId,
+                    file_path:appState.pendingReceiptPath,
+                    original_filename:f?.name||null,
+                    mime_type:f?.type||null,
+                    size_bytes:f?.size||null,
+                    ai_status:appState.pendingReceiptAi?'completed':'failed',
+                    extracted_merchant:merchant,
+                    extracted_date:date,
+                    extracted_amount:amount,
+                    extracted_vat:vat||null,
+                    suggested_category:category,
+                    driver_confirmed:true
+                }]);
+
+                if(e2){
+                    // Keep expense + receipt consistent. If linking fails, remove the newly-created
+                    // expense so another tap cannot create duplicate expenses.
+                    await supabaseClient.from('expenses').delete().eq('id',createdExpenseId).eq('user_id',appState.currentUser.id);
+                    createdExpenseId=null;
+                    throw e2;
+                }
+
+                await fetchUserData(appState.currentUser.id);
+                cancelReceiptReview();
+                showToast('Receipt confirmed and expense saved');
+                switchTab('records');
+            }catch(err){
+                console.error('Receipt save error',err);
+                validation.textContent='Could not save this receipt. Nothing new was saved — please try again.';
+                validation.classList.remove('hidden');
+            }finally{
+                appState.receiptSaving=false;
+                if(btn){btn.disabled=false;btn.textContent='Confirm & Save';}
+            }
         }
         function cancelReceiptReview(){document.getElementById('receipt-review-card')?.classList.add('hidden');document.getElementById('receipt-scan-status')?.classList.add('hidden');document.getElementById('receipt-validation-msg')?.classList.add('hidden');document.getElementById('receipt-file-input').value='';appState.pendingReceiptFile=null;appState.pendingReceiptPath=null;appState.pendingReceiptAi=false;}
 
