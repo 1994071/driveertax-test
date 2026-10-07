@@ -206,7 +206,7 @@
             <!-- VIEW 1: DASHBOARD -->
             <section id="view-dashboard" class="p-5 space-y-4">
                 
-                <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700/60 rounded-2xl p-4 shadow-lg relative overflow-hidden">
+                <button type="button" onclick="openTodayDetails()" class="w-full text-left bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700/60 rounded-2xl p-4 shadow-lg relative overflow-hidden transition active:scale-[0.99]">
                     <div class="absolute right-0 top-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none"></div>
                     <div class="flex justify-between items-start mb-3">
                         <div>
@@ -236,7 +236,7 @@
                             <span class="text-sm font-bold text-teal-300" id="dash-today-net">£0.00</span>
                         </div>
                     </div>
-                </div>
+                </button>
 
                 <div class="grid grid-cols-2 gap-3">
                     <button onclick="openIncomeModal()" class="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-bold py-3 px-3 rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/20 transition transform active:scale-95">
@@ -247,23 +247,6 @@
                         <i class="fa-solid fa-minus-circle text-sm"></i>
                         <span class="text-xs font-bold">+ Add Expense</span>
                     </button>
-                </div>
-
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="text-xs font-bold text-white">Quick Add</h3>
-                            <p class="text-[10px] text-slate-500">Your most-used work and expenses</p>
-                        </div>
-                    </div>
-                    <div>
-                        <p class="text-[10px] text-slate-500 uppercase font-bold mb-2">Income</p>
-                        <div id="quick-income-buttons" class="flex flex-wrap gap-2"></div>
-                    </div>
-                    <div>
-                        <p class="text-[10px] text-slate-500 uppercase font-bold mb-2">Expenses</p>
-                        <div id="quick-expense-buttons" class="flex flex-wrap gap-2"></div>
-                    </div>
                 </div>
 
                 <button onclick="openCalendarModal()" class="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between transition group">
@@ -295,41 +278,30 @@
                 <div>
                     <div class="flex justify-between items-center mb-3">
                         <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Recent Transactions</h3>
-                        <button onclick="switchTab('expenses')" class="text-xs text-emerald-400 hover:underline font-semibold">View All</button>
+                        <button onclick="switchTab('records')" class="text-xs text-emerald-400 hover:underline font-semibold">View All</button>
                     </div>
                     <div id="recent-activity-list" class="space-y-2.5"></div>
                 </div>
             </section>
 
-            <!-- VIEW 2: EXPENSES -->
-            <section id="view-expenses" class="p-5 space-y-4 hidden">
-                <div class="space-y-3">
-                    <div>
-                        <h2 class="text-lg font-bold text-white">Expense Tracker</h2>
-                        <p class="text-[11px] text-slate-400 mt-1">Track and review your business expenses.</p>
-                    </div>
-
-                    <button onclick="openExpenseModal()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition">
-                        <i class="fa-solid fa-plus text-[10px]"></i> Add Expense
-                    </button>
-
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3">
-                        <label for="expense-filter" class="text-[10px] uppercase tracking-wider font-bold text-slate-500 block mb-2">Filter by category</label>
-                        <select id="expense-filter" onchange="filterExpenses(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500">
-                            <option value="all">All expenses</option>
-                            <option value="Fuel">Fuel</option>
-                            <option value="Maintenance">Maintenance</option>
-                            <option value="Insurance">Insurance</option>
-                            <option value="Phone">Phone</option>
-                            <option value="Cleaning / Car Wash">Cleaning / Car Wash</option>
-                            <option value="Parking & Tolls">Parking & Tolls</option>
-                            <option value="Licensing">Licensing</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
+            <!-- VIEW 2: RECORDS -->
+            <section id="view-records" class="p-5 space-y-4 hidden">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Records</h2>
+                    <p class="text-[11px] text-slate-400 mt-1">Income, expenses and mileage in one place.</p>
                 </div>
-
-                <div id="full-expenses-list" class="space-y-2.5"></div>
+                <div class="grid grid-cols-4 gap-1.5 bg-slate-900 border border-slate-800 rounded-2xl p-1.5">
+                    <button id="records-filter-all" onclick="setRecordsFilter('all')" class="records-filter bg-emerald-500 text-slate-950 rounded-xl py-2 text-[10px] font-bold">All</button>
+                    <button id="records-filter-income" onclick="setRecordsFilter('income')" class="records-filter text-slate-400 rounded-xl py-2 text-[10px] font-bold">Income</button>
+                    <button id="records-filter-expense" onclick="setRecordsFilter('expense')" class="records-filter text-slate-400 rounded-xl py-2 text-[10px] font-bold">Expenses</button>
+                    <button id="records-filter-mileage" onclick="setRecordsFilter('mileage')" class="records-filter text-slate-400 rounded-xl py-2 text-[10px] font-bold">Mileage</button>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="openIncomeModal()" class="bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 rounded-xl py-2.5 text-[10px] font-bold"><i class="fa-solid fa-plus mr-1"></i>Income</button>
+                    <button onclick="openExpenseModal()" class="bg-rose-500/15 border border-rose-500/25 text-rose-300 rounded-xl py-2.5 text-[10px] font-bold"><i class="fa-solid fa-minus mr-1"></i>Expense</button>
+                    <button onclick="openMileageModal()" class="bg-blue-500/15 border border-blue-500/25 text-blue-300 rounded-xl py-2.5 text-[10px] font-bold"><i class="fa-solid fa-road mr-1"></i>Mileage</button>
+                </div>
+                <div id="records-list" class="space-y-2.5"></div>
             </section>
 
             <!-- VIEW 3: SCAN RECEIPT SIMULATOR -->
@@ -423,97 +395,40 @@
             <section id="view-tax" class="p-5 space-y-5 hidden">
                 <div>
                     <h2 class="text-lg font-bold text-white">Estimated Tax Summary</h2>
-                    <p class="text-xs text-slate-400">Prototype estimate based on records entered in this app</p>
+                    <p class="text-xs text-slate-400">2026/27 estimate from records saved in this app. Other income or tax circumstances can change the final amount.</p>
                 </div>
-
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-lg">
-                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800">
-                        <span class="text-slate-400">Gross Earnings (YTD)</span>
-                        <span class="font-bold text-white" id="tax-earnings">£0.00</span>
-                    </div>
-                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800">
-                        <span class="text-slate-400">Allowable Expenses</span>
-                        <span class="font-bold text-rose-400" id="tax-expenses">-£0.00</span>
-                    </div>
-                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800">
-                        <span class="text-slate-400">Net Taxable Profit (Est.)</span>
-                        <span class="font-bold text-emerald-400" id="tax-profit">£0.00</span>
-                    </div>
-                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800">
-                        <span class="text-slate-400">Personal Allowance</span>
-                        <span class="font-bold text-slate-300">£12,570.00</span>
-                    </div>
-                    <div class="flex justify-between items-center text-sm pt-1">
-                        <span class="font-bold text-amber-400">Estimated Tax Reserve</span>
-                        <span class="font-extrabold text-amber-400 text-base" id="tax-owed">£0.00</span>
-                    </div>
+                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Business Income</span><span class="font-bold text-white" id="tax-earnings">£0.00</span></div>
+                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Allowable Expenses (Est.)</span><span class="font-bold text-rose-400" id="tax-expenses">-£0.00</span></div>
+                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Business Profit</span><span class="font-bold text-emerald-400" id="tax-profit">£0.00</span></div>
+                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Personal Allowance</span><span class="font-bold text-slate-300" id="tax-personal-allowance">£12,570.00</span></div>
+                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Taxable Profit</span><span class="font-bold text-white" id="tax-taxable-profit">£0.00</span></div>
+                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Estimated Income Tax</span><span class="font-bold text-amber-300" id="tax-income-tax">£0.00</span></div>
+                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Estimated Class 4 NI</span><span class="font-bold text-amber-300" id="tax-class4">£0.00</span></div>
+                    <div class="flex justify-between items-center text-sm pt-1"><span class="font-bold text-amber-400">Estimated Total Tax Reserve</span><span class="font-extrabold text-amber-400 text-base" id="tax-owed">£0.00</span></div>
                 </div>
-
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-lg">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="text-sm font-bold text-white">Tax Reserve</h3>
-                            <p class="text-[10px] text-slate-500">Money you have put aside for tax</p>
-                        </div>
-                        <button onclick="openReserveModal()" class="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-xl text-[11px] font-bold">
-                            + Add Saved
-                        </button>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div class="bg-slate-950/50 rounded-xl p-3">
-                            <p class="text-[10px] text-slate-500 uppercase font-bold">Saved</p>
-                            <p id="reserve-saved" class="text-base font-extrabold text-emerald-400 mt-1">£0.00</p>
-                        </div>
-                        <div class="bg-slate-950/50 rounded-xl p-3">
-                            <p class="text-[10px] text-slate-500 uppercase font-bold">Shortfall</p>
-                            <p id="reserve-shortfall" class="text-base font-extrabold text-amber-400 mt-1">£0.00</p>
-                        </div>
-                    </div>
-                    <div class="flex justify-between text-xs pt-1">
-                        <span class="text-slate-400">Suggested weekly saving</span>
-                        <span id="reserve-weekly" class="font-bold text-white">£0.00</span>
-                    </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4"><p class="text-[10px] uppercase font-bold text-slate-500">Tax Reserve Saved</p><p id="tax-reserve-saved" class="text-lg font-extrabold text-emerald-400 mt-1">£0.00</p></div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4"><p class="text-[10px] uppercase font-bold text-slate-500">Remaining Reserve</p><p id="tax-reserve-remaining" class="text-lg font-extrabold text-amber-400 mt-1">£0.00</p></div>
                 </div>
-
-                <p class="text-[10px] text-slate-500 leading-relaxed">This is a simple estimate for testing only and is not an official HMRC calculation. A full UK tax engine will be added before launch.</p>
-
-                <div class="space-y-2.5">
-                    <button onclick="showToast('CSV Report downloaded for accountant')" class="w-full bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-semibold py-3 rounded-xl text-xs flex items-center justify-center gap-2 transition">
-                        <i class="fa-solid fa-file-excel text-emerald-400"></i> Export CSV for Accountant
-                    </button>
-                    <button onclick="showToast('Tax summary preparation coming next')" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 transition">
-                        <i class="fa-solid fa-file-lines"></i> Prepare Tax Summary
-                    </button>
+                <div class="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3 text-[10px] text-amber-100">
+                    Estimate only. This version assumes England/Wales/Northern Ireland income-tax bands and uses only business records in the app. It does not yet account for employment, pensions, property income, student loans or Scottish tax bands.
                 </div>
+                <button onclick="openReserveModal()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-piggy-bank mr-1"></i> Add Tax Reserve Saving</button>
             </section>
 
         </main>
 
         <!-- Navigation Bar -->
         <nav class="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-2 py-2.5 flex justify-around items-center z-40">
-            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex flex-col items-center space-y-1 text-emerald-400 transition">
-                <i class="fa-solid fa-house text-base"></i>
-                <span class="text-[10px] font-semibold">Dashboard</span>
-            </button>
-            <button onclick="switchTab('expenses')" id="nav-expenses" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-200 transition">
-                <i class="fa-solid fa-wallet text-base"></i>
-                <span class="text-[10px] font-semibold">Expenses</span>
-            </button>
-            <button onclick="switchTab('mileage')" id="nav-mileage" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-200 transition">
-                <i class="fa-solid fa-road text-base"></i>
-                <span class="text-[10px] font-semibold">Mileage</span>
-            </button>
-            <button onclick="switchTab('scan')" id="nav-scan" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-200 transition">
-                <i class="fa-solid fa-camera text-base"></i>
-                <span class="text-[10px] font-semibold">Scan</span>
-            </button>
-            <button onclick="switchTab('tax')" id="nav-tax" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-200 transition">
-                <i class="fa-solid fa-file-invoice-dollar text-base"></i>
-                <span class="text-[10px] font-semibold">Tax</span>
-            </button>
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex flex-col items-center space-y-1 text-emerald-400 transition"><i class="fa-solid fa-house text-base"></i><span class="text-[10px] font-semibold">Dashboard</span></button>
+            <button onclick="switchTab('records')" id="nav-records" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 transition"><i class="fa-solid fa-list text-base"></i><span class="text-[10px] font-semibold">Records</span></button>
+            <button onclick="openCalendarTab()" id="nav-calendar" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 transition"><i class="fa-solid fa-calendar-days text-base"></i><span class="text-[10px] font-semibold">Calendar</span></button>
+            <button onclick="switchTab('scan')" id="nav-scan" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 transition"><i class="fa-solid fa-camera text-base"></i><span class="text-[10px] font-semibold">Scan</span></button>
+            <button onclick="switchTab('tax')" id="nav-tax" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 transition"><i class="fa-solid fa-file-invoice-dollar text-base"></i><span class="text-[10px] font-semibold">Tax</span></button>
         </nav>
 
-        <!-- Calendar Modal -->
+        <!-- Calendar Modal --><!-- Calendar Modal -->
         <div id="calendar-modal" class="hidden absolute inset-0 bg-slate-950 z-[55] overflow-y-auto">
             <div class="p-5 space-y-4">
                 <div class="flex items-center justify-between">
@@ -570,8 +485,8 @@
                             <p id="calendar-day-profit" class="text-base font-extrabold text-white mt-1">£0.00</p>
                         </div>
                         <div class="bg-slate-950/50 rounded-xl p-3">
-                            <p class="text-[10px] text-slate-500 uppercase font-bold">Mileage</p>
-                            <p id="calendar-day-mileage" class="text-base font-extrabold text-blue-400 mt-1">0 mi</p>
+                            <p class="text-[10px] text-slate-500 uppercase font-bold">Est. Tax Reserve</p>
+                            <p id="calendar-day-tax" class="text-base font-extrabold text-amber-400 mt-1">£0.00</p>
                         </div>
                     </div>
                     <div id="calendar-day-items" class="space-y-2"></div>
@@ -734,6 +649,10 @@
                 
                 <form id="income-form" onsubmit="handleSaveIncome(event)" class="space-y-3">
                     <div>
+                        <p class="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-2">Quick source</p>
+                        <div id="income-shortcuts" class="flex flex-wrap gap-2"></div>
+                    </div>
+                    <div>
                         <label class="text-[11px] font-semibold text-slate-400 block mb-1">Income Source</label>
                         <select id="income-source" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
                             <option value="Other">Other</option>
@@ -780,6 +699,10 @@
                 </div>
                 
                 <form id="expense-form" onsubmit="handleSaveExpense(event)" class="space-y-3">
+                    <div>
+                        <p class="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-2">Quick category</p>
+                        <div id="expense-shortcuts" class="flex flex-wrap gap-2"></div>
+                    </div>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="text-[11px] font-semibold text-slate-400 block mb-1">Category</label>
@@ -864,29 +787,77 @@
             </div>
         </div>
 
-        <!-- Account / Regular Costs -->
-        <div id="account-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-[85] flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl max-h-[88%] overflow-y-auto">
+        
+        <!-- Today Details -->
+        <div id="today-details-modal" class="hidden absolute inset-0 bg-slate-950 z-[86] overflow-y-auto">
+            <div class="p-5 space-y-4 pb-28">
                 <div class="flex items-center justify-between">
-                    <div><h3 class="font-bold text-sm text-white">Account</h3><p class="text-[10px] text-slate-500">Your work details and regular costs</p></div>
-                    <button type="button" onclick="closeAccountModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-xmark text-xs"></i></button>
+                    <div><h2 class="text-lg font-bold text-white">Today Details</h2><p id="today-details-date" class="text-[10px] text-slate-500"></p></div>
+                    <button onclick="closeTodayDetails()" class="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 text-slate-300"><i class="fa-solid fa-xmark"></i></button>
                 </div>
-                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-3 space-y-2">
-                    <div class="flex justify-between gap-3 text-[11px]"><span class="text-slate-500">Email</span><span id="account-email" class="text-slate-200 font-semibold text-right break-all"></span></div>
-                    <div class="flex justify-between gap-3 text-[11px]"><span class="text-slate-500">Work type</span><span id="account-work-type" class="text-slate-200 font-semibold text-right"></span></div>
-                    <div class="flex justify-between gap-3 text-[11px]"><span class="text-slate-500">Platforms</span><span id="account-platforms" class="text-slate-200 font-semibold text-right"></span></div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3"><p class="text-[10px] text-slate-500 uppercase font-bold">Income</p><p id="today-detail-income" class="text-lg font-extrabold text-emerald-400 mt-1">£0.00</p></div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3"><p class="text-[10px] text-slate-500 uppercase font-bold">Expenses</p><p id="today-detail-expense" class="text-lg font-extrabold text-rose-400 mt-1">£0.00</p></div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3"><p class="text-[10px] text-slate-500 uppercase font-bold">True Profit</p><p id="today-detail-profit" class="text-lg font-extrabold text-white mt-1">£0.00</p></div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3"><p class="text-[10px] text-slate-500 uppercase font-bold">Est. Tax Reserve</p><p id="today-detail-tax" class="text-lg font-extrabold text-amber-400 mt-1">£0.00</p></div>
                 </div>
-                <div class="space-y-2">
-                    <div class="flex items-center justify-between">
-                        <div><h4 class="text-xs font-bold text-white">Regular Costs</h4><p class="text-[9px] text-slate-500">Monthly and yearly costs saved to your account</p></div>
-                        <button type="button" onclick="openRecurringExpenseModal()" class="bg-violet-500/10 border border-violet-500/30 text-violet-300 px-3 py-2 rounded-xl text-[10px] font-bold">+ Add</button>
-                    </div>
-                    <div id="account-regular-cost-list" class="space-y-2"></div>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex justify-between items-center"><div><p class="text-[10px] text-slate-500 uppercase font-bold">Estimated Take-Home</p><p class="text-[9px] text-slate-600 mt-1">After regular-cost share and estimated tax reserve</p></div><p id="today-detail-takehome" class="text-xl font-extrabold text-emerald-400">£0.00</p></div>
+                <div id="today-regular-cost-note" class="bg-violet-500/10 border border-violet-500/20 rounded-xl p-3 text-[10px] text-violet-200"></div>
+                <div><h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Today's Records</h3><div id="today-details-list" class="space-y-2"></div></div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="closeTodayDetails();openIncomeModal()" class="bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs">+ Add Income</button>
+                    <button onclick="closeTodayDetails();openExpenseModal()" class="bg-rose-500 text-white font-bold py-3 rounded-xl text-xs">+ Add Expense</button>
                 </div>
+                <button onclick="openTodayInCalendar()" class="w-full bg-slate-900 border border-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-calendar-days mr-1"></i> View in Calendar</button>
             </div>
         </div>
 
-        <!-- Regular Cost Date Picker -->
+<!-- Account / Profile -->
+        <div id="account-modal" class="hidden absolute inset-0 bg-slate-950 z-[85] overflow-y-auto">
+            <div class="p-5 space-y-4 pb-28">
+                <div class="flex items-center justify-between">
+                    <div><h2 class="text-lg font-bold text-white">Profile</h2><p class="text-[10px] text-slate-500">Your account, work preferences and regular costs</p></div>
+                    <button type="button" onclick="closeAccountModal()" class="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 text-slate-300"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-4">
+                    <div class="flex items-center gap-4">
+                        <div class="relative shrink-0">
+                            <div id="account-avatar-fallback" class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-xl font-black text-white">D</div>
+                            <img id="account-avatar-img" class="hidden w-16 h-16 rounded-2xl object-cover border border-slate-700" alt="Profile">
+                            <label class="absolute -right-2 -bottom-2 w-8 h-8 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center cursor-pointer shadow-lg"><i class="fa-solid fa-camera text-xs"></i><input id="avatar-file" type="file" accept="image/*" class="hidden" onchange="uploadProfileAvatar(this)"></label>
+                        </div>
+                        <div class="min-w-0"><p id="account-name-display" class="text-base font-extrabold text-white truncate">Driver</p><p id="account-email" class="text-[10px] text-slate-400 break-all"></p><p id="account-subscription" class="inline-block mt-2 px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 text-[9px] font-bold">Trial</p></div>
+                    </div>
+                </div>
+                <form onsubmit="saveProfileDetails(event)" class="space-y-3">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                        <div class="flex items-center justify-between"><h3 class="text-xs font-bold text-white">Personal & Work Details</h3><span id="account-tax-year" class="text-[9px] text-emerald-300 font-bold">2026/27</span></div>
+                        <div><label class="text-[10px] text-slate-500 font-bold">Name</label><input id="profile-name" type="text" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
+                        <div><label class="text-[10px] text-slate-500 font-bold">Email</label><input id="profile-email" type="email" disabled class="mt-1 w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-400"></div>
+                        <div><label class="text-[10px] text-slate-500 font-bold">Work type</label><select id="profile-work-type" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option>Taxi / Private Hire</option><option>Food Delivery</option><option>Parcel / Courier</option><option>Multi-platform Driver</option><option>Other</option></select></div>
+                        <div><label class="text-[10px] text-slate-500 font-bold">Platforms <span class="text-slate-600">(comma separated)</span></label><input id="profile-platforms" type="text" placeholder="Uber, Bolt" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
+                        <div><label class="text-[10px] text-slate-500 font-bold">Usual expenses <span class="text-slate-600">(comma separated)</span></label><input id="profile-expenses" type="text" placeholder="Fuel, Insurance, Maintenance" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
+                        <button type="submit" class="w-full bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs">Save Profile</button>
+                    </div>
+                </form>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between"><div><h3 class="text-xs font-bold text-white">Regular Costs</h3><p class="text-[9px] text-slate-500">Monthly and yearly costs</p></div><button type="button" onclick="openRecurringExpenseModal()" class="bg-violet-500/10 border border-violet-500/30 text-violet-300 px-3 py-2 rounded-xl text-[10px] font-bold">+ Add</button></div>
+                    <div id="account-regular-cost-list" class="space-y-2"></div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between"><div><h3 class="text-xs font-bold text-white">Vehicle <span class="text-slate-500">(Optional)</span></h3><p class="text-[9px] text-slate-500">Only add this if it is useful to you</p></div><button id="vehicle-toggle-btn" type="button" onclick="toggleVehicleDetails()" class="text-[10px] font-bold text-blue-300">Add details</button></div>
+                    <div id="vehicle-details-form" class="hidden space-y-2">
+                        <div class="grid grid-cols-2 gap-2"><input id="vehicle-make" placeholder="Make" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><input id="vehicle-model" placeholder="Model" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
+                        <div class="grid grid-cols-2 gap-2"><input id="vehicle-year" type="number" min="1950" max="2100" placeholder="Year" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><input id="vehicle-registration" placeholder="Registration" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white uppercase"></div>
+                        <div class="grid grid-cols-2 gap-2"><select id="profile-vehicle-type" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option value="">Vehicle type</option><option>Car</option><option>Van</option><option>Motorcycle</option><option>Bicycle</option><option>Other</option></select><select id="vehicle-fuel" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option value="">Fuel type</option><option>Petrol</option><option>Diesel</option><option>Hybrid</option><option>Plug-in Hybrid</option><option>Electric</option><option>Other</option></select></div>
+                        <button type="button" onclick="saveVehicleDetails()" class="w-full bg-blue-500/15 border border-blue-500/25 text-blue-300 font-bold py-2.5 rounded-xl text-xs">Save Vehicle Details</button>
+                    </div>
+                </div>
+                <button type="button" onclick="signOutUser()" class="w-full border border-rose-500/25 bg-rose-500/10 text-rose-300 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-right-from-bracket mr-1"></i> Sign Out</button>
+            </div>
+        </div>
+
+        <!-- Regular Cost Date Picker --><!-- Regular Cost Date Picker -->
         <div id="recurring-date-picker-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex items-center justify-between">
@@ -981,6 +952,7 @@
             editingRecurringId: null,
             recurringReturnContext: null,
             activeFilter: 'all',
+            recordsFilter: 'all',
             authMode: 'signin'
         };
 
@@ -1407,6 +1379,8 @@
                 appState.selectedWorkType = profileRes.data?.primary_work_type || '';
                 appState.selectedPlatforms = profileRes.data?.platforms || [];
                 appState.selectedExpenses = profileRes.data?.usual_expenses || [];
+                const displayName=profileRes.data?.full_name || appState.currentUser?.user_metadata?.full_name || appState.currentUser?.email?.split('@')[0] || 'Driver';
+                const nameEl=document.getElementById('user-display-name'); if(nameEl) nameEl.textContent=displayName;
                 populateIncomeSources();
                 populateExpenseCategories();
                 renderRegularCostLists();
@@ -1421,7 +1395,9 @@
         // Tab Switcher
         function switchTab(tabId) {
             document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
-            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            const target=document.getElementById(`view-${tabId}`);
+            if (!target) return;
+            target.classList.remove('hidden');
 
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.remove('text-emerald-400');
@@ -1434,30 +1410,77 @@
             }
 
             renderUI();
+            if(tabId==='records') renderRecords();
+        }
+
+        // 2026/27 UK self-employed estimate (England, Wales and Northern Ireland bands).
+        function calculateUkTax2026_27(profit) {
+            const p=Math.max(0,Number(profit||0));
+            const allowance=Math.max(0,12570-Math.max(0,p-100000)/2);
+            const taxable=Math.max(0,p-allowance);
+            const basic=Math.min(taxable,37700)*0.20;
+            const higher=Math.min(Math.max(0,taxable-37700),87440)*0.40;
+            const additional=Math.max(0,taxable-125140)*0.45;
+            const incomeTax=basic+higher+additional;
+            const class4=Math.min(Math.max(0,p-12570),37700)*0.06 + Math.max(0,p-50270)*0.02;
+            return {allowance,taxable,incomeTax,class4,total:incomeTax+class4};
+        }
+
+        function getTaxYearSummary() {
+            const b=currentTaxYearBounds();
+            const range=getRangeActivity(b.start,b.end);
+            const recurring=getRecurringCostShare(b.start,b.end);
+            const income=range.income;
+            const directExpenses=range.expenses;
+            const expenses=directExpenses+recurring.total;
+            const profit=Math.max(0,income-expenses);
+            const tax=calculateUkTax2026_27(profit);
+            const saved=appState.taxReserveEntries.filter(x=>x.saved_on>=b.start&&x.saved_on<=b.end).reduce((s,x)=>s+Number(x.amount||0),0);
+            return { ...b,income,expenses,profit,saved,...tax };
+        }
+
+        function getEstimatedDailyTaxReserve(dateStr) {
+            const b=currentTaxYearBounds();
+            if(dateStr<b.start||dateStr>b.end) return 0;
+            const ytdEnd=dateStr;
+            const range=getRangeActivity(b.start,ytdEnd);
+            const recurring=getRecurringCostShare(b.start,ytdEnd);
+            const withProfit=Math.max(0,range.income-range.expenses-recurring.total);
+            const day=getDayActivity(dateStr);
+            const dayRecurring=getRecurringCostShare(dateStr,dateStr).total;
+            const dayProfit=day.income-day.expenses-dayRecurring;
+            const withoutProfit=Math.max(0,withProfit-dayProfit);
+            return Math.max(0,calculateUkTax2026_27(withProfit).total-calculateUkTax2026_27(withoutProfit).total);
         }
 
         // Render UI Calculations & Lists
         function renderUI() {
-            const todayProfit = appState.todayEarnings - appState.todayExpenses;
-            const todayEstTax = Math.max(0, todayProfit * 0.20);
-            const todayNetTakeHome = todayProfit - todayEstTax;
-
-            const monthlyProfit = appState.monthlyEarnings - appState.monthlyExpenses;
-            const annualProfitEst = monthlyProfit * 12;
-            const taxableAnnual = Math.max(0, annualProfitEst - 12570);
-            const annualTaxEst = taxableAnnual * 0.20;
-            const monthlyTaxReserve = annualTaxEst / 12;
+            const today = isoDate(new Date());
+            const todayActivity=getDayActivity(today);
+            const todayRecurring=getRecurringCostShare(today,today).total;
+            const todayProfit=todayActivity.income-todayActivity.expenses-todayRecurring;
+            const todayEstTax=getEstimatedDailyTaxReserve(today);
+            const todayNetTakeHome=todayProfit-todayEstTax;
+            appState.todayEarnings=todayActivity.income;
+            appState.todayExpenses=todayActivity.expenses;
 
             document.getElementById('dash-today-profit').textContent = `£${todayProfit.toFixed(2)}`;
-            document.getElementById('dash-today-earnings').textContent = `£${appState.todayEarnings.toFixed(2)}`;
-            document.getElementById('dash-today-expenses').textContent = `£${appState.todayExpenses.toFixed(2)}`;
+            document.getElementById('dash-today-earnings').textContent = `£${todayActivity.income.toFixed(2)}`;
+            document.getElementById('dash-today-expenses').textContent = `£${todayActivity.expenses.toFixed(2)}`;
             document.getElementById('dash-today-tax').textContent = `£${todayEstTax.toFixed(2)}`;
             document.getElementById('dash-today-net').textContent = `£${todayNetTakeHome.toFixed(2)}`;
 
-            document.getElementById('tax-earnings').textContent = `£${appState.monthlyEarnings.toFixed(2)}`;
-            document.getElementById('tax-expenses').textContent = `-£${appState.monthlyExpenses.toFixed(2)}`;
-            document.getElementById('tax-profit').textContent = `£${monthlyProfit.toFixed(2)}`;
-            document.getElementById('tax-owed').textContent = `£${monthlyTaxReserve.toFixed(2)}`;
+            const ts=getTaxYearSummary();
+            document.getElementById('tax-earnings').textContent = `£${ts.income.toFixed(2)}`;
+            document.getElementById('tax-expenses').textContent = `-£${ts.expenses.toFixed(2)}`;
+            document.getElementById('tax-profit').textContent = `£${ts.profit.toFixed(2)}`;
+            document.getElementById('tax-personal-allowance').textContent = `£${ts.allowance.toFixed(2)}`;
+            document.getElementById('tax-taxable-profit').textContent = `£${ts.taxable.toFixed(2)}`;
+            document.getElementById('tax-income-tax').textContent = `£${ts.incomeTax.toFixed(2)}`;
+            document.getElementById('tax-class4').textContent = `£${ts.class4.toFixed(2)}`;
+            document.getElementById('tax-owed').textContent = `£${ts.total.toFixed(2)}`;
+            document.getElementById('tax-reserve-saved').textContent = `£${ts.saved.toFixed(2)}`;
+            document.getElementById('tax-reserve-remaining').textContent = `£${Math.max(0,ts.total-ts.saved).toFixed(2)}`;
 
             const recentHtml = appState.transactions.slice(0, 4).map(item => {
                 const isInc = item.type === 'income';
@@ -1467,43 +1490,14 @@
                             <div class="w-8 h-8 rounded-xl ${isInc ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} flex items-center justify-center text-xs">
                                 <i class="fa-solid ${isInc ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
                             </div>
-                            <div>
-                                <h4 class="text-xs font-bold text-white">${isInc ? item.source : item.vendor}</h4>
-                                <span class="text-[10px] text-slate-400">${item.date} • ${isInc ? 'Income' : item.category}</span>
-                            </div>
+                            <div><h4 class="text-xs font-bold text-white">${isInc ? item.source : item.category}</h4><span class="text-[10px] text-slate-400">${formatUkDate(item.date)} • ${isInc ? 'Income' : item.category}</span></div>
                         </div>
-                        <span class="text-xs font-extrabold ${isInc ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${isInc ? '+' : '-'}£${item.amount.toFixed(2)}
-                        </span>
-                    </div>
-                `;
+                        <span class="text-xs font-extrabold ${isInc ? 'text-emerald-400' : 'text-rose-400'}">${isInc ? '+' : '-'}£${item.amount.toFixed(2)}</span>
+                    </div>`;
             }).join('');
             document.getElementById('recent-activity-list').innerHTML = recentHtml || '<p class="text-center text-xs text-slate-500 py-4">No recent records found.</p>';
 
-            const expensesList = appState.transactions.filter(t => t.type === 'expense');
-            const filtered = appState.activeFilter === 'all' 
-                ? expensesList 
-                : expensesList.filter(e => e.category === appState.activeFilter);
-
-            const fullHtml = filtered.map(item => `
-                <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex justify-between items-center">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 rounded-xl bg-slate-800 text-rose-400 flex items-center justify-center text-xs">
-                            <i class="fa-solid ${getCategoryIcon(item.category)}"></i>
-                        </div>
-                        <div>
-                            <h4 class="text-xs font-bold text-white">${item.vendor}</h4>
-                            <span class="text-[10px] text-slate-400">${item.date} • ${item.category}</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-3">
-                        <span class="text-xs font-extrabold text-rose-400">-£${item.amount.toFixed(2)}</span>
-                        <button onclick="deleteTransaction('${item.id}', '${item.type}')" class="text-slate-500 hover:text-rose-400 text-xs"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                </div>
-            `).join('');
-            document.getElementById('full-expenses-list').innerHTML = fullHtml || '<p class="text-center text-xs text-slate-500 py-6">No expenses found.</p>';
-
+            renderRecords();
             renderQuickAddButtons();
 
             // Mileage totals
@@ -1567,23 +1561,19 @@
         }
 
         function renderQuickAddButtons() {
-            const incomeBox = document.getElementById('quick-income-buttons');
-            const expenseBox = document.getElementById('quick-expense-buttons');
+            const incomeBox = document.getElementById('income-shortcuts');
+            const expenseBox = document.getElementById('expense-shortcuts');
             if (incomeBox) {
                 const sources = [...new Set([...(appState.selectedPlatforms || []), 'Other'])].slice(0, 6);
-                incomeBox.innerHTML = sources.map(v => `
-                    <button type="button" onclick="quickOpenIncome('${v.replace(/'/g,"\\'")}')" class="px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold">${v}</button>
-                `).join('');
+                incomeBox.innerHTML = sources.map(v => `<button type="button" onclick="quickOpenIncome('${v.replace(/'/g,"\\'")}')" class="px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold">${v}</button>`).join('');
             }
             if (expenseBox) {
                 const cats = [...new Set([...(appState.selectedExpenses || []), 'Other'])].slice(0, 8);
-                expenseBox.innerHTML = cats.map(v => `
-                    <button type="button" onclick="quickOpenExpense('${v.replace(/'/g,"\\'")}')" class="px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[11px] font-bold">${v}</button>
-                `).join('');
+                expenseBox.innerHTML = cats.map(v => `<button type="button" onclick="quickOpenExpense('${v.replace(/'/g,"\\'")}')" class="px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[11px] font-bold">${v}</button>`).join('');
             }
         }
 
-        function quickOpenIncome(source) {
+        function quickOpenIncome(source) {        function quickOpenIncome(source) {
             openIncomeModal();
             const select = document.getElementById('income-source');
             if (select) {
@@ -1603,6 +1593,12 @@
                 select.value = category;
             }
             setTimeout(() => document.getElementById('expense-amount')?.focus(), 50);
+        }
+
+        function openCalendarTab() {
+            document.querySelectorAll('.nav-btn').forEach(btn => { btn.classList.remove('text-emerald-400'); btn.classList.add('text-slate-400'); });
+            const btn=document.getElementById('nav-calendar'); if(btn){btn.classList.remove('text-slate-400');btn.classList.add('text-emerald-400');}
+            openCalendarModal();
         }
 
         function openCalendarModal() {
@@ -1696,19 +1692,101 @@
             closeUniversalDatePicker();
         }
 
+        function currentTaxYearBounds() {
+            const now = new Date();
+            const y = (now.getMonth() > 3 || (now.getMonth() === 3 && now.getDate() >= 6)) ? now.getFullYear() : now.getFullYear()-1;
+            return { start: y+'-04-06', end:(y+1)+'-04-05', label:y+'/'+String(y+1).slice(-2) };
+        }
+
+        async function refreshAvatarPreview() {
+            const img=document.getElementById('account-avatar-img');
+            const fallback=document.getElementById('account-avatar-fallback');
+            const path=appState.profile?.avatar_path;
+            if(path){
+                const { data }=await supabaseClient.storage.from('avatars').createSignedUrl(path,3600);
+                if(data?.signedUrl){ img.src=data.signedUrl; img.classList.remove('hidden'); fallback.classList.add('hidden'); return; }
+            }
+            img?.classList.add('hidden'); fallback?.classList.remove('hidden');
+        }
+
         function openAccountModal() {
-            document.getElementById('account-email').textContent = appState.currentUser?.email || '';
-            document.getElementById('account-work-type').textContent = appState.selectedWorkType || 'Not set';
-            document.getElementById('account-platforms').textContent = (appState.selectedPlatforms || []).join(', ') || 'Not set';
+            const p=appState.profile || {};
+            const email=appState.currentUser?.email || '';
+            const name=p.full_name || appState.currentUser?.user_metadata?.full_name || email.split('@')[0] || 'Driver';
+            document.getElementById('account-email').textContent=email;
+            document.getElementById('account-name-display').textContent=name;
+            document.getElementById('account-avatar-fallback').textContent=(name.trim()[0]||'D').toUpperCase();
+            document.getElementById('account-subscription').textContent=(p.subscription_status || 'trial').replace(/^./,x=>x.toUpperCase());
+            document.getElementById('account-tax-year').textContent=currentTaxYearBounds().label;
+            document.getElementById('profile-name').value=name;
+            document.getElementById('profile-email').value=email;
+            document.getElementById('profile-work-type').value=p.primary_work_type || appState.selectedWorkType || 'Other';
+            document.getElementById('profile-platforms').value=(p.platforms || appState.selectedPlatforms || []).join(', ');
+            document.getElementById('profile-expenses').value=(p.usual_expenses || appState.selectedExpenses || []).join(', ');
+            document.getElementById('vehicle-make').value=p.vehicle_make || '';
+            document.getElementById('vehicle-model').value=p.vehicle_model || '';
+            document.getElementById('vehicle-year').value=p.vehicle_year || '';
+            document.getElementById('vehicle-registration').value=p.vehicle_registration || '';
+            document.getElementById('profile-vehicle-type').value=p.vehicle_type || '';
+            document.getElementById('vehicle-fuel').value=p.fuel_type || '';
+            const hasVehicle=!!(p.vehicle_make||p.vehicle_model||p.vehicle_year||p.vehicle_registration||p.vehicle_type||p.fuel_type);
+            document.getElementById('vehicle-details-form').classList.toggle('hidden',!hasVehicle);
+            document.getElementById('vehicle-toggle-btn').textContent=hasVehicle?'Hide':'Add details';
             renderRegularCostLists();
+            refreshAvatarPreview();
             document.getElementById('account-modal')?.classList.remove('hidden');
         }
 
-        function closeAccountModal() {
-            document.getElementById('account-modal')?.classList.add('hidden');
+        function closeAccountModal() { document.getElementById('account-modal')?.classList.add('hidden'); }
+
+        function toggleVehicleDetails(){
+            const box=document.getElementById('vehicle-details-form'); box.classList.toggle('hidden');
+            document.getElementById('vehicle-toggle-btn').textContent=box.classList.contains('hidden')?'Add details':'Hide';
         }
 
-        function renderRegularCostLists() {
+        async function saveProfileDetails(e){
+            e.preventDefault(); if(!appState.currentUser) return;
+            const full_name=document.getElementById('profile-name').value.trim();
+            const primary_work_type=document.getElementById('profile-work-type').value;
+            const platforms=document.getElementById('profile-platforms').value.split(',').map(x=>x.trim()).filter(Boolean);
+            const usual_expenses=document.getElementById('profile-expenses').value.split(',').map(x=>x.trim()).filter(Boolean);
+            const {error}=await supabaseClient.from('profiles').update({full_name,primary_work_type,work_types:[primary_work_type],platforms,usual_expenses,updated_at:new Date().toISOString()}).eq('id',appState.currentUser.id);
+            if(error){showToast('Could not save profile');return;}
+            await fetchUserData(appState.currentUser.id); openAccountModal(); showToast('Profile updated');
+        }
+
+        async function saveVehicleDetails(){
+            if(!appState.currentUser) return;
+            const yr=Number(document.getElementById('vehicle-year').value||0);
+            const payload={
+                vehicle_make:document.getElementById('vehicle-make').value.trim()||null,
+                vehicle_model:document.getElementById('vehicle-model').value.trim()||null,
+                vehicle_year:yr||null,
+                vehicle_registration:document.getElementById('vehicle-registration').value.trim().toUpperCase()||null,
+                vehicle_type:document.getElementById('profile-vehicle-type').value||null,
+                fuel_type:document.getElementById('vehicle-fuel').value||null,
+                updated_at:new Date().toISOString()
+            };
+            const {error}=await supabaseClient.from('profiles').update(payload).eq('id',appState.currentUser.id);
+            if(error){showToast('Could not save vehicle details');return;}
+            await fetchUserData(appState.currentUser.id); openAccountModal(); showToast('Vehicle details saved');
+        }
+
+        async function uploadProfileAvatar(input){
+            const file=input.files?.[0]; if(!file||!appState.currentUser) return;
+            if(file.size>5*1024*1024){showToast('Please choose an image under 5 MB'); input.value=''; return;}
+            const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+            const path=appState.currentUser.id+'/avatar-'+Date.now()+'.'+ext;
+            const {error:upErr}=await supabaseClient.storage.from('avatars').upload(path,file,{upsert:false,contentType:file.type||'image/jpeg'});
+            if(upErr){showToast('Profile photo upload failed');return;}
+            const old=appState.profile?.avatar_path;
+            const {error}=await supabaseClient.from('profiles').update({avatar_path:path,updated_at:new Date().toISOString()}).eq('id',appState.currentUser.id);
+            if(error){showToast('Could not save profile photo');return;}
+            if(old&&old!==path) await supabaseClient.storage.from('avatars').remove([old]);
+            await fetchUserData(appState.currentUser.id); openAccountModal(); showToast('Profile photo updated');
+        }
+
+        function renderRegularCostLists() {        function renderRegularCostLists() {
             const rows = (appState.recurringExpenses || []).map(r => {
                 const freq = r.frequency === 'yearly' ? 'Yearly' : 'Monthly';
                 return '<div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3">'+
@@ -2325,7 +2403,8 @@
             document.getElementById('calendar-day-income').textContent = '£' + a.income.toFixed(2);
             document.getElementById('calendar-day-expense').textContent = '£' + a.expenses.toFixed(2);
             document.getElementById('calendar-day-profit').textContent = '£' + trueProfit.toFixed(2);
-            document.getElementById('calendar-day-mileage').textContent = a.mileage.toFixed(1).replace('.0','') + ' mi';
+            const dailyTaxReserve = getEstimatedDailyTaxReserve(dateStr);
+            document.getElementById('calendar-day-tax').textContent = '£' + dailyTaxReserve.toFixed(2);
 
             const items = [];
             a.tx.forEach(t => {
@@ -2403,7 +2482,7 @@
             resetEditState();
             appState.dailyEntryMode = false;
             openIncomeModal();
-            document.getElementById('income-date').value = dateStr;
+            setDateField('income-date','income-date-label',dateStr);
             document.getElementById('income-amount').value = '';
             document.getElementById('income-notes').value = '';
             setDailyEntryButtons(null);
@@ -2413,7 +2492,7 @@
             resetEditState();
             appState.dailyEntryMode = false;
             openExpenseModal();
-            document.getElementById('expense-date').value = dateStr;
+            setDateField('expense-date','expense-date-label',dateStr);
             document.getElementById('expense-amount').value = '';
             document.getElementById('expense-notes').value = '';
             setDailyEntryButtons(null);
@@ -2423,7 +2502,7 @@
             resetEditState();
             appState.dailyEntryMode = false;
             openMileageModal();
-            document.getElementById('mileage-date').value = dateStr;
+            setDateField('mileage-date','mileage-date-label',dateStr);
             document.getElementById('mileage-miles').value = '';
             document.getElementById('mileage-notes').value = '';
             setDailyEntryButtons(null);
@@ -2441,7 +2520,7 @@
             if (![...sourceSelect.options].some(o => o.value === t.source)) sourceSelect.add(new Option(t.source,t.source));
             sourceSelect.value = t.source || 'Other';
             document.getElementById('income-amount').value = Number(t.amount).toFixed(2);
-            document.getElementById('income-date').value = t.date;
+            setDateField('income-date','income-date-label',t.date);
             document.getElementById('income-notes').value = t.notes || '';
             document.getElementById('income-modal-title').textContent = 'Edit Income';
             document.getElementById('income-submit-btn').textContent = 'Update Income';
@@ -2460,7 +2539,7 @@
             if (![...categorySelect.options].some(o => o.value === t.category)) categorySelect.add(new Option(t.category,t.category));
             categorySelect.value = t.category || 'Other';
             document.getElementById('expense-amount').value = Number(t.amount).toFixed(2);
-            document.getElementById('expense-date').value = t.date;
+            setDateField('expense-date','expense-date-label',t.date);
             document.getElementById('expense-notes').value = t.notes || '';
             document.getElementById('expense-modal-title').textContent = 'Edit Expense';
             document.getElementById('expense-submit-btn').textContent = 'Update Expense';
@@ -2476,7 +2555,7 @@
             openMileageModal();
 
             document.getElementById('mileage-miles').value = Number(t.business_miles);
-            document.getElementById('mileage-date').value = t.trip_date;
+            setDateField('mileage-date','mileage-date-label',t.trip_date);
             document.getElementById('mileage-purpose').value = t.purpose || 'Other Business Journey';
             document.getElementById('mileage-notes').value = t.notes || '';
             document.getElementById('mileage-modal-title').textContent = 'Edit Mileage';
@@ -2981,6 +3060,49 @@
             showToast(`Added £${amount.toFixed(2)} ${vendor}`);
             switchTab('dashboard');
         }
+
+        function setRecordsFilter(filter){
+            appState.recordsFilter=filter;
+            document.querySelectorAll('.records-filter').forEach(b=>{b.classList.remove('bg-emerald-500','text-slate-950');b.classList.add('text-slate-400');});
+            const active=document.getElementById('records-filter-'+filter);
+            if(active){active.classList.add('bg-emerald-500','text-slate-950');active.classList.remove('text-slate-400');}
+            renderRecords();
+        }
+
+        function renderRecords(){
+            const box=document.getElementById('records-list'); if(!box) return;
+            const rows=[];
+            appState.transactions.forEach(t=>rows.push({kind:t.type,date:t.date,data:t}));
+            appState.mileageTrips.forEach(m=>rows.push({kind:'mileage',date:m.trip_date,data:m}));
+            rows.sort((a,b)=>new Date(b.date)-new Date(a.date));
+            const filtered=appState.recordsFilter==='all'?rows:rows.filter(r=>r.kind===appState.recordsFilter);
+            box.innerHTML=filtered.map(r=>{
+                if(r.kind==='mileage'){
+                    const m=r.data;
+                    return `<div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex justify-between items-center gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center"><i class="fa-solid fa-road text-xs"></i></div><div class="min-w-0"><p class="text-xs font-bold text-white truncate">${m.purpose||'Mileage'}</p><p class="text-[10px] text-slate-500">${formatUkDate(m.trip_date)} • Mileage</p></div></div><div class="flex items-center gap-2 shrink-0"><span class="text-xs font-bold text-blue-400">${Number(m.business_miles).toFixed(1).replace('.0','')} mi</span><button onclick="editMileageRecord('${m.id}')" class="text-[9px] font-bold text-slate-400">Edit</button><button onclick="deleteMileage('${m.id}')" class="text-rose-400"><i class="fa-solid fa-trash text-[10px]"></i></button></div></div>`;
+                }
+                const t=r.data,isInc=r.kind==='income';
+                return `<div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex justify-between items-center gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-8 h-8 rounded-xl ${isInc?'bg-emerald-500/10 text-emerald-400':'bg-rose-500/10 text-rose-400'} flex items-center justify-center"><i class="fa-solid ${isInc?'fa-arrow-down':'fa-arrow-up'} text-xs"></i></div><div class="min-w-0"><p class="text-xs font-bold text-white truncate">${isInc?(t.source||'Income'):(t.category||'Expense')}</p><p class="text-[10px] text-slate-500">${formatUkDate(t.date)} • ${isInc?'Income':'Expense'}</p></div></div><div class="flex items-center gap-2 shrink-0"><span class="text-xs font-bold ${isInc?'text-emerald-400':'text-rose-400'}">${isInc?'+':'-'}£${Number(t.amount).toFixed(2)}</span><button onclick="${isInc?`editIncomeRecord('${t.id}')`:`editExpenseRecord('${t.id}')`}" class="text-[9px] font-bold text-slate-400">Edit</button><button onclick="deleteTransaction('${t.id}','${t.type}')" class="text-rose-400"><i class="fa-solid fa-trash text-[10px]"></i></button></div></div>`;
+            }).join('') || '<p class="text-center text-xs text-slate-500 py-8">No records found.</p>';
+        }
+
+        function openTodayDetails(){
+            const d=isoDate(new Date()),a=getDayActivity(d),reg=getRecurringCostShare(d,d);
+            const profit=a.income-a.expenses-reg.total,tax=getEstimatedDailyTaxReserve(d),take=profit-tax;
+            document.getElementById('today-details-date').textContent=formatUkDate(d);
+            document.getElementById('today-detail-income').textContent='£'+a.income.toFixed(2);
+            document.getElementById('today-detail-expense').textContent='£'+a.expenses.toFixed(2);
+            document.getElementById('today-detail-profit').textContent='£'+profit.toFixed(2);
+            document.getElementById('today-detail-tax').textContent='£'+tax.toFixed(2);
+            document.getElementById('today-detail-takehome').textContent='£'+take.toFixed(2);
+            document.getElementById('today-regular-cost-note').textContent='Today’s share of regular costs: £'+reg.total.toFixed(2);
+            const rows=a.tx.map(t=>`<div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between"><span class="text-xs text-slate-300">${t.type==='income'?(t.source||'Income'):(t.category||'Expense')}</span><span class="text-xs font-bold ${t.type==='income'?'text-emerald-400':'text-rose-400'}">${t.type==='income'?'+':'-'}£${Number(t.amount).toFixed(2)}</span></div>`);
+            appState.mileageTrips.filter(x=>x.trip_date===d).forEach(m=>rows.push(`<div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between"><span class="text-xs text-slate-300">${m.purpose||'Mileage'}</span><span class="text-xs font-bold text-blue-400">${Number(m.business_miles).toFixed(1).replace('.0','')} mi</span></div>`));
+            document.getElementById('today-details-list').innerHTML=rows.join('')||'<p class="text-center text-xs text-slate-500 py-4">No records for today yet.</p>';
+            document.getElementById('today-details-modal').classList.remove('hidden');
+        }
+        function closeTodayDetails(){document.getElementById('today-details-modal').classList.add('hidden');}
+        function openTodayInCalendar(){closeTodayDetails();appState.selectedCalendarDate=isoDate(new Date());openCalendarTab();showCalendarDay(appState.selectedCalendarDate);}
 
         function filterExpenses(category) {
             appState.activeFilter = category;
