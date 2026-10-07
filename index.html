@@ -309,7 +309,7 @@
             <section id="view-scan" class="p-5 space-y-5 hidden">
                 <div class="text-center space-y-1">
                     <h2 class="text-lg font-bold text-white">AI Receipt Scanner</h2>
-                    <p class="text-xs text-slate-400">Scan → AI reads → you check → confirm → expense saved.</p>
+                    <p class="text-xs text-slate-400">Upload a receipt → details fill automatically → check → save.</p>
                 </div>
                 <label class="relative bg-slate-900 border-2 border-dashed border-slate-700 rounded-3xl p-6 flex flex-col items-center justify-center text-center min-h-56 cursor-pointer">
                     <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto text-2xl"><i class="fa-solid fa-receipt"></i></div>
@@ -1005,6 +1005,7 @@
             taxProfile: null,
             pendingReceiptFile: null,
             pendingReceiptPath: null,
+            pendingReceiptAi: false,
             selectedWorkType: '',
             selectedPlatforms: [],
             selectedExpenses: [],
@@ -2117,20 +2118,74 @@ function openAccountModal() {
             return shareSelectedTaxFiles(method);
         }
 
-        async function handleReceiptSelected(input){
-            const file=input.files?.[0];if(!file||!appState.currentUser)return;
+        async async function handleReceiptSelected(input){
+            const file=input.files?.[0];
+            if(!file||!appState.currentUser)return;
             if(file.size>10*1024*1024){showToast('Choose an image under 10 MB');return;}
+
             appState.pendingReceiptFile=file;
-            const status=document.getElementById('receipt-scan-status');status.classList.remove('hidden');status.textContent='Uploading receipt securely…';
+            appState.pendingReceiptAi=false;
+            const status=document.getElementById('receipt-scan-status');
+            const review=document.getElementById('receipt-review-card');
+            const confidenceEl=document.getElementById('receipt-ai-confidence');
+
+            status.classList.remove('hidden');
+            review.classList.add('hidden');
+            status.innerHTML='<i class="fa-solid fa-cloud-arrow-up text-emerald-400 mr-2"></i>Uploading receipt securely…';
+
             try{
-                const ext=(file.name.split('.').pop()||'jpg').toLowerCase();const path=appState.currentUser.id+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
-                const {error}=await supabaseClient.storage.from('receipts').upload(path,file,{contentType:file.type||'image/jpeg',upsert:false});if(error)throw error;
-                appState.pendingReceiptPath=path;document.getElementById('receipt-preview').src=URL.createObjectURL(file);setDateField('receipt-date','receipt-date-label',isoDate(new Date()));
-                const cats=[...new Set([...(appState.selectedExpenses||[]),'Other'])];document.getElementById('receipt-category').innerHTML=cats.map(x=>'<option>'+x+'</option>').join('');
-                status.textContent='Receipt stored privately. AI extraction is not connected yet, so check and enter the fields manually before saving.';
-                document.getElementById('receipt-ai-confidence').textContent='Manual review';
-                document.getElementById('receipt-review-card').classList.remove('hidden');
-            }catch(err){console.error(err);status.textContent='Upload failed. Please retry.';}
+                const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+                const path=appState.currentUser.id+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
+                const {error}=await supabaseClient.storage.from('receipts').upload(path,file,{
+                    contentType:file.type||'image/jpeg',
+                    upsert:false
+                });
+                if(error)throw error;
+
+                appState.pendingReceiptPath=path;
+                document.getElementById('receipt-preview').src=URL.createObjectURL(file);
+                setDateField('receipt-date','receipt-date-label',isoDate(new Date()));
+
+                const cats=[...new Set([...(appState.selectedExpenses||[]),'Fuel','Parking','Tolls','Vehicle Repairs','Vehicle Cleaning','Phone','Insurance','Licensing','Other'])];
+                document.getElementById('receipt-category').innerHTML=cats.map(x=>'<option>'+x+'</option>').join('');
+
+                document.getElementById('receipt-merchant').value='';
+                document.getElementById('receipt-amount').value='';
+                document.getElementById('receipt-vat').value='';
+                confidenceEl.textContent='AI reading…';
+                confidenceEl.className='text-[9px] font-bold text-emerald-300';
+                status.innerHTML='<i class="fa-solid fa-wand-magic-sparkles text-emerald-400 mr-2"></i>AI is reading merchant, date, total, VAT and category…';
+
+                const {data:scanResponse,error:scanError}=await supabaseClient.functions.invoke('scan-receipt',{
+                    body:{path,categories:cats}
+                });
+
+                if(scanError || !scanResponse?.data){
+                    console.error('Receipt AI scan error',scanError,scanResponse);
+                    status.innerHTML='<i class="fa-solid fa-triangle-exclamation text-amber-400 mr-2"></i>AI could not read this receipt automatically. The image is safe — enter or correct the fields below.';
+                    confidenceEl.textContent='Manual review';
+                    confidenceEl.className='text-[9px] font-bold text-amber-300';
+                    review.classList.remove('hidden');
+                    return;
+                }
+
+                const result=scanResponse.data;
+                if(result.merchant) document.getElementById('receipt-merchant').value=result.merchant;
+                if(result.amount!==null && result.amount!==undefined) document.getElementById('receipt-amount').value=Number(result.amount).toFixed(2);
+                if(result.vat!==null && result.vat!==undefined) document.getElementById('receipt-vat').value=Number(result.vat).toFixed(2);
+                if(result.date) setDateField('receipt-date','receipt-date-label',result.date);
+                if(result.category && cats.includes(result.category)) document.getElementById('receipt-category').value=result.category;
+
+                const confidence=Number(result.confidence||0);
+                appState.pendingReceiptAi=true;
+                confidenceEl.textContent=confidence>=0.85?'High confidence':confidence>=0.60?'Check details':'Needs review';
+                confidenceEl.className='text-[9px] font-bold '+(confidence>=0.85?'text-emerald-300':confidence>=0.60?'text-amber-300':'text-rose-300');
+                status.innerHTML='<i class="fa-solid fa-circle-check text-emerald-400 mr-2"></i>Receipt read automatically. Please check the details, then tap Confirm & Save.';
+                review.classList.remove('hidden');
+            }catch(err){
+                console.error(err);
+                status.innerHTML='<i class="fa-solid fa-triangle-exclamation text-rose-400 mr-2"></i>Upload failed. Please retry.';
+            }
         }
         async function confirmReceiptExpense(){
             if(!appState.currentUser||!appState.pendingReceiptPath)return;
@@ -2143,11 +2198,11 @@ function openAccountModal() {
             const merchant=document.getElementById('receipt-merchant').value.trim()||'Receipt';
             const date=document.getElementById('receipt-date').value||isoDate(new Date());const category=document.getElementById('receipt-category').value||'Other';const vat=Number(document.getElementById('receipt-vat').value||0);
             const {data:exp,error:e1}=await supabaseClient.from('expenses').insert([{user_id:appState.currentUser.id,category,amount,merchant,expense_date:date,notes:'Receipt scan'}]).select('id').single();if(e1){showToast('Could not save expense');appState.receiptSaving=false;return;}
-            const f=appState.pendingReceiptFile;const {error:e2}=await supabaseClient.from('receipts').insert([{user_id:appState.currentUser.id,expense_id:exp.id,file_path:appState.pendingReceiptPath,original_filename:f?.name||null,mime_type:f?.type||null,size_bytes:f?.size||null,ai_status:'manual_review',extracted_merchant:merchant,extracted_date:date,extracted_amount:amount,extracted_vat:vat||null,suggested_category:category,driver_confirmed:true}]);if(e2){showToast('Expense saved, receipt link needs retry');appState.receiptSaving=false;return;}
+            const f=appState.pendingReceiptFile;const {error:e2}=await supabaseClient.from('receipts').insert([{user_id:appState.currentUser.id,expense_id:exp.id,file_path:appState.pendingReceiptPath,original_filename:f?.name||null,mime_type:f?.type||null,size_bytes:f?.size||null,ai_status:appState.pendingReceiptAi?'ai_extracted':'manual_review',extracted_merchant:merchant,extracted_date:date,extracted_amount:amount,extracted_vat:vat||null,suggested_category:category,driver_confirmed:true}]);if(e2){showToast('Expense saved, receipt link needs retry');appState.receiptSaving=false;return;}
             await fetchUserData(appState.currentUser.id);cancelReceiptReview();showToast('Receipt confirmed and expense saved');switchTab('records');
             appState.receiptSaving=false;
         }
-        function cancelReceiptReview(){document.getElementById('receipt-review-card')?.classList.add('hidden');document.getElementById('receipt-scan-status')?.classList.add('hidden');document.getElementById('receipt-validation-msg')?.classList.add('hidden');document.getElementById('receipt-file-input').value='';appState.pendingReceiptFile=null;appState.pendingReceiptPath=null;}
+        function cancelReceiptReview(){document.getElementById('receipt-review-card')?.classList.add('hidden');document.getElementById('receipt-scan-status')?.classList.add('hidden');document.getElementById('receipt-validation-msg')?.classList.add('hidden');document.getElementById('receipt-file-input').value='';appState.pendingReceiptFile=null;appState.pendingReceiptPath=null;appState.pendingReceiptAi=false;}
 
 function renderRegularCostLists() {
             const rows = (appState.recurringExpenses || []).map(r => {
