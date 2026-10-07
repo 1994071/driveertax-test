@@ -152,9 +152,28 @@
                     <div id="expense-preference-options" class="grid grid-cols-2 gap-2"></div>
                     <div class="flex gap-2 pt-2">
                         <button type="button" onclick="showOnboardingStep(2)" class="w-1/3 bg-slate-900 border border-slate-800 text-white font-bold py-3 rounded-xl text-xs">Back</button>
-                        <button type="button" onclick="finishOnboarding()" id="finish-onboarding-btn" class="flex-1 bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs">Finish Setup</button>
+                        <button type="button" onclick="showOnboardingStep(4)" class="flex-1 bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs">Continue</button>
                     </div>
                     <p class="text-[10px] text-slate-500 text-center">You can always use “Other” later if something is not listed.</p>
+                </div>
+
+                <div id="onboarding-step-4" class="hidden space-y-3">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-white">Regular monthly or yearly costs</h3>
+                            <p class="text-[11px] text-slate-400 mt-1">Optional. Add costs you pay repeatedly so DriverTax can include them in true business profit.</p>
+                        </div>
+                        <div id="onboarding-regular-cost-list" class="space-y-2"></div>
+                        <button type="button" onclick="openRecurringExpenseModal()" class="w-full bg-violet-500/10 border border-violet-500/30 text-violet-300 font-bold py-3 rounded-xl text-xs">
+                            <i class="fa-solid fa-repeat mr-1"></i> + Add Regular Cost
+                        </button>
+                        <p class="text-[10px] text-slate-500">Use the calendar to select the start/payment date. You can add, edit or stop these later.</p>
+                    </div>
+                    <div class="flex gap-2 pt-2">
+                        <button type="button" onclick="showOnboardingStep(3)" class="w-1/3 bg-slate-900 border border-slate-800 text-white font-bold py-3 rounded-xl text-xs">Back</button>
+                        <button type="button" onclick="finishOnboarding()" id="finish-onboarding-btn" class="flex-1 bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs">Finish Setup</button>
+                    </div>
+                    <button type="button" onclick="finishOnboarding()" class="w-full text-[11px] font-bold text-slate-400 py-2">Skip regular costs for now</button>
                 </div>
             </div>
         </div>
@@ -172,6 +191,9 @@
                 </div>
             </div>
             <div class="flex items-center space-x-2">
+                <button onclick="openAccountModal()" title="Account" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-400 flex items-center justify-center text-slate-300 transition">
+                    <i class="fa-solid fa-user text-xs"></i>
+                </button>
                 <button onclick="signOutUser()" title="Sign Out" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center text-slate-300 transition">
                     <i class="fa-solid fa-right-from-bracket text-xs"></i>
                 </button>
@@ -631,7 +653,11 @@
                         </div>
                         <div>
                             <label class="text-[11px] font-semibold text-slate-400 block mb-1">Date</label>
-                            <input type="date" id="mileage-date" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                            <input type="hidden" id="mileage-date">
+                            <button type="button" onclick="openUniversalDatePicker('mileage-date','mileage-date-label')" class="w-full min-h-[42px] bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white text-left flex items-center justify-between focus:outline-none focus:border-emerald-500">
+                                <span id="mileage-date-label">Select date</span>
+                                <i class="fa-regular fa-calendar text-emerald-400"></i>
+                            </button>
                         </div>
                     </div>
                     <div>
@@ -678,7 +704,11 @@
                         </div>
                         <div>
                             <label class="text-[11px] font-semibold text-slate-400 block mb-1">Date</label>
-                            <input type="date" id="reserve-date" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                            <input type="hidden" id="reserve-date">
+                            <button type="button" onclick="openUniversalDatePicker('reserve-date','reserve-date-label')" class="w-full min-h-[42px] bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white text-left flex items-center justify-between focus:outline-none focus:border-emerald-500">
+                                <span id="reserve-date-label">Select date</span>
+                                <i class="fa-regular fa-calendar text-emerald-400"></i>
+                            </button>
                         </div>
                     </div>
                     <div>
@@ -716,7 +746,11 @@
                         </div>
                         <div>
                             <label class="text-[11px] font-semibold text-slate-400 block mb-1">Date</label>
-                            <input type="date" id="income-date" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                            <input type="hidden" id="income-date">
+                            <button type="button" onclick="openUniversalDatePicker('income-date','income-date-label')" class="w-full min-h-[42px] bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white text-left flex items-center justify-between focus:outline-none focus:border-emerald-500">
+                                <span id="income-date-label">Select date</span>
+                                <i class="fa-regular fa-calendar text-emerald-400"></i>
+                            </button>
                         </div>
                     </div>
                     <div>
@@ -760,7 +794,11 @@
                     </div>
                     <div>
                         <label class="text-[11px] font-semibold text-slate-400 block mb-1">Date</label>
-                        <input type="date" id="expense-date" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                        <input type="hidden" id="expense-date">
+                            <button type="button" onclick="openUniversalDatePicker('expense-date','expense-date-label')" class="w-full min-h-[42px] bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white text-left flex items-center justify-between focus:outline-none focus:border-emerald-500">
+                                <span id="expense-date-label">Select date</span>
+                                <i class="fa-regular fa-calendar text-emerald-400"></i>
+                            </button>
                     </div>
                     <div>
                         <label class="text-[11px] font-semibold text-slate-400 block mb-1">Optional Notes</label>
@@ -793,7 +831,7 @@
                         <div>
                             <label class="text-[11px] font-semibold text-slate-400 block mb-1">Start Date</label>
                             <input id="recurring-start-date" type="hidden">
-                            <button id="recurring-start-date-btn" type="button" onclick="openRecurringDatePicker()" class="w-full min-h-[42px] bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white text-left flex items-center justify-between">
+                            <button id="recurring-start-date-btn" type="button" onclick="openUniversalDatePicker('recurring-start-date','recurring-start-date-label')" class="w-full min-h-[42px] bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white text-left flex items-center justify-between">
                                 <span id="recurring-start-date-label">Select date</span>
                                 <i class="fa-regular fa-calendar text-emerald-400"></i>
                             </button>
@@ -805,6 +843,48 @@
             </div>
         </div>
 
+
+
+        <!-- Universal Date Picker -->
+        <div id="universal-date-picker-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-[90] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+                <div class="flex items-center justify-between">
+                    <div><h3 class="font-bold text-sm text-white">Select Date</h3><p class="text-[10px] text-slate-500">Tap the date you want — no typing needed</p></div>
+                    <button type="button" onclick="closeUniversalDatePicker()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-xmark text-xs"></i></button>
+                </div>
+                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-3">
+                    <div class="flex items-center justify-between mb-3">
+                        <button type="button" onclick="changeUniversalDateMonth(-1)" class="w-9 h-9 rounded-xl bg-slate-800 text-slate-300"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                        <p id="universal-date-month-title" class="text-sm font-bold text-white"></p>
+                        <button type="button" onclick="changeUniversalDateMonth(1)" class="w-9 h-9 rounded-xl bg-slate-800 text-slate-300"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                    </div>
+                    <div class="grid grid-cols-7 gap-1 text-center text-[9px] font-bold text-slate-500 mb-2"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+                    <div id="universal-date-grid" class="grid grid-cols-7 gap-1"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account / Regular Costs -->
+        <div id="account-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-[85] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl max-h-[88%] overflow-y-auto">
+                <div class="flex items-center justify-between">
+                    <div><h3 class="font-bold text-sm text-white">Account</h3><p class="text-[10px] text-slate-500">Your work details and regular costs</p></div>
+                    <button type="button" onclick="closeAccountModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-xmark text-xs"></i></button>
+                </div>
+                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-3 space-y-2">
+                    <div class="flex justify-between gap-3 text-[11px]"><span class="text-slate-500">Email</span><span id="account-email" class="text-slate-200 font-semibold text-right break-all"></span></div>
+                    <div class="flex justify-between gap-3 text-[11px]"><span class="text-slate-500">Work type</span><span id="account-work-type" class="text-slate-200 font-semibold text-right"></span></div>
+                    <div class="flex justify-between gap-3 text-[11px]"><span class="text-slate-500">Platforms</span><span id="account-platforms" class="text-slate-200 font-semibold text-right"></span></div>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <div><h4 class="text-xs font-bold text-white">Regular Costs</h4><p class="text-[9px] text-slate-500">Monthly and yearly costs saved to your account</p></div>
+                        <button type="button" onclick="openRecurringExpenseModal()" class="bg-violet-500/10 border border-violet-500/30 text-violet-300 px-3 py-2 rounded-xl text-[10px] font-bold">+ Add</button>
+                    </div>
+                    <div id="account-regular-cost-list" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
 
         <!-- Regular Cost Date Picker -->
         <div id="recurring-date-picker-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -895,6 +975,11 @@
             editingExpenseId: null,
             editingMileageId: null,
             recurringDateMonth: new Date(),
+            universalDateMonth: new Date(),
+            universalDateTarget: null,
+            universalDateLabelTarget: null,
+            editingRecurringId: null,
+            recurringReturnContext: null,
             activeFilter: 'all',
             authMode: 'signin'
         };
@@ -916,10 +1001,10 @@
             const expDate = document.getElementById('expense-date');
             const mileageDate = document.getElementById('mileage-date');
             const reserveDate = document.getElementById('reserve-date');
-            if (incDate) incDate.value = todayIso;
-            if (expDate) expDate.value = todayIso;
-            if (mileageDate) mileageDate.value = todayIso;
-            if (reserveDate) reserveDate.value = todayIso;
+            if (incDate) setDateField('income-date','income-date-label',todayIso);
+            if (expDate) setDateField('expense-date','expense-date-label',todayIso);
+            if (mileageDate) setDateField('mileage-date','mileage-date-label',todayIso);
+            if (reserveDate) setDateField('reserve-date','reserve-date-label',todayIso);
 
             supabaseClient.auth.onAuthStateChange(async (event, session) => {
                 if (session?.user) {
@@ -1132,17 +1217,19 @@
         }
 
         function showOnboardingStep(step) {
-            [1,2,3].forEach(n => document.getElementById('onboarding-step-'+n).classList.toggle('hidden', n !== step));
-            document.getElementById('onboarding-step-label').textContent = step + ' of 3';
-            document.getElementById('onboarding-progress').style.width = (step * 33.33) + '%';
+            [1,2,3,4].forEach(n => document.getElementById('onboarding-step-'+n).classList.toggle('hidden', n !== step));
+            document.getElementById('onboarding-step-label').textContent = step + ' of 4';
+            document.getElementById('onboarding-progress').style.width = (step * 25) + '%';
             const titles = {
                 1:'What type of driving work do you do?',
                 2:'Which platforms do you use?',
-                3:'Which expenses do you usually have?'
+                3:'Which expenses do you usually have?',
+                4:'Do you have regular monthly or yearly costs?'
             };
             document.getElementById('onboarding-title').textContent = titles[step];
             if (step === 2) renderPlatformOptions();
             if (step === 3) renderExpensePreferenceOptions();
+            if (step === 4) renderRegularCostLists();
         }
 
         function renderPlatformOptions() {
@@ -1322,6 +1409,7 @@
                 appState.selectedExpenses = profileRes.data?.usual_expenses || [];
                 populateIncomeSources();
                 populateExpenseCategories();
+                renderRegularCostLists();
 
                 renderUI();
             } catch (err) {
@@ -1551,6 +1639,114 @@
 
         function parseIsoDate(dateStr) {
             return new Date(dateStr + 'T12:00:00');
+        }
+
+        function setDateField(inputId, labelId, dateStr) {
+            const input = document.getElementById(inputId);
+            const label = document.getElementById(labelId);
+            if (input) input.value = dateStr || '';
+            if (label) label.textContent = dateStr ? formatUkDate(dateStr) : 'Select date';
+        }
+
+        function openUniversalDatePicker(inputId, labelId) {
+            appState.universalDateTarget = inputId;
+            appState.universalDateLabelTarget = labelId;
+            const current = document.getElementById(inputId)?.value || isoDate(new Date());
+            appState.universalDateMonth = new Date(parseIsoDate(current));
+            renderUniversalDatePicker();
+            document.getElementById('universal-date-picker-modal')?.classList.remove('hidden');
+        }
+
+        function closeUniversalDatePicker() {
+            document.getElementById('universal-date-picker-modal')?.classList.add('hidden');
+        }
+
+        function changeUniversalDateMonth(delta) {
+            const d = new Date(appState.universalDateMonth || new Date());
+            d.setDate(1);
+            d.setMonth(d.getMonth() + delta);
+            appState.universalDateMonth = d;
+            renderUniversalDatePicker();
+        }
+
+        function renderUniversalDatePicker() {
+            const d = new Date(appState.universalDateMonth || new Date());
+            const year = d.getFullYear();
+            const month = d.getMonth();
+            const title = document.getElementById('universal-date-month-title');
+            if (title) title.textContent = d.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+            const grid = document.getElementById('universal-date-grid');
+            if (!grid) return;
+            const firstDay = new Date(year,month,1);
+            const mondayIndex = (firstDay.getDay()+6)%7;
+            const days = new Date(year,month+1,0).getDate();
+            const selected = document.getElementById(appState.universalDateTarget || '')?.value;
+            let html='';
+            for(let i=0;i<mondayIndex;i++) html+='<div></div>';
+            for(let day=1;day<=days;day++){
+                const ds=year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+                const active=ds===selected;
+                html += '<button type="button" onclick="selectUniversalDate(\''+ds+'\')" class="min-h-[42px] rounded-xl border text-[11px] font-bold '+(active?'border-emerald-400 bg-emerald-500/15 text-emerald-300':'border-slate-800 bg-slate-950/50 text-slate-200')+'">'+day+'</button>';
+            }
+            grid.innerHTML=html;
+        }
+
+        function selectUniversalDate(dateStr) {
+            if (appState.universalDateTarget) setDateField(appState.universalDateTarget, appState.universalDateLabelTarget, dateStr);
+            closeUniversalDatePicker();
+        }
+
+        function openAccountModal() {
+            document.getElementById('account-email').textContent = appState.currentUser?.email || '';
+            document.getElementById('account-work-type').textContent = appState.selectedWorkType || 'Not set';
+            document.getElementById('account-platforms').textContent = (appState.selectedPlatforms || []).join(', ') || 'Not set';
+            renderRegularCostLists();
+            document.getElementById('account-modal')?.classList.remove('hidden');
+        }
+
+        function closeAccountModal() {
+            document.getElementById('account-modal')?.classList.add('hidden');
+        }
+
+        function renderRegularCostLists() {
+            const rows = (appState.recurringExpenses || []).map(r => {
+                const freq = r.frequency === 'yearly' ? 'Yearly' : 'Monthly';
+                return '<div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3">'+
+                    '<div class="min-w-0"><p class="text-[11px] font-bold text-white truncate">'+(r.category || 'Regular cost')+'</p>'+
+                    '<p class="text-[9px] text-slate-500">£'+Number(r.amount||0).toFixed(2)+' · '+freq+' · from '+formatUkDate(r.start_date)+'</p></div>'+
+                    '<div class="flex gap-1 shrink-0">'+
+                    '<button type="button" onclick="editRecurringCost(\''+r.id+'\')" class="bg-slate-800 text-slate-300 px-2 py-1.5 rounded-lg text-[9px] font-bold">Edit</button>'+
+                    '<button type="button" onclick="stopRecurringCost(\''+r.id+'\')" class="bg-rose-500/10 text-rose-300 px-2 py-1.5 rounded-lg text-[9px] font-bold">Stop</button>'+
+                    '</div></div>';
+            }).join('');
+            const empty = '<p class="text-[10px] text-slate-500 bg-slate-950/40 border border-slate-800 rounded-xl p-3">No regular costs added yet.</p>';
+            const accountList=document.getElementById('account-regular-cost-list');
+            const onboardingList=document.getElementById('onboarding-regular-cost-list');
+            if(accountList) accountList.innerHTML=rows||empty;
+            if(onboardingList) onboardingList.innerHTML=rows||empty;
+        }
+
+        function editRecurringCost(id) {
+            const r=(appState.recurringExpenses||[]).find(x=>x.id===id);
+            if(!r) return;
+            appState.editingRecurringId=id;
+            appState.recurringReturnContext=document.getElementById('account-modal')?.classList.contains('hidden') ? 'onboarding' : 'account';
+            document.getElementById('recurring-category').value=r.category || 'Other';
+            document.getElementById('recurring-amount').value=Number(r.amount||0).toFixed(2);
+            document.getElementById('recurring-frequency').value=r.frequency || 'monthly';
+            document.getElementById('recurring-notes').value=r.notes || '';
+            setRecurringStartDate(r.start_date || isoDate(new Date()));
+            document.getElementById('recurring-save-btn').textContent='Update Regular Cost';
+            document.getElementById('recurring-expense-modal')?.classList.remove('hidden');
+        }
+
+        async function stopRecurringCost(id) {
+            if(!appState.currentUser) return;
+            const { error }=await supabaseClient.from('recurring_expenses').update({is_active:false,updated_at:new Date().toISOString()}).eq('id',id).eq('user_id',appState.currentUser.id);
+            if(error){ showToast('Could not stop regular cost'); return; }
+            await fetchUserData(appState.currentUser.id);
+            renderRegularCostLists();
+            showToast('Regular cost stopped');
         }
 
         function getDayActivity(dateStr) {
@@ -2431,6 +2627,8 @@
         }
 
         function openIncomeModal() {
+            const date = document.getElementById('income-date')?.value || appState.dailyEntryDate || isoDate(new Date());
+            setDateField('income-date','income-date-label',date);
             document.getElementById('income-modal').classList.remove('hidden');
             setDailyEntryButtons(appState.dailyEntryMode ? 'income' : null);
         }
@@ -2443,6 +2641,8 @@
             if (cancelDailyEntry && appState.dailyEntryMode) finishDailyEntry();
         }
         function openExpenseModal() {
+            const date = document.getElementById('expense-date')?.value || appState.dailyEntryDate || isoDate(new Date());
+            setDateField('expense-date','expense-date-label',date);
             document.getElementById('expense-modal').classList.remove('hidden');
             setDailyEntryButtons(appState.dailyEntryMode ? 'expense' : null);
         }
@@ -2459,7 +2659,8 @@
             document.getElementById('mileage-modal').classList.remove('hidden');
             setDailyEntryButtons(appState.dailyEntryMode ? 'mileage' : null);
             const el = document.getElementById('mileage-date');
-            if (el && !el.value) el.value = new Date().toISOString().split('T')[0];
+            if (el && !el.value) setDateField('mileage-date','mileage-date-label',isoDate(new Date()));
+            else if (el) setDateField('mileage-date','mileage-date-label',el.value);
         }
         function closeMileageModal(cancelDailyEntry = true) {
             document.getElementById('mileage-modal').classList.add('hidden');
@@ -2473,7 +2674,8 @@
         function openReserveModal() {
             document.getElementById('reserve-modal').classList.remove('hidden');
             const el = document.getElementById('reserve-date');
-            if (el && !el.value) el.value = new Date().toISOString().split('T')[0];
+            if (el && !el.value) setDateField('reserve-date','reserve-date-label',isoDate(new Date()));
+            else if (el) setDateField('reserve-date','reserve-date-label',el.value);
         }
         function closeReserveModal() { document.getElementById('reserve-modal').classList.add('hidden'); }
 
@@ -2515,7 +2717,7 @@
                 appState.editingMileageId = null;
                 closeMileageModal(false);
                 document.getElementById('mileage-form').reset();
-                document.getElementById('mileage-date').value = new Date().toISOString().split('T')[0];
+                setDateField('mileage-date','mileage-date-label',isoDate(new Date()));
                 await fetchUserData(appState.currentUser.id);
 
                 if (editId) {
@@ -2562,7 +2764,7 @@
                 showToast('Tax savings updated');
                 closeReserveModal();
                 document.getElementById('reserve-form').reset();
-                document.getElementById('reserve-date').value = new Date().toISOString().split('T')[0];
+                setDateField('reserve-date','reserve-date-label',isoDate(new Date()));
                 await fetchUserData(appState.currentUser.id);
             } catch (err) {
                 console.error('Save reserve error:', err);
@@ -2611,7 +2813,7 @@
                 appState.editingIncomeId = null;
                 closeIncomeModal(false);
                 document.getElementById('income-form').reset();
-                document.getElementById('income-date').value = new Date().toISOString().split('T')[0];
+                setDateField('income-date','income-date-label',isoDate(new Date()));
                 await fetchUserData(appState.currentUser.id);
 
                 if (editId) {
@@ -2672,7 +2874,7 @@
                 appState.editingExpenseId = null;
                 closeExpenseModal(false);
                 document.getElementById('expense-form').reset();
-                document.getElementById('expense-date').value = new Date().toISOString().split('T')[0];
+                setDateField('expense-date','expense-date-label',isoDate(new Date()));
                 await fetchUserData(appState.currentUser.id);
 
                 if (editId) {
@@ -2801,6 +3003,8 @@
             const modal = document.getElementById('recurring-expense-modal');
             if (!modal) return;
 
+            appState.editingRecurringId = null;
+            appState.recurringReturnContext = !document.getElementById('onboarding-screen')?.classList.contains('hidden') ? 'onboarding' : (!document.getElementById('account-modal')?.classList.contains('hidden') ? 'account' : 'calendar');
             const frequency = preserveFrequency ? document.getElementById('recurring-frequency')?.value : 'monthly';
             const startDate = appState.calendarRangeStart || appState.selectedCalendarDate || isoDate(new Date());
 
@@ -2809,6 +3013,7 @@
             if (!preserveFrequency) document.getElementById('recurring-category').selectedIndex = 0;
             document.getElementById('recurring-frequency').value = frequency || 'monthly';
             setRecurringStartDate(startDate);
+            document.getElementById('recurring-save-btn').textContent = 'Save Regular Cost';
 
             appState.recurringDateMonth = new Date(parseIsoDate(startDate));
             modal.classList.remove('hidden');
@@ -2887,11 +3092,11 @@
 
         function finishRecurringCostEntry() {
             closeRecurringNextModal();
-            if (appState.calendarRangeStart && appState.calendarRangeEnd) {
-                showCalendarRange(appState.calendarRangeStart, appState.calendarRangeEnd);
-            } else {
-                showCalendarDay(appState.selectedCalendarDate || isoDate(new Date()));
-            }
+            renderRegularCostLists();
+            if (appState.recurringReturnContext === 'account') { openAccountModal(); return; }
+            if (appState.recurringReturnContext === 'onboarding') { showOnboardingStep(4); return; }
+            if (appState.calendarRangeStart && appState.calendarRangeEnd) showCalendarRange(appState.calendarRangeStart, appState.calendarRangeEnd);
+            else showCalendarDay(appState.selectedCalendarDate || isoDate(new Date()));
         }
 
         async function handleSaveRecurringExpense(e) {
@@ -2918,23 +3123,25 @@
             btn.textContent = 'Saving...';
 
             try {
-                const { data, error } = await supabaseClient.from('recurring_expenses').insert([{
-                    user_id: appState.currentUser.id,
-                    category,
-                    amount,
-                    frequency,
-                    start_date,
-                    notes,
-                    is_active: true
-                }]).select('id, category, amount, frequency, start_date').single();
+                let data, error;
+                const payload = { category, amount, frequency, start_date, notes, is_active:true, updated_at:new Date().toISOString() };
+                if (appState.editingRecurringId) {
+                    ({ data, error } = await supabaseClient.from('recurring_expenses').update(payload).eq('id',appState.editingRecurringId).eq('user_id',appState.currentUser.id).select('id, category, amount, frequency, start_date').single());
+                } else {
+                    ({ data, error } = await supabaseClient.from('recurring_expenses').insert([{ user_id:appState.currentUser.id, ...payload }]).select('id, category, amount, frequency, start_date').single());
+                }
 
                 if (error) throw error;
                 if (!data?.id) throw new Error('Save did not return a record');
 
+                const wasEditing = !!appState.editingRecurringId;
+                appState.editingRecurringId = null;
                 closeRecurringExpenseModal();
                 await fetchUserData(appState.currentUser.id);
-                showToast('Regular cost saved');
-                openRecurringNextModal();
+                renderRegularCostLists();
+                showToast(wasEditing ? 'Regular cost updated' : 'Regular cost saved');
+                if (wasEditing) finishRecurringCostEntry();
+                else openRecurringNextModal();
             } catch (err) {
                 console.error('Recurring expense save error:', err);
                 showToast('Could not save regular cost — please retry');
