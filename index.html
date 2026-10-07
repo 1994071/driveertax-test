@@ -437,7 +437,7 @@
                             + Add Saved
                         </button>
                     </div>
-                    <div id="calendar-primary-cards" class="grid grid-cols-2 gap-2">
+                    <div class="grid grid-cols-2 gap-2">
                         <div class="bg-slate-950/50 rounded-xl p-3">
                             <p class="text-[10px] text-slate-500 uppercase font-bold">Saved</p>
                             <p id="reserve-saved" class="text-base font-extrabold text-emerald-400 mt-1">£0.00</p>
@@ -534,7 +534,7 @@
                         <h3 id="calendar-selected-date" class="text-sm font-bold text-white">Select a day</h3>
                         <span id="calendar-summary-label" class="text-[10px] text-slate-500">Daily summary</span>
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
+                    <div id="calendar-primary-cards" class="grid grid-cols-2 gap-2">
                         <div class="bg-slate-950/50 rounded-xl p-3">
                             <p class="text-[10px] text-slate-500 uppercase font-bold">Income</p>
                             <p id="calendar-day-income" class="text-base font-extrabold text-emerald-400 mt-1">£0.00</p>
@@ -790,11 +790,66 @@
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <div><label class="text-[11px] font-semibold text-slate-400 block mb-1">Frequency</label><select id="recurring-frequency" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></div>
-                        <div><label class="text-[11px] font-semibold text-slate-400 block mb-1">Start Date</label><input id="recurring-start-date" type="date" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-400 block mb-1">Start Date</label>
+                            <input id="recurring-start-date" type="hidden">
+                            <button id="recurring-start-date-btn" type="button" onclick="openRecurringDatePicker()" class="w-full min-h-[42px] bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white text-left flex items-center justify-between">
+                                <span id="recurring-start-date-label">Select date</span>
+                                <i class="fa-regular fa-calendar text-emerald-400"></i>
+                            </button>
+                        </div>
                     </div>
                     <div><label class="text-[11px] font-semibold text-slate-400 block mb-1">Notes <span class="text-slate-600">(optional)</span></label><input id="recurring-notes" type="text" placeholder="e.g. Business phone contract" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
                     <button id="recurring-save-btn" type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl text-xs">Save Regular Cost</button>
                 </form>
+            </div>
+        </div>
+
+
+        <!-- Regular Cost Date Picker -->
+        <div id="recurring-date-picker-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-sm text-white">Select Start Date</h3>
+                        <p class="text-[10px] text-slate-500">Tap a date — no typing needed</p>
+                    </div>
+                    <button type="button" onclick="closeRecurringDatePicker()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
+                </div>
+                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-3">
+                    <div class="flex items-center justify-between mb-3">
+                        <button type="button" onclick="changeRecurringDateMonth(-1)" class="w-9 h-9 rounded-xl bg-slate-800 text-slate-300">
+                            <i class="fa-solid fa-chevron-left text-xs"></i>
+                        </button>
+                        <p id="recurring-date-month-title" class="text-sm font-bold text-white"></p>
+                        <button type="button" onclick="changeRecurringDateMonth(1)" class="w-9 h-9 rounded-xl bg-slate-800 text-slate-300">
+                            <i class="fa-solid fa-chevron-right text-xs"></i>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-7 gap-1 text-center text-[9px] font-bold text-slate-500 mb-2">
+                        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                    </div>
+                    <div id="recurring-date-grid" class="grid grid-cols-7 gap-1"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Regular Cost Saved -->
+        <div id="recurring-next-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-[79] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+                <div class="text-center space-y-2">
+                    <div class="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                        <i class="fa-solid fa-circle-check text-xl"></i>
+                    </div>
+                    <h3 class="font-bold text-white">Regular cost saved</h3>
+                    <p class="text-[11px] text-slate-400">Add another monthly or yearly cost, or finish.</p>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" onclick="finishRecurringCostEntry()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-xs">Done</button>
+                    <button type="button" onclick="addAnotherRecurringCost()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl text-xs">+ Add Another</button>
+                </div>
             </div>
         </div>
 
@@ -839,6 +894,7 @@
             editingIncomeId: null,
             editingExpenseId: null,
             editingMileageId: null,
+            recurringDateMonth: new Date(),
             activeFilter: 'all',
             authMode: 'signin'
         };
@@ -1504,26 +1560,6 @@
             const mileage = appState.mileageTrips.filter(t => t.trip_date === dateStr).reduce((sum,t) => sum + Number(t.business_miles || 0), 0);
             const reserve = appState.taxReserveEntries.filter(t => t.saved_on === dateStr).reduce((sum,t) => sum + Number(t.amount || 0), 0);
             return { tx, income, expenses, mileage, reserve };
-        }
-
-        function getRecurringCostShare(startStr, endStr) {
-            const start = parseIsoDate(startStr);
-            const end = parseIsoDate(endStr);
-            const dayCount = Math.floor((end - start) / 86400000) + 1;
-            const items = [];
-
-            (appState.recurringExpenses || []).forEach(r => {
-                if (!r.is_active) return;
-                const rStart = parseIsoDate(r.start_date);
-                if (rStart > end) return;
-                const activeStart = rStart > start ? rStart : start;
-                const activeDays = Math.floor((end - activeStart) / 86400000) + 1;
-                const annualAmount = r.frequency === 'monthly' ? Number(r.amount || 0) * 12 : Number(r.amount || 0);
-                const share = (annualAmount / 365.2425) * activeDays;
-                items.push({ id:r.id, category:r.category, frequency:r.frequency, amount:Number(r.amount||0), share });
-            });
-
-            return { total: items.reduce((sum,x) => sum + x.share, 0), items, dayCount };
         }
 
         function getRecurringCostShare(startStr, endStr) {
@@ -2749,13 +2785,32 @@
             renderUI();
         }
 
-        function openRecurringExpenseModal() {
+        function formatUkDate(dateStr) {
+            if (!dateStr) return 'Select date';
+            return parseIsoDate(dateStr).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+        }
+
+        function setRecurringStartDate(dateStr) {
+            const hidden = document.getElementById('recurring-start-date');
+            const label = document.getElementById('recurring-start-date-label');
+            if (hidden) hidden.value = dateStr;
+            if (label) label.textContent = formatUkDate(dateStr);
+        }
+
+        function openRecurringExpenseModal(preserveFrequency = false) {
             const modal = document.getElementById('recurring-expense-modal');
             if (!modal) return;
-            const startDate = appState.calendarRangeStart || appState.selectedCalendarDate || new Date().toISOString().split('T')[0];
-            document.getElementById('recurring-start-date').value = startDate;
+
+            const frequency = preserveFrequency ? document.getElementById('recurring-frequency')?.value : 'monthly';
+            const startDate = appState.calendarRangeStart || appState.selectedCalendarDate || isoDate(new Date());
+
             document.getElementById('recurring-amount').value = '';
             document.getElementById('recurring-notes').value = '';
+            if (!preserveFrequency) document.getElementById('recurring-category').selectedIndex = 0;
+            document.getElementById('recurring-frequency').value = frequency || 'monthly';
+            setRecurringStartDate(startDate);
+
+            appState.recurringDateMonth = new Date(parseIsoDate(startDate));
             modal.classList.remove('hidden');
         }
 
@@ -2763,27 +2818,126 @@
             document.getElementById('recurring-expense-modal')?.classList.add('hidden');
         }
 
+        function openRecurringDatePicker() {
+            const current = document.getElementById('recurring-start-date')?.value || isoDate(new Date());
+            appState.recurringDateMonth = new Date(parseIsoDate(current));
+            renderRecurringDatePicker();
+            document.getElementById('recurring-date-picker-modal')?.classList.remove('hidden');
+        }
+
+        function closeRecurringDatePicker() {
+            document.getElementById('recurring-date-picker-modal')?.classList.add('hidden');
+        }
+
+        function changeRecurringDateMonth(delta) {
+            const d = new Date(appState.recurringDateMonth || new Date());
+            d.setDate(1);
+            d.setMonth(d.getMonth() + delta);
+            appState.recurringDateMonth = d;
+            renderRecurringDatePicker();
+        }
+
+        function renderRecurringDatePicker() {
+            const d = new Date(appState.recurringDateMonth || new Date());
+            const year = d.getFullYear();
+            const month = d.getMonth();
+
+            const title = document.getElementById('recurring-date-month-title');
+            if (title) title.textContent = d.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+
+            const grid = document.getElementById('recurring-date-grid');
+            if (!grid) return;
+
+            const firstDay = new Date(year, month, 1);
+            const mondayIndex = (firstDay.getDay() + 6) % 7;
+            const days = new Date(year, month + 1, 0).getDate();
+            const selected = document.getElementById('recurring-start-date')?.value;
+            let html = '';
+
+            for (let i=0;i<mondayIndex;i++) html += '<div></div>';
+
+            for (let day=1; day<=days; day++) {
+                const ds = year + '-' + String(month+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+                const active = ds === selected;
+                html += '<button type="button" onclick="selectRecurringStartDate(\'' + ds + '\')" class="min-h-[42px] rounded-xl border text-[11px] font-bold ' +
+                    (active ? 'border-emerald-400 bg-emerald-500/15 text-emerald-300' : 'border-slate-800 bg-slate-950/50 text-slate-200') +
+                    '">' + day + '</button>';
+            }
+
+            grid.innerHTML = html;
+        }
+
+        function selectRecurringStartDate(dateStr) {
+            setRecurringStartDate(dateStr);
+            closeRecurringDatePicker();
+        }
+
+        function openRecurringNextModal() {
+            document.getElementById('recurring-next-modal')?.classList.remove('hidden');
+        }
+
+        function closeRecurringNextModal() {
+            document.getElementById('recurring-next-modal')?.classList.add('hidden');
+        }
+
+        function addAnotherRecurringCost() {
+            closeRecurringNextModal();
+            openRecurringExpenseModal(true);
+        }
+
+        function finishRecurringCostEntry() {
+            closeRecurringNextModal();
+            if (appState.calendarRangeStart && appState.calendarRangeEnd) {
+                showCalendarRange(appState.calendarRangeStart, appState.calendarRangeEnd);
+            } else {
+                showCalendarDay(appState.selectedCalendarDate || isoDate(new Date()));
+            }
+        }
+
         async function handleSaveRecurringExpense(e) {
             e.preventDefault();
             if (!appState.currentUser) return;
+
             const category = document.getElementById('recurring-category').value;
             const amount = Number(document.getElementById('recurring-amount').value || 0);
             const frequency = document.getElementById('recurring-frequency').value;
-            const start_date = document.getElementById('recurring-start-date').value || new Date().toISOString().split('T')[0];
+            const start_date = document.getElementById('recurring-start-date').value;
             const notes = document.getElementById('recurring-notes').value.trim();
             const btn = document.getElementById('recurring-save-btn');
+
+            if (!(amount > 0)) {
+                showToast('Enter a valid amount');
+                return;
+            }
+            if (!start_date) {
+                showToast('Select a start date');
+                return;
+            }
+
             btn.disabled = true;
             btn.textContent = 'Saving...';
+
             try {
-                const { error } = await supabaseClient.from('recurring_expenses').insert([{ user_id:appState.currentUser.id, category, amount, frequency, start_date, notes, is_active:true }]);
+                const { data, error } = await supabaseClient.from('recurring_expenses').insert([{
+                    user_id: appState.currentUser.id,
+                    category,
+                    amount,
+                    frequency,
+                    start_date,
+                    notes,
+                    is_active: true
+                }]).select('id, category, amount, frequency, start_date').single();
+
                 if (error) throw error;
+                if (!data?.id) throw new Error('Save did not return a record');
+
                 closeRecurringExpenseModal();
                 await fetchUserData(appState.currentUser.id);
-                if (appState.calendarRangeStart && appState.calendarRangeEnd) showCalendarRange(appState.calendarRangeStart, appState.calendarRangeEnd);
                 showToast('Regular cost saved');
+                openRecurringNextModal();
             } catch (err) {
                 console.error('Recurring expense save error:', err);
-                showToast('Could not save regular cost');
+                showToast('Could not save regular cost — please retry');
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Save Regular Cost';
