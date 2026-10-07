@@ -1786,7 +1786,7 @@
             await fetchUserData(appState.currentUser.id); openAccountModal(); showToast('Profile photo updated');
         }
 
-        function renderRegularCostLists() {        function renderRegularCostLists() {
+        function renderRegularCostLists() {
             const rows = (appState.recurringExpenses || []).map(r => {
                 const freq = r.frequency === 'yearly' ? 'Yearly' : 'Monthly';
                 return '<div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3">'+
