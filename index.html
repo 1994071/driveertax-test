@@ -838,13 +838,40 @@
 
         <!-- Share Tax Summary -->
         <div id="tax-share-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-[93] flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3">
-                <div class="flex justify-between items-center"><div><h3 class="text-sm font-bold text-white">Share Tax Summary</h3><p class="text-[9px] text-slate-500">Choose how you want to send it</p></div><button onclick="closeTaxShareModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300"><i class="fa-solid fa-xmark"></i></button></div>
-                <button onclick="shareTaxSummary('whatsapp')" class="w-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 font-bold py-3 rounded-xl text-xs"><i class="fa-brands fa-whatsapp mr-2"></i>WhatsApp</button>
-                <button onclick="shareTaxSummary('email')" class="w-full bg-blue-500/10 border border-blue-500/25 text-blue-300 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-envelope mr-2"></i>Email</button>
-                <button onclick="shareTaxSummary('pdf')" class="w-full bg-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-file-pdf mr-2"></i>PDF Summary</button>
-                <button onclick="shareTaxSummary('csv')" class="w-full bg-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-file-csv mr-2"></i>CSV Records</button>
-                <button onclick="shareTaxSummary('more')" class="w-full bg-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-share-nodes mr-2"></i>More</button>
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4">
+                <div class="flex justify-between items-center">
+                    <div><h3 class="text-sm font-bold text-white">Share Tax Summary</h3><p class="text-[9px] text-slate-500">Choose the file, then how to share it</p></div>
+                    <button onclick="closeTaxShareModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-2">1. Choose file</p>
+                    <div class="space-y-2">
+                        <button id="share-file-pdf" onclick="selectTaxShareFile('pdf')" class="tax-share-file w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold py-3 rounded-xl text-xs text-left px-4">
+                            <i class="fa-solid fa-file-pdf mr-2"></i> PDF Tax Summary
+                            <span class="block text-[9px] text-slate-500 font-medium mt-1 ml-5">Professional summary for driver or accountant</span>
+                        </button>
+                        <button id="share-file-csv" onclick="selectTaxShareFile('csv')" class="tax-share-file w-full bg-slate-800 border border-slate-700 text-slate-200 font-bold py-3 rounded-xl text-xs text-left px-4">
+                            <i class="fa-solid fa-file-csv mr-2"></i> CSV Records
+                            <span class="block text-[9px] text-slate-500 font-medium mt-1 ml-5">Detailed accountant-ready records</span>
+                        </button>
+                        <button id="share-file-both" onclick="selectTaxShareFile('both')" class="tax-share-file w-full bg-slate-800 border border-slate-700 text-slate-200 font-bold py-3 rounded-xl text-xs text-left px-4">
+                            <i class="fa-solid fa-folder-open mr-2"></i> PDF + CSV
+                            <span class="block text-[9px] text-slate-500 font-medium mt-1 ml-5">Recommended when sending to an accountant</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-2">2. Share via</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="shareSelectedTaxFiles('whatsapp')" class="bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 font-bold py-3 rounded-xl text-xs"><i class="fa-brands fa-whatsapp mr-1"></i> WhatsApp</button>
+                        <button onclick="shareSelectedTaxFiles('email')" class="bg-blue-500/10 border border-blue-500/25 text-blue-300 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-envelope mr-1"></i> Email</button>
+                        <button onclick="shareSelectedTaxFiles('more')" class="bg-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-share-nodes mr-1"></i> More</button>
+                        <button onclick="shareSelectedTaxFiles('download')" class="bg-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-download mr-1"></i> Download</button>
+                    </div>
+                    <p id="share-email-note" class="text-[9px] text-slate-600 mt-2">Email currently uses your device share sheet. Direct DriverTax email delivery needs an email provider connection.</p>
+                </div>
             </div>
         </div>
 
@@ -1907,7 +1934,7 @@ function openAccountModal() {
             const {error}=await supabaseClient.from('tax_profiles').upsert(payload,{onConflict:'user_id'});if(error){showToast('Could not save Tax Profile');return;}await fetchUserData(appState.currentUser.id);closeTaxProfileModal();showToast('Tax Profile saved');
         }
 
-        function openTaxShareModal(){document.getElementById('tax-share-modal').classList.remove('hidden');}
+        function openTaxShareModal(){selectTaxShareFile('pdf');document.getElementById('tax-share-modal').classList.remove('hidden');}
         function closeTaxShareModal(){document.getElementById('tax-share-modal').classList.add('hidden');}
         function getTaxSummaryText(){
             const t=getTaxYearSummary(),q=taxProfileQuality();
@@ -1953,12 +1980,74 @@ function openAccountModal() {
 
         function buildTaxCsvBlob(){
             const t=getTaxYearSummary();
-            const rows=[['Record Type','Date','Source / Category','Amount','Mileage']];
-            appState.transactions.forEach(x=>rows.push([x.type,x.date,x.type==='income'?(x.source||'Income'):(x.category||'Expense'),Number(x.amount||0).toFixed(2),'']));
-            appState.mileageTrips.forEach(x=>rows.push(['mileage',x.trip_date,x.purpose||'Mileage','',Number(x.business_miles||0).toFixed(1)]));
-            rows.push([],['Tax Year',t.label],['Business Income',t.income],['Allowable Expenses',t.expenses],['Business Profit',t.profit],['Estimated Income Tax',t.incomeTax],['Estimated Class 4 NI',t.class4],['Estimated Amount Remaining',t.total],['Tax Reserve Saved',t.saved]);
+            const bounds=currentTaxYearBounds();
+            const tx=(appState.transactions||[]).filter(x=>x.date>=bounds.start&&x.date<=bounds.end);
+            const miles=(appState.mileageTrips||[]).filter(x=>x.trip_date>=bounds.start&&x.trip_date<=bounds.end);
+            const incomeTotals={}, expenseTotals={};
+
+            tx.forEach(x=>{
+                if(x.type==='income'){
+                    const k=x.source||'Other Income';
+                    incomeTotals[k]=(incomeTotals[k]||0)+Number(x.amount||0);
+                }else{
+                    const k=x.category||'Other Expense';
+                    expenseTotals[k]=(expenseTotals[k]||0)+Number(x.amount||0);
+                }
+            });
+
+            const totalMileage=miles.reduce((s,x)=>s+Number(x.business_miles||0),0);
+            const rows=[
+                ['DriverTax Records Export'],
+                ['Tax Year',t.label],
+                ['Export Date',new Date().toLocaleDateString('en-GB')],
+                [],
+                ['TAX SUMMARY','Amount (£)'],
+                ['Business Income',t.income.toFixed(2)],
+                ['Allowable Expenses',t.expenses.toFixed(2)],
+                ['Business Profit',t.profit.toFixed(2)],
+                ['Estimated Income Tax',t.incomeTax.toFixed(2)],
+                ['Estimated Class 4 NI',t.class4.toFixed(2)],
+                ['Student / Postgraduate Loan',(t.studentLoan+t.postgraduate).toFixed(2)],
+                ['Tax Already Deducted',t.taxDeducted.toFixed(2)],
+                ['Estimated Amount Remaining',t.total.toFixed(2)],
+                ['Tax Reserve Saved',t.saved.toFixed(2)],
+                ['Remaining Reserve Needed',Math.max(0,t.total-t.saved).toFixed(2)],
+                [],
+                ['INCOME TOTALS BY SOURCE','Amount (£)']
+            ];
+
+            Object.entries(incomeTotals).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>rows.push([k,Number(v).toFixed(2)]));
+
+            rows.push([],['EXPENSE TOTALS BY CATEGORY','Amount (£)']);
+            Object.entries(expenseTotals).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>rows.push([k,Number(v).toFixed(2)]));
+
+            rows.push([],['MILEAGE SUMMARY','Total Miles'],['Business Mileage',totalMileage.toFixed(1)]);
+            rows.push([],['DETAILED RECORDS'],['Type','Date','Source / Category','Description','Amount (£)','Mileage']);
+
+            tx.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).forEach(x=>{
+                rows.push([
+                    x.type==='income'?'Income':'Expense',
+                    formatUkDate(x.date),
+                    x.type==='income'?(x.source||'Income'):(x.category||'Expense'),
+                    x.notes||x.merchant||'',
+                    Number(x.amount||0).toFixed(2),
+                    ''
+                ]);
+            });
+
+            miles.slice().sort((a,b)=>String(b.trip_date).localeCompare(String(a.trip_date))).forEach(x=>{
+                rows.push([
+                    'Mileage',
+                    formatUkDate(x.trip_date),
+                    x.purpose||'Business Mileage',
+                    x.notes||'',
+                    '',
+                    Number(x.business_miles||0).toFixed(1)
+                ]);
+            });
+
             const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');
-            return new Blob([csv],{type:'text/csv'});
+            return new Blob([csv],{type:'text/csv;charset=utf-8'});
         }
 
         function downloadBlob(blob,name){
@@ -1967,32 +2056,62 @@ function openAccountModal() {
             setTimeout(()=>URL.revokeObjectURL(u),1000);
         }
 
-        async function shareTaxSummary(method){
-            try{
-                const t=getTaxYearSummary();
-                if(method==='csv'){
-                    downloadBlob(buildTaxCsvBlob(),'DriverTax-records-'+t.label.replace('/','-')+'.csv');
-                    showToast('CSV downloaded');
-                    return;
-                }
+        let selectedTaxShareFile='pdf';
+
+        function selectTaxShareFile(type){
+            selectedTaxShareFile=type;
+            document.querySelectorAll('.tax-share-file').forEach(b=>{
+                b.classList.remove('bg-emerald-500/10','border-emerald-500/30','text-emerald-300');
+                b.classList.add('bg-slate-800','border-slate-700','text-slate-200');
+            });
+            const active=document.getElementById('share-file-'+type);
+            if(active){
+                active.classList.remove('bg-slate-800','border-slate-700','text-slate-200');
+                active.classList.add('bg-emerald-500/10','border-emerald-500/30','text-emerald-300');
+            }
+        }
+
+        function getSelectedTaxFiles(){
+            const t=getTaxYearSummary(),year=t.label.replace('/','-'), files=[];
+            if(selectedTaxShareFile==='pdf'||selectedTaxShareFile==='both'){
                 const pdf=buildTaxPdfBlob();
-                const name='DriverTax-tax-summary-'+t.label.replace('/','-')+'.pdf';
-                if(method==='pdf'){
-                    downloadBlob(pdf,name);
-                    showToast('PDF downloaded');
+                files.push(new File([pdf],'DriverTax-tax-summary-'+year+'.pdf',{type:'application/pdf'}));
+            }
+            if(selectedTaxShareFile==='csv'||selectedTaxShareFile==='both'){
+                const csv=buildTaxCsvBlob();
+                files.push(new File([csv],'DriverTax-records-'+year+'.csv',{type:'text/csv'}));
+            }
+            return files;
+        }
+
+        async function shareSelectedTaxFiles(method){
+            try{
+                const files=getSelectedTaxFiles();
+                if(method==='download'){
+                    files.forEach(f=>downloadBlob(f,f.name));
+                    showToast(files.length===2?'PDF and CSV downloaded':files[0].name.endsWith('.pdf')?'PDF downloaded':'CSV downloaded');
                     return;
                 }
-                const file=new File([pdf],name,{type:'application/pdf'});
-                if(navigator.canShare&&navigator.canShare({files:[file]})&&navigator.share){
-                    await navigator.share({title:'DriverTax Estimated Tax Summary',text:'Estimated tax summary',files:[file]});
+
+                if(navigator.canShare&&navigator.canShare({files})&&navigator.share){
+                    await navigator.share({title:'DriverTax Tax Summary',text:'DriverTax tax summary and records',files});
                     return;
                 }
-                downloadBlob(pdf,name);
-                showToast('PDF downloaded — attach it in '+(method==='whatsapp'?'WhatsApp':method==='email'?'your email':'the app you want'));
+
+                files.forEach(f=>downloadBlob(f,f.name));
+                if(method==='email') showToast('Files downloaded — attach them to your email. Direct email sending is not configured yet.');
+                else if(method==='whatsapp') showToast('Files downloaded — attach them in WhatsApp.');
+                else showToast('Files downloaded — share them using your device.');
             }catch(err){
                 console.error(err);
-                showToast('Could not create tax summary file');
+                showToast('Could not prepare files for sharing');
             }
+        }
+
+        async function shareTaxSummary(method){
+            if(method==='pdf'){selectTaxShareFile('pdf');return shareSelectedTaxFiles('download');}
+            if(method==='csv'){selectTaxShareFile('csv');return shareSelectedTaxFiles('download');}
+            return shareSelectedTaxFiles(method);
         }
 
         async function handleReceiptSelected(input){
@@ -2012,15 +2131,18 @@ function openAccountModal() {
         }
         async function confirmReceiptExpense(){
             if(!appState.currentUser||!appState.pendingReceiptPath)return;
+            if(appState.receiptSaving){showToast('Receipt is already being saved');return;}
+            appState.receiptSaving=true;
             const amount=Number(document.getElementById('receipt-amount').value||0);
             const validation=document.getElementById('receipt-validation-msg');
-            if(!(amount>0)){validation.textContent='Please enter or confirm the receipt amount before saving.';validation.classList.remove('hidden');return;}
+            if(!(amount>0)){validation.textContent='Please enter or confirm the receipt amount before saving.';validation.classList.remove('hidden');appState.receiptSaving=false;return;}
             validation.classList.add('hidden');
             const merchant=document.getElementById('receipt-merchant').value.trim()||'Receipt';
             const date=document.getElementById('receipt-date').value||isoDate(new Date());const category=document.getElementById('receipt-category').value||'Other';const vat=Number(document.getElementById('receipt-vat').value||0);
-            const {data:exp,error:e1}=await supabaseClient.from('expenses').insert([{user_id:appState.currentUser.id,category,amount,merchant,expense_date:date,notes:'Receipt scan'}]).select('id').single();if(e1){showToast('Could not save expense');return;}
-            const f=appState.pendingReceiptFile;const {error:e2}=await supabaseClient.from('receipts').insert([{user_id:appState.currentUser.id,expense_id:exp.id,file_path:appState.pendingReceiptPath,original_filename:f?.name||null,mime_type:f?.type||null,size_bytes:f?.size||null,ai_status:'manual_review',extracted_merchant:merchant,extracted_date:date,extracted_amount:amount,extracted_vat:vat||null,suggested_category:category,driver_confirmed:true}]);if(e2){showToast('Expense saved, receipt link needs retry');return;}
+            const {data:exp,error:e1}=await supabaseClient.from('expenses').insert([{user_id:appState.currentUser.id,category,amount,merchant,expense_date:date,notes:'Receipt scan'}]).select('id').single();if(e1){showToast('Could not save expense');appState.receiptSaving=false;return;}
+            const f=appState.pendingReceiptFile;const {error:e2}=await supabaseClient.from('receipts').insert([{user_id:appState.currentUser.id,expense_id:exp.id,file_path:appState.pendingReceiptPath,original_filename:f?.name||null,mime_type:f?.type||null,size_bytes:f?.size||null,ai_status:'manual_review',extracted_merchant:merchant,extracted_date:date,extracted_amount:amount,extracted_vat:vat||null,suggested_category:category,driver_confirmed:true}]);if(e2){showToast('Expense saved, receipt link needs retry');appState.receiptSaving=false;return;}
             await fetchUserData(appState.currentUser.id);cancelReceiptReview();showToast('Receipt confirmed and expense saved');switchTab('records');
+            appState.receiptSaving=false;
         }
         function cancelReceiptReview(){document.getElementById('receipt-review-card')?.classList.add('hidden');document.getElementById('receipt-scan-status')?.classList.add('hidden');document.getElementById('receipt-validation-msg')?.classList.add('hidden');document.getElementById('receipt-file-input').value='';appState.pendingReceiptFile=null;appState.pendingReceiptPath=null;}
 
@@ -3329,20 +3451,40 @@ function renderRegularCostLists() {
             document.getElementById('today-detail-profit').textContent='£'+profit.toFixed(2);
             document.getElementById('today-detail-tax').textContent='£'+tax.toFixed(2);
             document.getElementById('today-detail-takehome').textContent='£'+take.toFixed(2);
-            document.getElementById('today-regular-cost-note').textContent=p.label+' share of regular costs: £'+reg.total.toFixed(2);
+            document.getElementById('today-regular-cost-note').textContent=p.label+' allocated regular costs: £'+reg.total.toFixed(2);
+
+            document.getElementById('today-regular-cost-note').textContent='Allocated Regular Costs for '+p.label+': £'+reg.total.toFixed(2);
+
+            const incomeGroups={}, expenseGroups={};
+            (a.tx||[]).forEach(t=>{
+                if(t.type==='income'){
+                    const key=t.source||'Other Income';
+                    incomeGroups[key]=(incomeGroups[key]||0)+Number(t.amount||0);
+                }else if(t.type==='expense'){
+                    const key=t.category||'Other Expense';
+                    expenseGroups[key]=(expenseGroups[key]||0)+Number(t.amount||0);
+                }
+            });
 
             const rows=[];
-            (a.tx||[]).slice(0,50).forEach(t=>rows.push(
-                '<div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between">'+
-                '<div><span class="text-xs text-slate-300">'+(t.type==='income'?(t.source||'Income'):(t.category||'Expense'))+'</span>'+
-                '<p class="text-[9px] text-slate-600">'+formatUkDate(t.date)+'</p></div>'+
-                '<span class="text-xs font-bold '+(t.type==='income'?'text-emerald-400':'text-rose-400')+'">'+(t.type==='income'?'+':'-')+'£'+Number(t.amount).toFixed(2)+'</span></div>'
+            Object.entries(incomeGroups).sort((a,b)=>b[1]-a[1]).forEach(([name,total])=>rows.push(
+                '<div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center">'+
+                '<div><span class="text-xs font-bold text-slate-200">'+name+'</span><p class="text-[9px] text-slate-600">Income total for '+p.label.toLowerCase()+'</p></div>'+
+                '<span class="text-xs font-bold text-emerald-400">+£'+Number(total).toFixed(2)+'</span></div>'
             ));
-            (appState.mileageTrips||[]).filter(x=>x.trip_date>=p.start&&x.trip_date<=p.end).slice(0,25).forEach(m=>rows.push(
-                '<div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between">'+
-                '<div><span class="text-xs text-slate-300">'+(m.purpose||'Mileage')+'</span><p class="text-[9px] text-slate-600">'+formatUkDate(m.trip_date)+'</p></div>'+
-                '<span class="text-xs font-bold text-blue-400">'+Number(m.business_miles).toFixed(1).replace('.0','')+' mi</span></div>'
+            Object.entries(expenseGroups).sort((a,b)=>b[1]-a[1]).forEach(([name,total])=>rows.push(
+                '<div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center">'+
+                '<div><span class="text-xs font-bold text-slate-200">'+name+'</span><p class="text-[9px] text-slate-600">Expense total for '+p.label.toLowerCase()+'</p></div>'+
+                '<span class="text-xs font-bold text-rose-400">-£'+Number(total).toFixed(2)+'</span></div>'
             ));
+
+            const periodMileage=(appState.mileageTrips||[]).filter(x=>x.trip_date>=p.start&&x.trip_date<=p.end).reduce((s,m)=>s+Number(m.business_miles||0),0);
+            if(periodMileage>0) rows.push(
+                '<div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center">'+
+                '<div><span class="text-xs font-bold text-slate-200">Business Mileage</span><p class="text-[9px] text-slate-600">Total for '+p.label.toLowerCase()+'</p></div>'+
+                '<span class="text-xs font-bold text-blue-400">'+periodMileage.toFixed(1).replace('.0','')+' mi</span></div>'
+            );
+
             document.getElementById('today-details-list').innerHTML=rows.join('')||'<p class="text-center text-xs text-slate-500 py-4">No records for this period.</p>';
             document.getElementById('today-details-modal').dataset.period=period;
         }
