@@ -304,52 +304,32 @@
                 <div id="records-list" class="space-y-2.5"></div>
             </section>
 
-            <!-- VIEW 3: SCAN RECEIPT SIMULATOR -->
+            <!-- VIEW 3: AI RECEIPT SCANNER -->
             <section id="view-scan" class="p-5 space-y-5 hidden">
                 <div class="text-center space-y-1">
                     <h2 class="text-lg font-bold text-white">AI Receipt Scanner</h2>
-                    <p class="text-xs text-slate-400">Snap fuel pumps, MOTs, or phone bills for instant cloud logging.</p>
+                    <p class="text-xs text-slate-400">Scan → AI reads → you check → confirm → expense saved.</p>
                 </div>
-
-                <div class="relative bg-slate-900 border-2 border-dashed border-slate-700 rounded-3xl p-6 flex flex-col items-center justify-center text-center h-64 overflow-hidden group">
-                    <div class="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition"></div>
-                    
-                    <div id="scanner-idle" class="space-y-3 z-10">
-                        <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto text-2xl shadow-inner">
-                            <i class="fa-solid fa-receipt"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-sm font-bold text-white">Tap to Simulate Camera Scan</h3>
-                            <p class="text-[11px] text-slate-400 mt-1">Saves directly to Supabase receipts & expenses</p>
-                        </div>
-                        <button onclick="simulateScan()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition">
-                            Capture Receipt (£40 Fuel)
-                        </button>
-                    </div>
-
-                    <div id="scanner-active" class="hidden absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center space-y-3 z-20">
-                        <div class="w-12 h-12 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin"></div>
-                        <p class="text-xs font-semibold text-emerald-400 animate-pulse">AI Parsing & Saving to Supabase...</p>
-                    </div>
-                </div>
-
-                <div class="space-y-2">
-                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Or Test with Preset Scans</span>
+                <label class="relative bg-slate-900 border-2 border-dashed border-slate-700 rounded-3xl p-6 flex flex-col items-center justify-center text-center min-h-56 cursor-pointer">
+                    <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto text-2xl"><i class="fa-solid fa-receipt"></i></div>
+                    <h3 class="text-sm font-bold text-white mt-3">Take a photo or choose receipt</h3>
+                    <p class="text-[10px] text-slate-500 mt-1">JPG, PNG or HEIC • privately stored</p>
+                    <input id="receipt-file-input" type="file" accept="image/*" capture="environment" class="hidden" onchange="handleReceiptSelected(this)">
+                </label>
+                <div id="receipt-scan-status" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-slate-300"></div>
+                <div id="receipt-review-card" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between"><div><h3 class="text-sm font-bold text-white">Review receipt</h3><p class="text-[9px] text-slate-500">Check every field before saving</p></div><span id="receipt-ai-confidence" class="text-[9px] font-bold text-amber-300">Needs review</span></div>
+                    <img id="receipt-preview" class="w-full max-h-44 object-contain rounded-xl bg-slate-950 border border-slate-800" alt="Receipt preview">
                     <div class="grid grid-cols-2 gap-2">
-                        <button onclick="quickAddFuelPreset(40.00)" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 p-3 rounded-2xl text-left transition flex items-center space-x-3">
-                            <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-xs"><i class="fa-solid fa-gas-pump"></i></div>
-                            <div>
-                                <span class="text-xs font-bold text-white block">Shell Fuel</span>
-                                <span class="text-[10px] text-slate-400">£40.00 • Fuel</span>
-                            </div>
-                        </button>
-                        <button onclick="quickAddPreset('Halfords MOT', 120.00, 'Maintenance')" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 p-3 rounded-2xl text-left transition flex items-center space-x-3">
-                            <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-xs"><i class="fa-solid fa-wrench"></i></div>
-                            <div>
-                                <span class="text-xs font-bold text-white block">Halfords Service</span>
-                                <span class="text-[10px] text-slate-400">£120.00 • Maint</span>
-                            </div>
-                        </button>
+                        <div><label class="text-[10px] text-slate-500 font-bold">Merchant</label><input id="receipt-merchant" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+                        <div><label class="text-[10px] text-slate-500 font-bold">Amount (£)</label><input id="receipt-amount" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+                        <div><label class="text-[10px] text-slate-500 font-bold">VAT shown (£)</label><input id="receipt-vat" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+                        <div><label class="text-[10px] text-slate-500 font-bold">Date</label><input id="receipt-date" type="date" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+                    </div>
+                    <div><label class="text-[10px] text-slate-500 font-bold">Category</label><select id="receipt-category" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></select></div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="cancelReceiptReview()" class="bg-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs">Cancel</button>
+                        <button onclick="confirmReceiptExpense()" class="bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs">Confirm & Save</button>
                     </div>
                 </div>
             </section>
@@ -405,15 +385,16 @@
                     <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Taxable Profit</span><span class="font-bold text-white" id="tax-taxable-profit">£0.00</span></div>
                     <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Estimated Income Tax</span><span class="font-bold text-amber-300" id="tax-income-tax">£0.00</span></div>
                     <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Estimated Class 4 NI</span><span class="font-bold text-amber-300" id="tax-class4">£0.00</span></div>
+                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Student / Postgraduate Loan</span><span class="font-bold text-amber-300" id="tax-student-loan">£0.00</span></div>
                     <div class="flex justify-between items-center text-sm pt-1"><span class="font-bold text-amber-400">Estimated Total Tax Reserve</span><span class="font-extrabold text-amber-400 text-base" id="tax-owed">£0.00</span></div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4"><p class="text-[10px] uppercase font-bold text-slate-500">Tax Reserve Saved</p><p id="tax-reserve-saved" class="text-lg font-extrabold text-emerald-400 mt-1">£0.00</p></div>
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4"><p class="text-[10px] uppercase font-bold text-slate-500">Remaining Reserve</p><p id="tax-reserve-remaining" class="text-lg font-extrabold text-amber-400 mt-1">£0.00</p></div>
                 </div>
-                <div class="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3 text-[10px] text-amber-100">
-                    Estimate only. This version assumes England/Wales/Northern Ireland income-tax bands and uses only business records in the app. It does not yet account for employment, pensions, property income, student loans or Scottish tax bands.
-                </div>
+                <div id="tax-estimate-quality" class="bg-slate-900 border border-slate-800 rounded-2xl p-3 text-[10px] text-slate-300"></div>
+                <button onclick="openTaxProfileModal()" class="w-full bg-slate-900 border border-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-sliders mr-1"></i> Tax Profile</button>
+                <button onclick="openTaxShareModal()" class="w-full bg-slate-900 border border-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-share-nodes mr-1"></i> Share Tax Summary</button>
                 <button onclick="openReserveModal()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-piggy-bank mr-1"></i> Add Tax Reserve Saving</button>
             </section>
 
@@ -500,7 +481,7 @@
             <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex justify-between items-center">
                     <div>
-                        <h3 class="font-bold text-sm text-white">Enter Period Totals</h3>
+                        <h3 class="font-bold text-sm text-white">Catch Up Records</h3>
                         <p id="period-entry-label" class="text-[10px] text-slate-500 mt-1">Selected period</p>
                     </div>
                     <button onclick="closePeriodEntryModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
@@ -526,7 +507,7 @@
                         <input id="period-notes" type="text" placeholder="e.g. totals from weekly statement" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500">
                     </div>
                     <button id="period-save-btn" type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl text-xs">
-                        Save Period Totals
+                        Save Catch Up Records
                     </button>
                 </form>
             </div>
@@ -812,6 +793,47 @@
             </div>
         </div>
 
+
+        <!-- Tax Profile -->
+        <div id="tax-profile-modal" class="hidden absolute inset-0 bg-slate-950 z-[92] overflow-y-auto">
+            <div class="p-5 space-y-4 pb-28">
+                <div class="flex items-center justify-between"><div><h2 class="text-lg font-bold text-white">Tax Profile</h2><p class="text-[10px] text-slate-500">Answer once, update whenever your situation changes</p></div><button onclick="closeTaxProfileModal()" class="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 text-slate-300"><i class="fa-solid fa-xmark"></i></button></div>
+                <form onsubmit="saveTaxProfile(event)" class="space-y-3">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                        <div><label class="text-[10px] font-bold text-slate-500">Where do you live for tax purposes?</label><select id="taxp-residence" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option>England</option><option>Wales</option><option>Northern Ireland</option><option>Scotland</option></select></div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="text-[10px] font-bold text-slate-500">PAYE job income (£/year)</label><input id="taxp-paye" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+                            <div><label class="text-[10px] font-bold text-slate-500">Pension income (£/year)</label><input id="taxp-pension-income" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+                            <div><label class="text-[10px] font-bold text-slate-500">Property income (£/year)</label><input id="taxp-property" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+                            <div><label class="text-[10px] font-bold text-slate-500">Other self-employed profit (£)</label><input id="taxp-other-se" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+                        </div>
+                        <div><label class="text-[10px] font-bold text-slate-500">Student loan</label><select id="taxp-student-plan" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option value="none">None</option><option value="1">Plan 1</option><option value="2">Plan 2</option><option value="4">Plan 4</option><option value="5">Plan 5</option></select></div>
+                        <label class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-xs text-slate-200">Postgraduate loan<input id="taxp-postgrad" type="checkbox" class="accent-emerald-500"></label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="text-[10px] font-bold text-slate-500">Pension contributions (£)</label><input id="taxp-pension-contrib" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+                            <div><label class="text-[10px] font-bold text-slate-500">Gift Aid (£)</label><input id="taxp-gift-aid" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+                            <div><label class="text-[10px] font-bold text-slate-500">Tax already deducted (£)</label><input id="taxp-tax-deducted" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+                            <div><label class="text-[10px] font-bold text-slate-500">Marriage Allowance</label><select id="taxp-marriage" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"><option value="none">None</option><option value="receiving">I receive it</option><option value="transferring">I transfer it</option></select></div>
+                        </div>
+                        <label class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-xs text-slate-200">Blind Person’s Allowance<input id="taxp-blind" type="checkbox" class="accent-emerald-500"></label>
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs">Save Tax Profile</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Share Tax Summary -->
+        <div id="tax-share-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-[93] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3">
+                <div class="flex justify-between items-center"><div><h3 class="text-sm font-bold text-white">Share Tax Summary</h3><p class="text-[9px] text-slate-500">Choose how you want to send it</p></div><button onclick="closeTaxShareModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300"><i class="fa-solid fa-xmark"></i></button></div>
+                <button onclick="shareTaxSummary('whatsapp')" class="w-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 font-bold py-3 rounded-xl text-xs"><i class="fa-brands fa-whatsapp mr-2"></i>WhatsApp</button>
+                <button onclick="shareTaxSummary('email')" class="w-full bg-blue-500/10 border border-blue-500/25 text-blue-300 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-envelope mr-2"></i>Email</button>
+                <button onclick="shareTaxSummary('pdf')" class="w-full bg-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-file-pdf mr-2"></i>Print / Save PDF</button>
+                <button onclick="shareTaxSummary('csv')" class="w-full bg-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-file-csv mr-2"></i>Export CSV</button>
+                <button onclick="shareTaxSummary('more')" class="w-full bg-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-share-nodes mr-2"></i>More</button>
+            </div>
+        </div>
+
 <!-- Account / Profile -->
         <div id="account-modal" class="hidden absolute inset-0 bg-slate-950 z-[85] overflow-y-auto">
             <div class="p-5 space-y-4 pb-28">
@@ -835,8 +857,16 @@
                         <div><label class="text-[10px] text-slate-500 font-bold">Name</label><input id="profile-name" type="text" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
                         <div><label class="text-[10px] text-slate-500 font-bold">Email</label><input id="profile-email" type="email" disabled class="mt-1 w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-400"></div>
                         <div><label class="text-[10px] text-slate-500 font-bold">Work type</label><select id="profile-work-type" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option>Taxi / Private Hire</option><option>Food Delivery</option><option>Parcel / Courier</option><option>Multi-platform Driver</option><option>Other</option></select></div>
-                        <div><label class="text-[10px] text-slate-500 font-bold">Platforms <span class="text-slate-600">(comma separated)</span></label><input id="profile-platforms" type="text" placeholder="Uber, Bolt" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
-                        <div><label class="text-[10px] text-slate-500 font-bold">Usual expenses <span class="text-slate-600">(comma separated)</span></label><input id="profile-expenses" type="text" placeholder="Fuel, Insurance, Maintenance" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 font-bold">Platforms</label>
+                            <div id="profile-platform-chips" class="flex flex-wrap gap-2 mt-2"></div>
+                            <div class="flex gap-2 mt-2"><input id="profile-custom-platform" type="text" placeholder="Other platform" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><button type="button" onclick="addProfileCustomPlatform()" class="bg-slate-800 text-emerald-300 px-3 rounded-xl text-[10px] font-bold">+ Add</button></div>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 font-bold">Usual expenses</label>
+                            <div id="profile-expense-chips" class="flex flex-wrap gap-2 mt-2"></div>
+                            <div class="flex gap-2 mt-2"><input id="profile-custom-expense" type="text" placeholder="Other expense" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><button type="button" onclick="addProfileCustomExpense()" class="bg-slate-800 text-rose-300 px-3 rounded-xl text-[10px] font-bold">+ Add</button></div>
+                        </div>
                         <button type="submit" class="w-full bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs">Save Profile</button>
                     </div>
                 </form>
@@ -931,6 +961,9 @@
             periodEntries: [],
             recurringExpenses: [],
             profile: null,
+            taxProfile: null,
+            pendingReceiptFile: null,
+            pendingReceiptPath: null,
             selectedWorkType: '',
             selectedPlatforms: [],
             selectedExpenses: [],
@@ -1307,8 +1340,9 @@
             try {
                 const todayIso = new Date().toISOString().split('T')[0];
 
-                const [profileRes, incomeRes, expenseRes, mileageRes, reserveRes, periodRes, recurringRes] = await Promise.all([
+                const [profileRes, taxProfileRes, incomeRes, expenseRes, mileageRes, reserveRes, periodRes, recurringRes] = await Promise.all([
                     supabaseClient.from('profiles').select('*').eq('id', userId).single(),
+                    supabaseClient.from('tax_profiles').select('*').eq('user_id', userId).maybeSingle(),
                     supabaseClient.from('income').select('*').eq('user_id', userId),
                     supabaseClient.from('expenses').select('*').eq('user_id', userId),
                     supabaseClient.from('mileage').select('*').eq('user_id', userId).order('trip_date', { ascending: false }),
@@ -1318,6 +1352,7 @@
                 ]);
 
                 if (profileRes.error) throw profileRes.error;
+                if (taxProfileRes.error) throw taxProfileRes.error;
                 if (incomeRes.error) throw incomeRes.error;
                 if (expenseRes.error) throw expenseRes.error;
                 if (mileageRes.error) throw mileageRes.error;
@@ -1376,6 +1411,7 @@
                 appState.periodEntries = periodRes.data || [];
                 appState.recurringExpenses = recurringRes.data || [];
                 appState.profile = profileRes.data || null;
+                appState.taxProfile = taxProfileRes.data || null;
                 appState.selectedWorkType = profileRes.data?.primary_work_type || '';
                 appState.selectedPlatforms = profileRes.data?.platforms || [];
                 appState.selectedExpenses = profileRes.data?.usual_expenses || [];
@@ -1413,44 +1449,80 @@
             if(tabId==='records') renderRecords();
         }
 
-        // 2026/27 UK self-employed estimate (England, Wales and Northern Ireland bands).
-        function calculateUkTax2026_27(profit) {
-            const p=Math.max(0,Number(profit||0));
-            const allowance=Math.max(0,12570-Math.max(0,p-100000)/2);
-            const taxable=Math.max(0,p-allowance);
-            const basic=Math.min(taxable,37700)*0.20;
-            const higher=Math.min(Math.max(0,taxable-37700),87440)*0.40;
-            const additional=Math.max(0,taxable-125140)*0.45;
-            const incomeTax=basic+higher+additional;
-            const class4=Math.min(Math.max(0,p-12570),37700)*0.06 + Math.max(0,p-50270)*0.02;
-            return {allowance,taxable,incomeTax,class4,total:incomeTax+class4};
+        // 2026/27 UK tax engine. Rates verified against GOV.UK before this build.
+        function calculateBandTax(taxable,residence,bandExtension=0){
+            let x=Math.max(0,taxable), tax=0;
+            if(residence==='Scotland'){
+                const bands=[[3967,0.19],[12989,0.20],[14136,0.21],[31338,0.42],[62710,0.45],[Infinity,0.48]];
+                for(const [width,rate] of bands){const take=Math.min(x,width); tax+=take*rate; x-=take;if(x<=0)break;}
+                return tax;
+            }
+            const basic=37700+bandExtension;
+            const higherWidth=Math.max(0,125140-12570-basic);
+            const b=Math.min(x,basic); tax+=b*0.20; x-=b;
+            if(x>0){const h=Math.min(x,higherWidth);tax+=h*0.40;x-=h;}
+            if(x>0) tax+=x*0.45;
+            return tax;
         }
 
-        function getTaxYearSummary() {
+        function calculateTaxEstimate(businessProfit){
+            const p=appState.taxProfile || {};
+            const paye=Number(p.paye_income||0), pensionIncome=Number(p.pension_income||0), property=Number(p.property_income||0), otherSe=Number(p.other_self_employed_income||0);
+            const pensionContrib=Number(p.pension_contributions||0), giftAid=Number(p.gift_aid||0);
+            const taxDeducted=Number(p.tax_deducted_elsewhere||0);
+            const residence=p.tax_residence||'England';
+            const totalIncome=Math.max(0,Number(businessProfit||0))+paye+pensionIncome+property+otherSe;
+            const grossReliefExtension=(pensionContrib+giftAid)*1.25;
+            const adjustedNet=Math.max(0,totalIncome-grossReliefExtension);
+            let allowance=Math.max(0,12570-Math.max(0,adjustedNet-100000)/2);
+            if(p.blind_person_allowance) allowance+=3250;
+            if(p.marriage_allowance==='receiving') allowance+=1260;
+            if(p.marriage_allowance==='transferring') allowance=Math.max(0,allowance-1260);
+            const taxable=Math.max(0,totalIncome-allowance);
+            const incomeTax=calculateBandTax(taxable,residence,grossReliefExtension);
+            const seProfit=Math.max(0,Number(businessProfit||0)+otherSe);
+            const class4=Math.min(Math.max(0,seProfit-12570),37700)*0.06 + Math.max(0,seProfit-50270)*0.02;
+            const thresholds={ '1':26900,'2':29385,'4':33795,'5':25000 };
+            const studentPlan=p.student_loan_plan||'none';
+            const studentLoan=studentPlan==='none'?0:Math.max(0,totalIncome-(thresholds[studentPlan]||Infinity))*0.09;
+            const postgraduate=p.postgraduate_loan?Math.max(0,totalIncome-21000)*0.06:0;
+            const grossLiability=incomeTax+class4+studentLoan+postgraduate;
+            const remaining=Math.max(0,grossLiability-taxDeducted);
+            return {residence,totalIncome,allowance,taxable,incomeTax,class4,studentLoan,postgraduate,taxDeducted,grossLiability,total:remaining};
+        }
+
+        function getTaxYearSummary(endDate=null) {
             const b=currentTaxYearBounds();
-            const range=getRangeActivity(b.start,b.end);
-            const recurring=getRecurringCostShare(b.start,b.end);
+            const end=endDate && endDate<b.end ? endDate : b.end;
+            const range=getRangeActivity(b.start,end);
+            const recurring=getRecurringCostShare(b.start,end);
             const income=range.income;
-            const directExpenses=range.expenses;
-            const expenses=directExpenses+recurring.total;
+            const expenses=range.expenses+recurring.total;
             const profit=Math.max(0,income-expenses);
-            const tax=calculateUkTax2026_27(profit);
-            const saved=appState.taxReserveEntries.filter(x=>x.saved_on>=b.start&&x.saved_on<=b.end).reduce((s,x)=>s+Number(x.amount||0),0);
-            return { ...b,income,expenses,profit,saved,...tax };
+            const tax=calculateTaxEstimate(profit);
+            const saved=appState.taxReserveEntries.filter(x=>x.saved_on>=b.start&&x.saved_on<=end).reduce((s,x)=>s+Number(x.amount||0),0);
+            return { ...b,end,income,expenses,profit,saved,...tax };
         }
 
-        function getEstimatedDailyTaxReserve(dateStr) {
+        function getEstimatedTaxReserveForRange(startStr,endStr){
             const b=currentTaxYearBounds();
-            if(dateStr<b.start||dateStr>b.end) return 0;
-            const ytdEnd=dateStr;
-            const range=getRangeActivity(b.start,ytdEnd);
-            const recurring=getRecurringCostShare(b.start,ytdEnd);
-            const withProfit=Math.max(0,range.income-range.expenses-recurring.total);
-            const day=getDayActivity(dateStr);
-            const dayRecurring=getRecurringCostShare(dateStr,dateStr).total;
-            const dayProfit=day.income-day.expenses-dayRecurring;
-            const withoutProfit=Math.max(0,withProfit-dayProfit);
-            return Math.max(0,calculateUkTax2026_27(withProfit).total-calculateUkTax2026_27(withoutProfit).total);
+            if(endStr<b.start||startStr>b.end) return 0;
+            const end=endStr>b.end?b.end:endStr;
+            const dayBefore=new Date(parseIsoDate(startStr)); dayBefore.setDate(dayBefore.getDate()-1);
+            const beforeStr=isoDate(dayBefore);
+            const after=getTaxYearSummary(end).total;
+            const before=beforeStr<b.start?0:getTaxYearSummary(beforeStr).total;
+            return Math.max(0,after-before);
+        }
+
+        function getEstimatedDailyTaxReserve(dateStr){ return getEstimatedTaxReserveForRange(dateStr,dateStr); }
+
+        function taxProfileQuality(){
+            const p=appState.taxProfile;
+            if(!p) return {label:'Basic',detail:'Complete your Tax Profile to improve this estimate.'};
+            const hasCore=!!p.tax_residence && p.paye_income!==null && p.pension_income!==null && p.property_income!==null && p.other_self_employed_income!==null;
+            const hasLoans=!!p.student_loan_plan && p.postgraduate_loan!==null;
+            return hasCore&&hasLoans?{label:'High',detail:'Estimate uses your saved Tax Profile and current app records.'}:{label:'Medium',detail:'Some Tax Profile details are still incomplete.'};
         }
 
         // Render UI Calculations & Lists
@@ -1478,9 +1550,12 @@
             document.getElementById('tax-taxable-profit').textContent = `£${ts.taxable.toFixed(2)}`;
             document.getElementById('tax-income-tax').textContent = `£${ts.incomeTax.toFixed(2)}`;
             document.getElementById('tax-class4').textContent = `£${ts.class4.toFixed(2)}`;
+            const sl=document.getElementById('tax-student-loan'); if(sl) sl.textContent=`£${(ts.studentLoan+ts.postgraduate).toFixed(2)}`;
             document.getElementById('tax-owed').textContent = `£${ts.total.toFixed(2)}`;
             document.getElementById('tax-reserve-saved').textContent = `£${ts.saved.toFixed(2)}`;
             document.getElementById('tax-reserve-remaining').textContent = `£${Math.max(0,ts.total-ts.saved).toFixed(2)}`;
+            const q=taxProfileQuality(), qEl=document.getElementById('tax-estimate-quality');
+            if(qEl) qEl.innerHTML='<div class="flex justify-between"><span class="font-bold text-white">Estimate quality</span><span class="font-bold text-emerald-300">'+q.label+'</span></div><p class="text-slate-500 mt-1">'+q.detail+'</p>';
 
             const recentHtml = appState.transactions.slice(0, 4).map(item => {
                 const isInc = item.type === 'income';
@@ -1709,7 +1784,24 @@
             img?.classList.add('hidden'); fallback?.classList.remove('hidden');
         }
 
-        function openAccountModal() {
+        
+        function chipButton(value,selected,handler,color='emerald'){
+            const safe=value.replace(/'/g,"\\'");
+            return '<button type="button" onclick="'+handler+"('"+safe+"')"+'" class="px-3 py-2 rounded-xl border text-[10px] font-bold '+(selected?'border-'+color+'-500 bg-'+color+'-500/10 text-'+color+'-300':'border-slate-800 bg-slate-950 text-slate-400')+'">'+value+'</button>';
+        }
+        function renderProfilePreferenceChips(){
+            const platformDefaults=platformMap[document.getElementById('profile-work-type')?.value||appState.selectedWorkType]||['Uber','Bolt','FREENOW','Deliveroo','Just Eat','Amazon Flex','Other'];
+            const platforms=[...new Set([...platformDefaults,...(appState.selectedPlatforms||[])])];
+            const expenses=[...new Set([...defaultExpenses,...(appState.selectedExpenses||[])])];
+            const pb=document.getElementById('profile-platform-chips'); if(pb) pb.innerHTML=platforms.map(v=>chipButton(v,(appState.selectedPlatforms||[]).includes(v),'toggleProfilePlatform','emerald')).join('');
+            const eb=document.getElementById('profile-expense-chips'); if(eb) eb.innerHTML=expenses.map(v=>chipButton(v,(appState.selectedExpenses||[]).includes(v),'toggleProfileExpense','rose')).join('');
+        }
+        function toggleProfilePlatform(v){appState.selectedPlatforms=(appState.selectedPlatforms||[]).includes(v)?appState.selectedPlatforms.filter(x=>x!==v):[...appState.selectedPlatforms,v];renderProfilePreferenceChips();}
+        function toggleProfileExpense(v){appState.selectedExpenses=(appState.selectedExpenses||[]).includes(v)?appState.selectedExpenses.filter(x=>x!==v):[...appState.selectedExpenses,v];renderProfilePreferenceChips();}
+        function addProfileCustomPlatform(){const el=document.getElementById('profile-custom-platform'),v=el.value.trim();if(!v)return;if(!appState.selectedPlatforms.includes(v))appState.selectedPlatforms.push(v);el.value='';renderProfilePreferenceChips();}
+        function addProfileCustomExpense(){const el=document.getElementById('profile-custom-expense'),v=el.value.trim();if(!v)return;if(!appState.selectedExpenses.includes(v))appState.selectedExpenses.push(v);el.value='';renderProfilePreferenceChips();}
+
+function openAccountModal() {
             const p=appState.profile || {};
             const email=appState.currentUser?.email || '';
             const name=p.full_name || appState.currentUser?.user_metadata?.full_name || email.split('@')[0] || 'Driver';
@@ -1721,8 +1813,7 @@
             document.getElementById('profile-name').value=name;
             document.getElementById('profile-email').value=email;
             document.getElementById('profile-work-type').value=p.primary_work_type || appState.selectedWorkType || 'Other';
-            document.getElementById('profile-platforms').value=(p.platforms || appState.selectedPlatforms || []).join(', ');
-            document.getElementById('profile-expenses').value=(p.usual_expenses || appState.selectedExpenses || []).join(', ');
+            renderProfilePreferenceChips();
             document.getElementById('vehicle-make').value=p.vehicle_make || '';
             document.getElementById('vehicle-model').value=p.vehicle_model || '';
             document.getElementById('vehicle-year').value=p.vehicle_year || '';
@@ -1748,8 +1839,8 @@
             e.preventDefault(); if(!appState.currentUser) return;
             const full_name=document.getElementById('profile-name').value.trim();
             const primary_work_type=document.getElementById('profile-work-type').value;
-            const platforms=document.getElementById('profile-platforms').value.split(',').map(x=>x.trim()).filter(Boolean);
-            const usual_expenses=document.getElementById('profile-expenses').value.split(',').map(x=>x.trim()).filter(Boolean);
+            const platforms=[...(appState.selectedPlatforms||[])];
+            const usual_expenses=[...(appState.selectedExpenses||[])];
             const {error}=await supabaseClient.from('profiles').update({full_name,primary_work_type,work_types:[primary_work_type],platforms,usual_expenses,updated_at:new Date().toISOString()}).eq('id',appState.currentUser.id);
             if(error){showToast('Could not save profile');return;}
             await fetchUserData(appState.currentUser.id); openAccountModal(); showToast('Profile updated');
@@ -1786,7 +1877,68 @@
             await fetchUserData(appState.currentUser.id); openAccountModal(); showToast('Profile photo updated');
         }
 
-        function renderRegularCostLists() {
+        
+        function openTaxProfileModal(){
+            const p=appState.taxProfile||{};
+            const val=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v??'';};
+            val('taxp-residence',p.tax_residence||'England');val('taxp-paye',p.paye_income||0);val('taxp-pension-income',p.pension_income||0);val('taxp-property',p.property_income||0);val('taxp-other-se',p.other_self_employed_income||0);val('taxp-student-plan',p.student_loan_plan||'none');val('taxp-pension-contrib',p.pension_contributions||0);val('taxp-gift-aid',p.gift_aid||0);val('taxp-tax-deducted',p.tax_deducted_elsewhere||0);val('taxp-marriage',p.marriage_allowance||'none');
+            document.getElementById('taxp-postgrad').checked=!!p.postgraduate_loan;document.getElementById('taxp-blind').checked=!!p.blind_person_allowance;
+            document.getElementById('tax-profile-modal').classList.remove('hidden');
+        }
+        function closeTaxProfileModal(){document.getElementById('tax-profile-modal').classList.add('hidden');}
+        async function saveTaxProfile(e){
+            e.preventDefault(); if(!appState.currentUser)return;
+            const n=id=>Number(document.getElementById(id).value||0);
+            const payload={user_id:appState.currentUser.id,tax_residence:document.getElementById('taxp-residence').value,paye_income:n('taxp-paye'),pension_income:n('taxp-pension-income'),property_income:n('taxp-property'),other_self_employed_income:n('taxp-other-se'),student_loan_plan:document.getElementById('taxp-student-plan').value,postgraduate_loan:document.getElementById('taxp-postgrad').checked,pension_contributions:n('taxp-pension-contrib'),gift_aid:n('taxp-gift-aid'),blind_person_allowance:document.getElementById('taxp-blind').checked,marriage_allowance:document.getElementById('taxp-marriage').value,tax_deducted_elsewhere:n('taxp-tax-deducted'),updated_at:new Date().toISOString()};
+            const {error}=await supabaseClient.from('tax_profiles').upsert(payload,{onConflict:'user_id'});if(error){showToast('Could not save Tax Profile');return;}await fetchUserData(appState.currentUser.id);closeTaxProfileModal();showToast('Tax Profile saved');
+        }
+
+        function openTaxShareModal(){document.getElementById('tax-share-modal').classList.remove('hidden');}
+        function closeTaxShareModal(){document.getElementById('tax-share-modal').classList.add('hidden');}
+        function getTaxSummaryText(){
+            const t=getTaxYearSummary(),q=taxProfileQuality();
+            return ['DriverTax Estimated Tax Summary '+t.label,'Business income: £'+t.income.toFixed(2),'Allowable expenses (est.): £'+t.expenses.toFixed(2),'Business profit: £'+t.profit.toFixed(2),'Estimated Income Tax: £'+t.incomeTax.toFixed(2),'Estimated Class 4 NI: £'+t.class4.toFixed(2),'Student/Postgraduate Loan: £'+(t.studentLoan+t.postgraduate).toFixed(2),'Tax already deducted: £'+t.taxDeducted.toFixed(2),'Estimated amount remaining: £'+t.total.toFixed(2),'Tax reserve saved: £'+t.saved.toFixed(2),'Estimate quality: '+q.label].join('\n');
+        }
+        function downloadTaxCsv(){
+            const t=getTaxYearSummary(); const rows=[['Tax year',t.label],['Business Income',t.income],['Allowable Expenses',t.expenses],['Business Profit',t.profit],['Estimated Income Tax',t.incomeTax],['Estimated Class 4 NI',t.class4],['Student/Postgraduate Loan',t.studentLoan+t.postgraduate],['Tax Already Deducted',t.taxDeducted],['Estimated Amount Remaining',t.total],['Tax Reserve Saved',t.saved]];
+            const csv=rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n');const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='tax-summary-'+t.label.replace('/','-')+'.csv';a.click();URL.revokeObjectURL(a.href);
+        }
+        async function shareTaxSummary(method){
+            const text=getTaxSummaryText();
+            if(method==='whatsapp'){window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');}
+            else if(method==='email'){window.location.href='mailto:?subject='+encodeURIComponent('Estimated Tax Summary')+'&body='+encodeURIComponent(text);}
+            else if(method==='csv'){downloadTaxCsv();}
+            else if(method==='pdf'){window.print();}
+            else if(method==='more'){if(navigator.share)await navigator.share({title:'Estimated Tax Summary',text});else{await navigator.clipboard.writeText(text);showToast('Tax summary copied');}}
+        }
+
+        async function handleReceiptSelected(input){
+            const file=input.files?.[0];if(!file||!appState.currentUser)return;
+            if(file.size>10*1024*1024){showToast('Choose an image under 10 MB');return;}
+            appState.pendingReceiptFile=file;
+            const status=document.getElementById('receipt-scan-status');status.classList.remove('hidden');status.textContent='Uploading receipt securely…';
+            try{
+                const ext=(file.name.split('.').pop()||'jpg').toLowerCase();const path=appState.currentUser.id+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
+                const {error}=await supabaseClient.storage.from('receipts').upload(path,file,{contentType:file.type||'image/jpeg',upsert:false});if(error)throw error;
+                appState.pendingReceiptPath=path;document.getElementById('receipt-preview').src=URL.createObjectURL(file);document.getElementById('receipt-date').value=isoDate(new Date());
+                const cats=[...new Set([...(appState.selectedExpenses||[]),'Other'])];document.getElementById('receipt-category').innerHTML=cats.map(x=>'<option>'+x+'</option>').join('');
+                status.textContent='Receipt stored privately. AI extraction is not connected yet, so check and enter the fields manually before saving.';
+                document.getElementById('receipt-ai-confidence').textContent='Manual review';
+                document.getElementById('receipt-review-card').classList.remove('hidden');
+            }catch(err){console.error(err);status.textContent='Upload failed. Please retry.';}
+        }
+        async function confirmReceiptExpense(){
+            if(!appState.currentUser||!appState.pendingReceiptPath)return;
+            const amount=Number(document.getElementById('receipt-amount').value||0);if(!(amount>0)){showToast('Enter the receipt amount');return;}
+            const merchant=document.getElementById('receipt-merchant').value.trim()||'Receipt';
+            const date=document.getElementById('receipt-date').value||isoDate(new Date());const category=document.getElementById('receipt-category').value||'Other';const vat=Number(document.getElementById('receipt-vat').value||0);
+            const {data:exp,error:e1}=await supabaseClient.from('expenses').insert([{user_id:appState.currentUser.id,category,amount,merchant,expense_date:date,notes:'Receipt scan'}]).select('id').single();if(e1){showToast('Could not save expense');return;}
+            const f=appState.pendingReceiptFile;const {error:e2}=await supabaseClient.from('receipts').insert([{user_id:appState.currentUser.id,expense_id:exp.id,file_path:appState.pendingReceiptPath,original_filename:f?.name||null,mime_type:f?.type||null,size_bytes:f?.size||null,ai_status:'manual_review',extracted_merchant:merchant,extracted_date:date,extracted_amount:amount,extracted_vat:vat||null,suggested_category:category,driver_confirmed:true}]);if(e2){showToast('Expense saved, receipt link needs retry');return;}
+            await fetchUserData(appState.currentUser.id);cancelReceiptReview();showToast('Receipt confirmed and expense saved');switchTab('records');
+        }
+        function cancelReceiptReview(){document.getElementById('receipt-review-card')?.classList.add('hidden');document.getElementById('receipt-scan-status')?.classList.add('hidden');document.getElementById('receipt-file-input').value='';appState.pendingReceiptFile=null;appState.pendingReceiptPath=null;}
+
+function renderRegularCostLists() {
             const rows = (appState.recurringExpenses || []).map(r => {
                 const freq = r.frequency === 'yearly' ? 'Yearly' : 'Monthly';
                 return '<div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3">'+
@@ -1887,7 +2039,7 @@
                 parseIsoDate(p.period_start) >= start && parseIsoDate(p.period_end) <= end
             );
 
-            // Period totals are catch-up records. If dated records exist inside the same saved period,
+            // Catch-up totals are catch-up records. If dated records exist inside the same saved period,
             // exclude that period total from the arithmetic so the app does not double-count it.
             const periodEntries = [];
             const overlappingPeriodEntries = [];
@@ -2137,7 +2289,7 @@
             const cashProfit = a.income - a.expenses;
             const recurringShare = a.recurring?.total || 0;
             const profit = cashProfit - recurringShare;
-            const estTaxReserve = Math.max(0, profit * 0.20);
+            const estTaxReserve = getEstimatedTaxReserveForRange(startStr,endStr);
             const estimatedTakeHome = profit - estTaxReserve;
             const days = Math.floor((end - start) / 86400000) + 1;
 
@@ -2155,10 +2307,10 @@
 
             (a.periodEntries || []).forEach(p => {
                 if (Number(p.income_amount || 0) > 0) {
-                    incomeBreakdown['Period totals'] = (incomeBreakdown['Period totals'] || 0) + Number(p.income_amount || 0);
+                    incomeBreakdown['Catch-up totals'] = (incomeBreakdown['Catch-up totals'] || 0) + Number(p.income_amount || 0);
                 }
                 if (Number(p.expense_amount || 0) > 0) {
-                    expenseBreakdown['Period totals'] = (expenseBreakdown['Period totals'] || 0) + Number(p.expense_amount || 0);
+                    expenseBreakdown['Catch-up totals'] = (expenseBreakdown['Catch-up totals'] || 0) + Number(p.expense_amount || 0);
                 }
             });
 
@@ -2211,7 +2363,7 @@
                             ${chartBars || '<p class="text-[10px] text-slate-500">No dated activity yet.</p>'}
                         </div>
                     </div>
-                    ${(a.periodEntries || []).length ? '<p class="text-[8px] text-slate-600 mt-2">Period totals are included in the summary cards but are not spread across individual chart days.</p>' : ''}
+                    ${(a.periodEntries || []).length ? '<p class="text-[8px] text-slate-600 mt-2">Catch-up totals are included in the summary cards but are not spread across individual chart days.</p>' : ''}
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">
@@ -2372,13 +2524,13 @@
                 closePeriodEntryModal();
                 await fetchUserData(appState.currentUser.id);
                 showCalendarRange(appState.calendarRangeStart, appState.calendarRangeEnd);
-                showToast('Period totals saved');
+                showToast('Catch-up totals saved');
             } catch (err) {
                 console.error('Save period entry error:', err);
-                showToast('Could not save period totals');
+                showToast('Could not save catch-up totals');
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Save Period Totals';
+                btn.textContent = 'Save Catch Up Records';
             }
         }
 
@@ -2983,50 +3135,6 @@
             }
             showToast("Record deleted");
             await fetchUserData(appState.currentUser.id);
-        }
-
-        async function simulateScan() {
-            if (!appState.currentUser) return;
-            document.getElementById('scanner-idle').classList.add('hidden');
-            document.getElementById('scanner-active').classList.remove('hidden');
-
-            setTimeout(async () => {
-                try {
-                    const todayIso = new Date().toISOString().split('T')[0];
-                    const { data: expenseData, error: expenseError } = await supabaseClient.from('expenses').insert([{
-                        user_id: appState.currentUser.id,
-                        category: 'Fuel',
-                        amount: 40.00,
-                        merchant: 'Shell Fuel Station',
-                        expense_date: todayIso,
-                        notes: 'AI Scanned Receipt'
-                    }]).select('id').single();
-                    if (expenseError) throw expenseError;
-
-                    const { error: receiptError } = await supabaseClient.from('receipts').insert([{
-                        user_id: appState.currentUser.id,
-                        expense_id: expenseData.id,
-                        ai_status: 'completed',
-                        extracted_merchant: 'Shell Fuel Station',
-                        extracted_date: todayIso,
-                        extracted_amount: 40.00,
-                        suggested_category: 'Fuel',
-                        confidence: 99.00,
-                        driver_confirmed: true
-                    }]);
-                    if (receiptError) throw receiptError;
-
-                    await fetchUserData(appState.currentUser.id);
-                    showToast("Receipt scanned & saved: £40 Fuel");
-                    switchTab('dashboard');
-                } catch (err) {
-                    console.error("Scan save error:", err);
-                    showToast("Scan save failed");
-                } finally {
-                    document.getElementById('scanner-active').classList.add('hidden');
-                    document.getElementById('scanner-idle').classList.remove('hidden');
-                }
-            }, 1200);
         }
 
         async function quickAddFuelPreset(amount) {
