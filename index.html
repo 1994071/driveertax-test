@@ -29,6 +29,8 @@
         body { font-family: 'Inter', sans-serif; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .record-row { transition: transform .16s ease, border-color .16s ease, background-color .16s ease; }
+        .record-row:active { transform: scale(.992); }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 flex items-center justify-center min-h-screen p-0 sm:p-4">
@@ -705,6 +707,10 @@
                         </div>
                     </div>
                     <div>
+                        <label class="text-[11px] font-semibold text-slate-400 block mb-1">Merchant / Supplier <span class="text-slate-600">(optional)</span></label>
+                        <input type="text" id="expense-merchant" placeholder="e.g. Shell, Tesco, Halfords" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
                         <label class="text-[11px] font-semibold text-slate-400 block mb-1">Date</label>
                         <input type="hidden" id="expense-date">
                             <button type="button" onclick="openUniversalDatePicker('expense-date','expense-date-label')" class="w-full min-h-[42px] bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white text-left flex items-center justify-between focus:outline-none focus:border-emerald-500">
@@ -833,6 +839,36 @@
                     </div>
                     <button type="submit" class="w-full bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs">Save Tax Profile</button>
                 </form>
+            </div>
+        </div>
+
+        <!-- Expense Details -->
+        <div id="expense-details-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-[92] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[92vh] overflow-y-auto">
+                <div class="flex justify-between items-center">
+                    <div><p class="text-[9px] uppercase tracking-widest text-rose-300 font-bold">Expense Details</p><h3 id="expense-detail-title" class="text-base font-bold text-white mt-1">Expense</h3></div>
+                    <button onclick="closeExpenseDetails()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3"><p class="text-[9px] text-slate-500 uppercase font-bold">Amount</p><p id="expense-detail-amount" class="text-lg font-extrabold text-rose-300 mt-1">£0.00</p></div>
+                    <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3"><p class="text-[9px] text-slate-500 uppercase font-bold">Date</p><p id="expense-detail-date" class="text-xs font-bold text-white mt-2">—</p></div>
+                    <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3"><p class="text-[9px] text-slate-500 uppercase font-bold">Merchant</p><p id="expense-detail-merchant" class="text-xs font-bold text-white mt-2 break-words">—</p></div>
+                    <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3"><p class="text-[9px] text-slate-500 uppercase font-bold">VAT shown</p><p id="expense-detail-vat" class="text-xs font-bold text-white mt-2">—</p></div>
+                </div>
+                <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3">
+                    <div><p class="text-[9px] text-slate-500 uppercase font-bold">Receipt status</p><p id="expense-detail-ai" class="text-xs font-bold text-slate-200 mt-1">No receipt attached</p></div>
+                    <span id="expense-detail-receipt-badge" class="hidden text-[9px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-full">Receipt saved</span>
+                </div>
+                <div id="expense-detail-receipt-wrap" class="hidden space-y-2">
+                    <div class="flex items-center justify-between"><p class="text-[10px] font-bold text-slate-400">Saved receipt</p><span class="text-[9px] text-slate-600">Private · temporary secure link</span></div>
+                    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-2 min-h-32 flex items-center justify-center"><img id="expense-detail-receipt-image" alt="Saved receipt" class="max-h-72 w-full object-contain rounded-xl"></div>
+                    <button id="expense-detail-open-receipt" type="button" class="w-full bg-slate-800 text-slate-200 font-bold py-2.5 rounded-xl text-xs"><i class="fa-solid fa-up-right-from-square mr-1"></i> View Full Receipt</button>
+                </div>
+                <div><p class="text-[9px] text-slate-500 uppercase font-bold mb-1">Notes</p><p id="expense-detail-notes" class="text-[11px] text-slate-300 bg-slate-950/50 border border-slate-800 rounded-xl p-3">—</p></div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="editExpenseFromDetails()" class="bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-pen mr-1"></i> Edit Expense</button>
+                    <button onclick="deleteExpenseFromDetails()" class="bg-rose-500/10 border border-rose-500/25 text-rose-300 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-trash mr-1"></i> Delete</button>
+                </div>
             </div>
         </div>
 
@@ -1001,6 +1037,8 @@
             taxReserveEntries: [],
             periodEntries: [],
             recurringExpenses: [],
+            receipts: [],
+            selectedExpenseId: null,
             profile: null,
             taxProfile: null,
             pendingReceiptFile: null,
@@ -1382,7 +1420,7 @@
             try {
                 const todayIso = new Date().toISOString().split('T')[0];
 
-                const [profileRes, taxProfileRes, incomeRes, expenseRes, mileageRes, reserveRes, periodRes, recurringRes] = await Promise.all([
+                const [profileRes, taxProfileRes, incomeRes, expenseRes, mileageRes, reserveRes, periodRes, recurringRes, receiptRes] = await Promise.all([
                     supabaseClient.from('profiles').select('*').eq('id', userId).single(),
                     supabaseClient.from('tax_profiles').select('*').eq('user_id', userId).maybeSingle(),
                     supabaseClient.from('income').select('*').eq('user_id', userId),
@@ -1390,7 +1428,8 @@
                     supabaseClient.from('mileage').select('*').eq('user_id', userId).order('trip_date', { ascending: false }),
                     supabaseClient.from('tax_reserve').select('*').eq('user_id', userId).order('saved_on', { ascending: false }),
                     supabaseClient.from('period_entries').select('*').eq('user_id', userId).order('period_start', { ascending: false }),
-                    supabaseClient.from('recurring_expenses').select('*').eq('user_id', userId).eq('is_active', true).order('created_at', { ascending: false })
+                    supabaseClient.from('recurring_expenses').select('*').eq('user_id', userId).eq('is_active', true).order('created_at', { ascending: false }),
+                    supabaseClient.from('receipts').select('*').eq('user_id', userId).order('created_at', { ascending: false })
                 ]);
 
                 if (profileRes.error) throw profileRes.error;
@@ -1401,6 +1440,7 @@
                 if (reserveRes.error) throw reserveRes.error;
                 if (periodRes.error) throw periodRes.error;
                 if (recurringRes.error) throw recurringRes.error;
+                if (receiptRes.error) throw receiptRes.error;
 
                 let transactions = [];
                 let totalInc = 0;
@@ -1433,6 +1473,8 @@
                         type: 'expense',
                         category: exp.category || 'Fuel',
                         vendor: exp.merchant || exp.category || 'Expense',
+                        merchant: exp.merchant || '',
+                        receipt_attached: !!exp.receipt_attached,
                         amount: amt,
                         date: dateStr,
                         notes: exp.notes
@@ -1448,6 +1490,7 @@
                 appState.monthlyEarnings = totalInc;
                 appState.monthlyExpenses = totalExp;
                 appState.transactions = transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+                appState.receipts = receiptRes.data || [];
                 appState.mileageTrips = mileageRes.data || [];
                 appState.taxReserveEntries = reserveRes.data || [];
                 appState.periodEntries = periodRes.data || [];
@@ -1603,17 +1646,9 @@
             if(qEl) qEl.innerHTML='<div class="flex justify-between"><span class="font-bold text-white">Estimate quality</span><span class="font-bold text-emerald-300">'+q.label+'</span></div><p class="text-slate-500 mt-1">'+q.detail+'</p>';
 
             const recentHtml = appState.transactions.slice(0, 4).map(item => {
-                const isInc = item.type === 'income';
-                return `
-                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex justify-between items-center">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-8 h-8 rounded-xl ${isInc ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} flex items-center justify-center text-xs">
-                                <i class="fa-solid ${isInc ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
-                            </div>
-                            <div><h4 class="text-xs font-bold text-white">${isInc ? item.source : item.category}</h4><span class="text-[10px] text-slate-400">${formatUkDate(item.date)} • ${isInc ? 'Income' : item.category}</span></div>
-                        </div>
-                        <span class="text-xs font-extrabold ${isInc ? 'text-emerald-400' : 'text-rose-400'}">${isInc ? '+' : '-'}£${item.amount.toFixed(2)}</span>
-                    </div>`;
+                const isInc=item.type==='income',label=isInc?(item.source||'Income'):(item.category||'Expense'),v=categoryVisual(label,isInc?'income':'expense');
+                const inner=`<div class="flex items-center gap-3 min-w-0"><div class="w-9 h-9 rounded-xl border ${v.tone} flex items-center justify-center shrink-0"><i class="fa-solid ${v.icon} text-xs"></i></div><div class="min-w-0"><h4 class="text-xs font-bold text-white truncate">${escapeHtml(label)}</h4><span class="text-[10px] text-slate-500">${formatUkDate(item.date)} · ${isInc?'Income':'Expense'}</span></div></div><div class="flex items-center gap-2"><span class="text-xs font-extrabold ${isInc?'text-emerald-400':'text-rose-300'}">${isInc?'+':'-'}£${Number(item.amount).toFixed(2)}</span>${!isInc?'<i class="fa-solid fa-chevron-right text-[9px] text-slate-600"></i>':''}</div>`;
+                return isInc?`<div class="record-row bg-slate-900 border border-slate-800 p-3 rounded-2xl flex justify-between items-center gap-3">${inner}</div>`:`<button type="button" onclick="openExpenseDetails('${item.id}')" class="record-row w-full text-left bg-slate-900 border border-slate-800 p-3 rounded-2xl flex justify-between items-center gap-3">${inner}</button>`;
             }).join('');
             document.getElementById('recent-activity-list').innerHTML = recentHtml || '<p class="text-center text-xs text-slate-500 py-4">No recent records found.</p>';
 
@@ -2219,7 +2254,8 @@ function openAccountModal() {
                     amount,
                     merchant,
                     expense_date:date,
-                    notes:'Receipt scan'
+                    notes:'Receipt scan',
+                    receipt_attached:true
                 }]).select('id').single();
 
                 if(e1) throw e1;
@@ -2974,6 +3010,7 @@ function renderRegularCostLists() {
             openExpenseModal();
             setDateField('expense-date','expense-date-label',dateStr);
             document.getElementById('expense-amount').value = '';
+            const expenseMerchant=document.getElementById('expense-merchant'); if(expenseMerchant) expenseMerchant.value='';
             document.getElementById('expense-notes').value = '';
             setDailyEntryButtons(null);
         }
@@ -3019,6 +3056,7 @@ function renderRegularCostLists() {
             if (![...categorySelect.options].some(o => o.value === t.category)) categorySelect.add(new Option(t.category,t.category));
             categorySelect.value = t.category || 'Other';
             document.getElementById('expense-amount').value = Number(t.amount).toFixed(2);
+            const merchantInput=document.getElementById('expense-merchant'); if(merchantInput) merchantInput.value=t.merchant||t.vendor||'';
             setDateField('expense-date','expense-date-label',t.date);
             document.getElementById('expense-notes').value = t.notes || '';
             document.getElementById('expense-modal-title').textContent = 'Edit Expense';
@@ -3401,7 +3439,7 @@ function renderRegularCostLists() {
 
             const category = document.getElementById('expense-category').value;
             const amount = parseFloat(document.getElementById('expense-amount').value);
-            const merchant = null;
+            const merchant = document.getElementById('expense-merchant')?.value.trim() || null;
             const expense_date = document.getElementById('expense-date').value || new Date().toISOString().split('T')[0];
             const notes = document.getElementById('expense-notes').value;
             const editId = appState.editingExpenseId;
@@ -3454,13 +3492,9 @@ function renderRegularCostLists() {
 
         async function deleteTransaction(id, type) {
             if (!appState.currentUser) return;
-            const tableName = type === 'income' ? 'income' : 'expenses';
-            
-            const { error } = await supabaseClient.from(tableName).delete().eq('id', id).eq('user_id', appState.currentUser.id);
-            if (error) {
-                showToast("Delete failed");
-                return;
-            }
+            if(type==='expense'){appState.selectedExpenseId=id;return deleteExpenseFromDetails();}
+            const { error } = await supabaseClient.from('income').delete().eq('id', id).eq('user_id', appState.currentUser.id);
+            if (error) { showToast("Delete failed"); return; }
             showToast("Record deleted");
             await fetchUserData(appState.currentUser.id);
         }
@@ -3505,6 +3539,24 @@ function renderRegularCostLists() {
             renderRecords();
         }
 
+        function escapeHtml(value){
+            return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+        }
+        function categoryVisual(label,type='expense'){
+            const x=String(label||'').toLowerCase();
+            if(type==='income') return {icon:'fa-arrow-trend-up',tone:'bg-emerald-500/10 text-emerald-400 border-emerald-500/15'};
+            if(x.includes('fuel')||x.includes('petrol')||x.includes('diesel')) return {icon:'fa-gas-pump',tone:'bg-rose-500/10 text-rose-300 border-rose-500/15'};
+            if(x.includes('repair')||x.includes('maintenance')||x.includes('service')) return {icon:'fa-screwdriver-wrench',tone:'bg-orange-500/10 text-orange-300 border-orange-500/15'};
+            if(x.includes('insurance')) return {icon:'fa-shield-halved',tone:'bg-violet-500/10 text-violet-300 border-violet-500/15'};
+            if(x.includes('phone')||x.includes('mobile')) return {icon:'fa-mobile-screen-button',tone:'bg-blue-500/10 text-blue-300 border-blue-500/15'};
+            if(x.includes('parking')||x.includes('toll')) return {icon:'fa-square-parking',tone:'bg-amber-500/10 text-amber-300 border-amber-500/15'};
+            if(x.includes('clean')||x.includes('wash')) return {icon:'fa-soap',tone:'bg-cyan-500/10 text-cyan-300 border-cyan-500/15'};
+            if(x.includes('licen')||x.includes('badge')) return {icon:'fa-id-card',tone:'bg-indigo-500/10 text-indigo-300 border-indigo-500/15'};
+            if(x.includes('finance')||x.includes('lease')) return {icon:'fa-car',tone:'bg-sky-500/10 text-sky-300 border-sky-500/15'};
+            return {icon:'fa-receipt',tone:'bg-slate-800 text-slate-300 border-slate-700'};
+        }
+        function receiptForExpense(id){ return (appState.receipts||[]).find(r=>r.expense_id===id)||null; }
+
         function renderRecords(){
             const box=document.getElementById('records-list'); if(!box) return;
             const rows=[];
@@ -3515,11 +3567,52 @@ function renderRegularCostLists() {
             box.innerHTML=filtered.map(r=>{
                 if(r.kind==='mileage'){
                     const m=r.data;
-                    return `<div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex justify-between items-center gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center"><i class="fa-solid fa-road text-xs"></i></div><div class="min-w-0"><p class="text-xs font-bold text-white truncate">${m.purpose||'Mileage'}</p><p class="text-[10px] text-slate-500">${formatUkDate(m.trip_date)} • Mileage</p></div></div><div class="flex items-center gap-2 shrink-0"><span class="text-xs font-bold text-blue-400">${Number(m.business_miles).toFixed(1).replace('.0','')} mi</span><button onclick="editMileageRecord('${m.id}')" class="text-[9px] font-bold text-slate-400">Edit</button><button onclick="deleteMileage('${m.id}')" class="text-rose-400"><i class="fa-solid fa-trash text-[10px]"></i></button></div></div>`;
+                    return `<div class="record-row bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex justify-between items-center gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-300 border border-blue-500/15 flex items-center justify-center shrink-0"><i class="fa-solid fa-road text-sm"></i></div><div class="min-w-0"><p class="text-xs font-bold text-white truncate">${escapeHtml(m.purpose||'Mileage')}</p><p class="text-[10px] text-slate-500 mt-0.5">${formatUkDate(m.trip_date)} · Mileage</p></div></div><div class="flex items-center gap-2 shrink-0"><span class="text-xs font-extrabold text-blue-300">${Number(m.business_miles).toFixed(1).replace('.0','')} mi</span><button onclick="editMileageRecord('${m.id}')" class="w-7 h-7 rounded-lg bg-slate-800 text-slate-400"><i class="fa-solid fa-pen text-[9px]"></i></button></div></div>`;
                 }
-                const t=r.data,isInc=r.kind==='income';
-                return `<div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex justify-between items-center gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-8 h-8 rounded-xl ${isInc?'bg-emerald-500/10 text-emerald-400':'bg-rose-500/10 text-rose-400'} flex items-center justify-center"><i class="fa-solid ${isInc?'fa-arrow-down':'fa-arrow-up'} text-xs"></i></div><div class="min-w-0"><p class="text-xs font-bold text-white truncate">${isInc?(t.source||'Income'):(t.category||'Expense')}</p><p class="text-[10px] text-slate-500">${formatUkDate(t.date)} • ${isInc?'Income':'Expense'}</p></div></div><div class="flex items-center gap-2 shrink-0"><span class="text-xs font-bold ${isInc?'text-emerald-400':'text-rose-400'}">${isInc?'+':'-'}£${Number(t.amount).toFixed(2)}</span><button onclick="${isInc?`editIncomeRecord('${t.id}')`:`editExpenseRecord('${t.id}')`}" class="text-[9px] font-bold text-slate-400">Edit</button><button onclick="deleteTransaction('${t.id}','${t.type}')" class="text-rose-400"><i class="fa-solid fa-trash text-[10px]"></i></button></div></div>`;
-            }).join('') || '<p class="text-center text-xs text-slate-500 py-8">No records found.</p>';
+                const t=r.data,isInc=r.kind==='income',label=isInc?(t.source||'Income'):(t.category||'Expense');
+                const v=categoryVisual(label,isInc?'income':'expense');
+                if(!isInc){
+                    const receipt=receiptForExpense(t.id);
+                    const sub=(t.merchant||t.vendor)&&String(t.merchant||t.vendor)!==String(t.category)?escapeHtml(t.merchant||t.vendor):'Expense record';
+                    return `<button type="button" onclick="openExpenseDetails('${t.id}')" class="record-row w-full text-left bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex justify-between items-center gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-10 h-10 rounded-xl border ${v.tone} flex items-center justify-center shrink-0"><i class="fa-solid ${v.icon} text-sm"></i></div><div class="min-w-0"><div class="flex items-center gap-1.5"><p class="text-xs font-bold text-white truncate">${escapeHtml(label)}</p>${receipt?'<i class="fa-solid fa-paperclip text-[9px] text-emerald-400"></i>':''}</div><p class="text-[10px] text-slate-500 mt-0.5 truncate">${formatUkDate(t.date)} · ${sub}</p></div></div><div class="flex items-center gap-2 shrink-0"><span class="text-xs font-extrabold text-rose-300">-£${Number(t.amount).toFixed(2)}</span><span class="w-7 h-7 rounded-lg bg-slate-800 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-chevron-right text-[9px]"></i></span></div></button>`;
+                }
+                return `<div class="record-row bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex justify-between items-center gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-10 h-10 rounded-xl border ${v.tone} flex items-center justify-center shrink-0"><i class="fa-solid ${v.icon} text-sm"></i></div><div class="min-w-0"><p class="text-xs font-bold text-white truncate">${escapeHtml(label)}</p><p class="text-[10px] text-slate-500 mt-0.5">${formatUkDate(t.date)} · Income record</p></div></div><div class="flex items-center gap-2 shrink-0"><span class="text-xs font-extrabold text-emerald-400">+£${Number(t.amount).toFixed(2)}</span><button onclick="editIncomeRecord('${t.id}')" class="w-7 h-7 rounded-lg bg-slate-800 text-slate-400"><i class="fa-solid fa-pen text-[9px]"></i></button></div></div>`;
+            }).join('')||'<p class="text-center text-xs text-slate-500 py-8">No records found.</p>';
+        }
+
+        async function openExpenseDetails(id){
+            const t=appState.transactions.find(x=>x.id===id&&x.type==='expense'); if(!t)return;
+            appState.selectedExpenseId=id;
+            const receipt=receiptForExpense(id);
+            document.getElementById('expense-detail-title').textContent=t.category||'Expense';
+            document.getElementById('expense-detail-amount').textContent='£'+Number(t.amount||0).toFixed(2);
+            document.getElementById('expense-detail-date').textContent=formatUkDate(t.date);
+            document.getElementById('expense-detail-merchant').textContent=t.merchant||t.vendor||'Not entered';
+            document.getElementById('expense-detail-notes').textContent=t.notes||'No notes';
+            document.getElementById('expense-detail-vat').textContent=receipt?.extracted_vat!==null&&receipt?.extracted_vat!==undefined?'£'+Number(receipt.extracted_vat).toFixed(2):'Not shown';
+            const wrap=document.getElementById('expense-detail-receipt-wrap'),badge=document.getElementById('expense-detail-receipt-badge'),ai=document.getElementById('expense-detail-ai'),img=document.getElementById('expense-detail-receipt-image'),openBtn=document.getElementById('expense-detail-open-receipt');
+            wrap.classList.add('hidden'); badge.classList.add('hidden'); img.removeAttribute('src'); openBtn.onclick=null;
+            if(receipt?.file_path){
+                ai.textContent=receipt.ai_status==='completed'?'AI-read receipt · driver confirmed':'Receipt saved · manually reviewed';
+                badge.classList.remove('hidden');
+                const {data,error}=await supabaseClient.storage.from('receipts').createSignedUrl(receipt.file_path,600);
+                if(!error&&data?.signedUrl){img.src=data.signedUrl;openBtn.onclick=()=>window.open(data.signedUrl,'_blank','noopener,noreferrer');wrap.classList.remove('hidden');}
+                else ai.textContent+=' · image temporarily unavailable';
+            }else ai.textContent='No receipt attached';
+            document.getElementById('expense-details-modal').classList.remove('hidden');
+        }
+        function closeExpenseDetails(){document.getElementById('expense-details-modal')?.classList.add('hidden');appState.selectedExpenseId=null;}
+        function editExpenseFromDetails(){const id=appState.selectedExpenseId;closeExpenseDetails();if(id)editExpenseRecord(id);}
+        async function deleteExpenseFromDetails(){
+            const id=appState.selectedExpenseId;if(!id||!appState.currentUser)return;
+            if(!confirm('Delete this expense and its saved receipt? This cannot be undone.'))return;
+            const receipt=receiptForExpense(id);
+            try{
+                if(receipt?.file_path){const {error:se}=await supabaseClient.storage.from('receipts').remove([receipt.file_path]);if(se)console.warn('Receipt cleanup warning',se);}
+                if(receipt?.id){const {error:re}=await supabaseClient.from('receipts').delete().eq('id',receipt.id).eq('user_id',appState.currentUser.id);if(re)throw re;}
+                const {error}=await supabaseClient.from('expenses').delete().eq('id',id).eq('user_id',appState.currentUser.id);if(error)throw error;
+                closeExpenseDetails();await fetchUserData(appState.currentUser.id);showToast('Expense and receipt deleted');
+            }catch(err){console.error('Expense delete error',err);showToast('Could not delete expense');}
         }
 
         function getDashboardPeriodBounds(period){
