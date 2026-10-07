@@ -1526,32 +1526,110 @@
             return { total: items.reduce((sum,x) => sum + x.share, 0), items, dayCount };
         }
 
+        function getRecurringCostShare(startStr, endStr) {
+            const start = parseIsoDate(startStr);
+            const end = parseIsoDate(endStr);
+            const items = [];
+
+            (appState.recurringExpenses || []).forEach(r => {
+                if (!r.is_active || !r.start_date) return;
+
+                const recurringStart = parseIsoDate(r.start_date);
+                if (recurringStart > end) return;
+
+                const activeStart = recurringStart > start ? recurringStart : start;
+                const activeDays = Math.floor((end - activeStart) / 86400000) + 1;
+                const annualAmount = r.frequency === 'monthly'
+                    ? Number(r.amount || 0) * 12
+                    : Number(r.amount || 0);
+
+                const share = (annualAmount / 365.2425) * activeDays;
+
+                items.push({
+                    id: r.id,
+                    category: r.category || 'Regular cost',
+                    frequency: r.frequency,
+                    amount: Number(r.amount || 0),
+                    share
+                });
+            });
+
+            return {
+                total: items.reduce((sum, item) => sum + item.share, 0),
+                items
+            };
+        }
+
         function getRangeActivity(startStr, endStr) {
             const start = parseIsoDate(startStr);
             const end = parseIsoDate(endStr);
+
             const inRange = (dateStr) => {
                 if (!dateStr) return false;
                 const d = parseIsoDate(dateStr);
                 return d >= start && d <= end;
             };
+
             const tx = appState.transactions.filter(t => inRange(t.date));
-            const periodEntries = (appState.periodEntries || []).filter(p =>
+            const mileageTrips = appState.mileageTrips.filter(t => inRange(t.trip_date));
+
+            const candidatePeriodEntries = (appState.periodEntries || []).filter(p =>
                 parseIsoDate(p.period_start) >= start && parseIsoDate(p.period_end) <= end
             );
 
-            const dailyIncome = tx.filter(t => t.type === 'income').reduce((sum,t) => sum + Number(t.amount || 0), 0);
-            const dailyExpenses = tx.filter(t => t.type === 'expense').reduce((sum,t) => sum + Number(t.amount || 0), 0);
-            const dailyMileage = appState.mileageTrips.filter(t => inRange(t.trip_date)).reduce((sum,t) => sum + Number(t.business_miles || 0), 0);
+            // Period totals are catch-up records. If dated records exist inside the same saved period,
+            // exclude that period total from the arithmetic so the app does not double-count it.
+            const periodEntries = [];
+            const overlappingPeriodEntries = [];
 
-            const periodIncome = periodEntries.reduce((sum,p) => sum + Number(p.income_amount || 0), 0);
-            const periodExpenses = periodEntries.reduce((sum,p) => sum + Number(p.expense_amount || 0), 0);
-            const periodMileage = periodEntries.reduce((sum,p) => sum + Number(p.business_miles || 0), 0);
+            candidatePeriodEntries.forEach(p => {
+                const pStart = parseIsoDate(p.period_start);
+                const pEnd = parseIsoDate(p.period_end);
+                const hasDatedOverlap =
+                    tx.some(t => {
+                        const d = parseIsoDate(t.date);
+                        return d >= pStart && d <= pEnd;
+                    }) ||
+                    mileageTrips.some(t => {
+                        const d = parseIsoDate(t.trip_date);
+                        return d >= pStart && d <= pEnd;
+                    });
 
-            const reserve = appState.taxReserveEntries.filter(t => inRange(t.saved_on)).reduce((sum,t) => sum + Number(t.amount || 0), 0);
+                if (hasDatedOverlap) overlappingPeriodEntries.push(p);
+                else periodEntries.push(p);
+            });
+
+            const dailyIncome = tx
+                .filter(t => t.type === 'income')
+                .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+            const dailyExpenses = tx
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+            const dailyMileage = mileageTrips
+                .reduce((sum, t) => sum + Number(t.business_miles || 0), 0);
+
+            const periodIncome = periodEntries
+                .reduce((sum, p) => sum + Number(p.income_amount || 0), 0);
+
+            const periodExpenses = periodEntries
+                .reduce((sum, p) => sum + Number(p.expense_amount || 0), 0);
+
+            const periodMileage = periodEntries
+                .reduce((sum, p) => sum + Number(p.business_miles || 0), 0);
+
+            const reserve = appState.taxReserveEntries
+                .filter(t => inRange(t.saved_on))
+                .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
             const recurring = getRecurringCostShare(startStr, endStr);
+
             return {
                 tx,
+                mileageTrips,
                 periodEntries,
+                overlappingPeriodEntries,
                 recurring,
                 income: dailyIncome + periodIncome,
                 expenses: dailyExpenses + periodExpenses,
@@ -1858,6 +1936,49 @@
                 ${expenseRows ? `<div class="bg-slate-950/50 rounded-xl p-3 space-y-2"><p class="text-[10px] uppercase font-bold text-rose-400">Expense Breakdown</p>${expenseRows}</div>` : ''}
 
                 <div class="bg-slate-950/50 rounded-xl p-3 space-y-2">
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-400">Cash profit</span>
+                        <span class="font-bold text-white">£${cashProfit.toFixed(2)}</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-400">Share of regular costs</span>
+                        <span class="font-bold text-violet-300">-£${recurringShare.toFixed(2)}</span>
+                    </div>
+                    <div class="border-t border-slate-800 pt-2 flex justify-between text-xs">
+                        <span class="text-slate-200 font-bold">True business profit</span>
+                        <span class="font-extrabold ${profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">£${profit.toFixed(2)}</span>
+                    </div>
+                </div>
+
+                ${(a.recurring?.items || []).length ? `
+                    <div class="bg-slate-950/50 rounded-xl p-3 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <p class="text-[10px] uppercase font-bold text-violet-300">Regular Costs Breakdown</p>
+                            <button onclick="openRecurringExpenseModal()" class="text-[9px] font-bold text-violet-300">+ Add</button>
+                        </div>
+                        ${a.recurring.items.map(r => `
+                            <div class="flex justify-between text-[10px]">
+                                <span class="text-slate-500">${r.category} · ${r.frequency}</span>
+                                <span class="text-slate-300">£${r.share.toFixed(2)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <button onclick="openRecurringExpenseModal()" class="w-full bg-violet-500/10 border border-violet-500/20 text-violet-300 font-bold py-3 rounded-xl text-xs">
+                        + Add Monthly / Yearly Cost
+                    </button>
+                `}
+
+                ${(a.overlappingPeriodEntries || []).length ? `
+                    <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+                        <p class="text-[10px] font-bold text-amber-300">Possible duplicate totals avoided</p>
+                        <p class="text-[9px] text-amber-200/70 mt-1">
+                            A saved period total overlaps dated records, so DriverTax excluded that period total from this summary.
+                        </p>
+                    </div>
+                ` : ''}
+
+                <div class="bg-slate-950/50 rounded-xl p-3 space-y-2">
                     <div class="flex justify-between text-xs"><span class="text-slate-400">Cash profit</span><span class="font-bold text-white">£${cashProfit.toFixed(2)}</span></div>
                     <div class="flex justify-between text-xs"><span class="text-slate-400">Share of regular costs</span><span class="font-bold text-violet-300">-£${recurringShare.toFixed(2)}</span></div>
                     <div class="border-t border-slate-800 pt-2 flex justify-between text-xs"><span class="text-slate-300 font-bold">True business profit</span><span class="font-extrabold text-emerald-400">£${profit.toFixed(2)}</span></div>
@@ -1915,6 +2036,13 @@
                 return;
             }
 
+            const existing = getRangeActivity(appState.calendarRangeStart, appState.calendarRangeEnd);
+            const hasDatedRecords = existing.tx.length > 0 || existing.mileageTrips.length > 0;
+            if (hasDatedRecords) {
+                showToast('This range already has dated income, expenses or mileage');
+                return;
+            }
+
             const btn = document.getElementById('period-save-btn');
             btn.disabled = true;
             btn.textContent = 'Saving...';
@@ -1957,11 +2085,14 @@
             if (help) help.textContent = 'Review or update this day';
 
             const a = getDayActivity(dateStr);
+            const dailyRecurring = getRecurringCostShare(dateStr, dateStr);
+            const cashProfit = a.income - a.expenses;
+            const trueProfit = cashProfit - dailyRecurring.total;
             const date = new Date(dateStr + 'T12:00:00');
             document.getElementById('calendar-selected-date').textContent = date.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
             document.getElementById('calendar-day-income').textContent = '£' + a.income.toFixed(2);
             document.getElementById('calendar-day-expense').textContent = '£' + a.expenses.toFixed(2);
-            document.getElementById('calendar-day-profit').textContent = '£' + (a.income-a.expenses).toFixed(2);
+            document.getElementById('calendar-day-profit').textContent = '£' + trueProfit.toFixed(2);
             document.getElementById('calendar-day-mileage').textContent = a.mileage.toFixed(1).replace('.0','') + ' mi';
 
             const items = [];
@@ -1994,7 +2125,24 @@
 
             if (a.reserve > 0) items.push(`<div class="flex justify-between text-xs bg-slate-950/50 rounded-xl p-2.5"><span class="text-slate-300">Tax reserve saved</span><span class="text-amber-400 font-bold">£${a.reserve.toFixed(2)}</span></div>`);
 
-            document.getElementById('calendar-day-items').innerHTML = items.join('') || '<p class="text-center text-xs text-slate-500 py-2">No activity recorded for this day.</p>';
+            const regularCostRows = dailyRecurring.items.map(r =>
+                '<div class="flex justify-between text-[10px]"><span class="text-slate-500">' +
+                r.category + ' · daily share</span><span class="text-violet-300">£' +
+                r.share.toFixed(2) + '</span></div>'
+            ).join('');
+
+            const dailyAnalysis = `
+                <div class="bg-slate-950/50 rounded-xl p-3 space-y-2">
+                    <div class="flex justify-between text-[10px]"><span class="text-slate-500">Cash profit</span><span class="text-white font-bold">£${cashProfit.toFixed(2)}</span></div>
+                    <div class="flex justify-between text-[10px]"><span class="text-slate-500">Share of regular costs</span><span class="text-violet-300 font-bold">-£${dailyRecurring.total.toFixed(2)}</span></div>
+                    <div class="border-t border-slate-800 pt-2 flex justify-between text-[10px]"><span class="text-slate-300 font-bold">True business profit</span><span class="font-bold ${trueProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">£${trueProfit.toFixed(2)}</span></div>
+                    ${regularCostRows}
+                    <button onclick="openRecurringExpenseModal()" class="w-full text-[9px] font-bold text-violet-300 pt-1">+ Add Monthly / Yearly Cost</button>
+                </div>
+            `;
+
+            const activityHtml = items.join('') || '<p class="text-center text-xs text-slate-500 py-2">No activity recorded for this day.</p>';
+            document.getElementById('calendar-day-items').innerHTML = activityHtml + dailyAnalysis;
 
             const actions = document.getElementById('calendar-day-actions');
             if (!actions) return;
