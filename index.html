@@ -24,6 +24,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -324,9 +325,16 @@
                         <div><label class="text-[10px] text-slate-500 font-bold">Merchant</label><input id="receipt-merchant" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
                         <div><label class="text-[10px] text-slate-500 font-bold">Amount (£)</label><input id="receipt-amount" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
                         <div><label class="text-[10px] text-slate-500 font-bold">VAT shown (£)</label><input id="receipt-vat" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
-                        <div><label class="text-[10px] text-slate-500 font-bold">Date</label><input id="receipt-date" type="date" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+                        <div>
+<label class="text-[10px] text-slate-500 font-bold">Date</label>
+<input id="receipt-date" type="hidden">
+<button type="button" onclick="openUniversalDatePicker('receipt-date','receipt-date-label')" class="mt-1 w-full min-h-[42px] bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white text-left flex items-center justify-between">
+<span id="receipt-date-label">Select date</span><i class="fa-regular fa-calendar text-emerald-400"></i>
+</button>
+</div>
                     </div>
                     <div><label class="text-[10px] text-slate-500 font-bold">Category</label><select id="receipt-category" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></select></div>
+                    <p id="receipt-validation-msg" class="hidden text-[10px] font-semibold text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-xl p-2"></p>
                     <div class="grid grid-cols-2 gap-2">
                         <button onclick="cancelReceiptReview()" class="bg-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs">Cancel</button>
                         <button onclick="confirmReceiptExpense()" class="bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs">Confirm & Save</button>
@@ -773,8 +781,14 @@
         <div id="today-details-modal" class="hidden absolute inset-0 bg-slate-950 z-[86] overflow-y-auto">
             <div class="p-5 space-y-4 pb-28">
                 <div class="flex items-center justify-between">
-                    <div><h2 class="text-lg font-bold text-white">Today Details</h2><p id="today-details-date" class="text-[10px] text-slate-500"></p></div>
+                    <div><h2 id="today-details-title" class="text-lg font-bold text-white">Earnings & Profit</h2><p id="today-details-date" class="text-[10px] text-slate-500"></p></div>
                     <button onclick="closeTodayDetails()" class="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 text-slate-300"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="grid grid-cols-4 gap-1.5 bg-slate-900 border border-slate-800 rounded-2xl p-1.5">
+                    <button id="today-period-today" onclick="showDashboardPeriod('today')" class="dashboard-period bg-emerald-500 text-slate-950 rounded-xl py-2 text-[9px] font-bold">Today</button>
+                    <button id="today-period-week" onclick="showDashboardPeriod('week')" class="dashboard-period text-slate-400 rounded-xl py-2 text-[9px] font-bold">Week</button>
+                    <button id="today-period-month" onclick="showDashboardPeriod('month')" class="dashboard-period text-slate-400 rounded-xl py-2 text-[9px] font-bold">Month</button>
+                    <button id="today-period-taxyear" onclick="showDashboardPeriod('taxyear')" class="dashboard-period text-slate-400 rounded-xl py-2 text-[9px] font-bold">Tax Year</button>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3"><p class="text-[10px] text-slate-500 uppercase font-bold">Income</p><p id="today-detail-income" class="text-lg font-extrabold text-emerald-400 mt-1">£0.00</p></div>
@@ -784,7 +798,7 @@
                 </div>
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex justify-between items-center"><div><p class="text-[10px] text-slate-500 uppercase font-bold">Estimated Take-Home</p><p class="text-[9px] text-slate-600 mt-1">After regular-cost share and estimated tax reserve</p></div><p id="today-detail-takehome" class="text-xl font-extrabold text-emerald-400">£0.00</p></div>
                 <div id="today-regular-cost-note" class="bg-violet-500/10 border border-violet-500/20 rounded-xl p-3 text-[10px] text-violet-200"></div>
-                <div><h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Today's Records</h3><div id="today-details-list" class="space-y-2"></div></div>
+                <div><h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Period Records</h3><div id="today-details-list" class="space-y-2"></div></div>
                 <div class="grid grid-cols-2 gap-2">
                     <button onclick="closeTodayDetails();openIncomeModal()" class="bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs">+ Add Income</button>
                     <button onclick="closeTodayDetails();openExpenseModal()" class="bg-rose-500 text-white font-bold py-3 rounded-xl text-xs">+ Add Expense</button>
@@ -828,8 +842,8 @@
                 <div class="flex justify-between items-center"><div><h3 class="text-sm font-bold text-white">Share Tax Summary</h3><p class="text-[9px] text-slate-500">Choose how you want to send it</p></div><button onclick="closeTaxShareModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300"><i class="fa-solid fa-xmark"></i></button></div>
                 <button onclick="shareTaxSummary('whatsapp')" class="w-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 font-bold py-3 rounded-xl text-xs"><i class="fa-brands fa-whatsapp mr-2"></i>WhatsApp</button>
                 <button onclick="shareTaxSummary('email')" class="w-full bg-blue-500/10 border border-blue-500/25 text-blue-300 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-envelope mr-2"></i>Email</button>
-                <button onclick="shareTaxSummary('pdf')" class="w-full bg-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-file-pdf mr-2"></i>Print / Save PDF</button>
-                <button onclick="shareTaxSummary('csv')" class="w-full bg-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-file-csv mr-2"></i>Export CSV</button>
+                <button onclick="shareTaxSummary('pdf')" class="w-full bg-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-file-pdf mr-2"></i>PDF Summary</button>
+                <button onclick="shareTaxSummary('csv')" class="w-full bg-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-file-csv mr-2"></i>CSV Records</button>
                 <button onclick="shareTaxSummary('more')" class="w-full bg-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-share-nodes mr-2"></i>More</button>
             </div>
         </div>
