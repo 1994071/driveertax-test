@@ -1911,19 +1911,88 @@ function openAccountModal() {
         function closeTaxShareModal(){document.getElementById('tax-share-modal').classList.add('hidden');}
         function getTaxSummaryText(){
             const t=getTaxYearSummary(),q=taxProfileQuality();
-            return ['DriverTax Estimated Tax Summary '+t.label,'Business income: £'+t.income.toFixed(2),'Allowable expenses (est.): £'+t.expenses.toFixed(2),'Business profit: £'+t.profit.toFixed(2),'Estimated Income Tax: £'+t.incomeTax.toFixed(2),'Estimated Class 4 NI: £'+t.class4.toFixed(2),'Student/Postgraduate Loan: £'+(t.studentLoan+t.postgraduate).toFixed(2),'Tax already deducted: £'+t.taxDeducted.toFixed(2),'Estimated amount remaining: £'+t.total.toFixed(2),'Tax reserve saved: £'+t.saved.toFixed(2),'Estimate quality: '+q.label].join('\n');
+            return ['DriverTax Estimated Tax Summary '+t.label,'Business income: £'+t.income.toFixed(2),'Allowable expenses (est.): £'+t.expenses.toFixed(2),'Business profit: £'+t.profit.toFixed(2),'Estimated Income Tax: £'+t.incomeTax.toFixed(2),'Estimated Class 4 NI: £'+t.class4.toFixed(2),'Student/Postgraduate Loan: £'+(t.studentLoan+t.postgraduate).toFixed(2),'Tax already deducted: £'+t.taxDeducted.toFixed(2),'Estimated amount remaining: £'+t.total.toFixed(2),'Tax reserve saved: £'+t.saved.toFixed(2),'Remaining reserve needed: £'+Math.max(0,t.total-t.saved).toFixed(2),'Estimate quality: '+q.label].join('\n');
         }
-        function downloadTaxCsv(){
-            const t=getTaxYearSummary(); const rows=[['Tax year',t.label],['Business Income',t.income],['Allowable Expenses',t.expenses],['Business Profit',t.profit],['Estimated Income Tax',t.incomeTax],['Estimated Class 4 NI',t.class4],['Student/Postgraduate Loan',t.studentLoan+t.postgraduate],['Tax Already Deducted',t.taxDeducted],['Estimated Amount Remaining',t.total],['Tax Reserve Saved',t.saved]];
-            const csv=rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n');const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='tax-summary-'+t.label.replace('/','-')+'.csv';a.click();URL.revokeObjectURL(a.href);
+
+        function buildTaxPdfBlob(){
+            if(!window.jspdf?.jsPDF) throw new Error('PDF generator unavailable');
+            const {jsPDF}=window.jspdf;
+            const doc=new jsPDF({unit:'mm',format:'a4'});
+            const t=getTaxYearSummary(),q=taxProfileQuality();
+            let y=20;
+            doc.setFontSize(20);doc.text('DriverTax',20,y);y+=9;
+            doc.setFontSize(13);doc.text('Estimated Tax Summary · '+t.label,20,y);y+=9;
+            doc.setFontSize(9);doc.text('Estimate only — based on your saved records and Tax Profile.',20,y);y+=10;
+            const rows=[
+                ['Business Income',t.income],
+                ['Allowable Expenses (Est.)',-t.expenses],
+                ['Business Profit',t.profit],
+                ['Personal Allowance',t.allowance],
+                ['Taxable Income',t.taxable],
+                ['Estimated Income Tax',t.incomeTax],
+                ['Estimated Class 4 NI',t.class4],
+                ['Student / Postgraduate Loan',t.studentLoan+t.postgraduate],
+                ['Tax Already Deducted',-t.taxDeducted],
+                ['Estimated Amount Remaining',t.total],
+                ['Tax Reserve Saved',t.saved],
+                ['Remaining Reserve Needed',Math.max(0,t.total-t.saved)]
+            ];
+            doc.setFontSize(11);
+            rows.forEach(([label,val])=>{
+                doc.text(String(label),20,y);
+                const n=Number(val);
+                doc.text((n<0?'-':'')+'£'+Math.abs(n).toFixed(2),190,y,{align:'right'});
+                y+=8;
+                if(y>270){doc.addPage();y=20;}
+            });
+            y+=4;doc.setFontSize(9);
+            doc.text('Estimate quality: '+q.label+' — '+q.detail,20,y,{maxWidth:170});y+=12;
+            doc.text('Generated '+new Date().toLocaleDateString('en-GB')+'. This is an estimate, not an HMRC calculation or submission.',20,y,{maxWidth:170});
+            return doc.output('blob');
         }
+
+        function buildTaxCsvBlob(){
+            const t=getTaxYearSummary();
+            const rows=[['Record Type','Date','Source / Category','Amount','Mileage']];
+            appState.transactions.forEach(x=>rows.push([x.type,x.date,x.type==='income'?(x.source||'Income'):(x.category||'Expense'),Number(x.amount||0).toFixed(2),'']));
+            appState.mileageTrips.forEach(x=>rows.push(['mileage',x.trip_date,x.purpose||'Mileage','',Number(x.business_miles||0).toFixed(1)]));
+            rows.push([],['Tax Year',t.label],['Business Income',t.income],['Allowable Expenses',t.expenses],['Business Profit',t.profit],['Estimated Income Tax',t.incomeTax],['Estimated Class 4 NI',t.class4],['Estimated Amount Remaining',t.total],['Tax Reserve Saved',t.saved]);
+            const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');
+            return new Blob([csv],{type:'text/csv'});
+        }
+
+        function downloadBlob(blob,name){
+            const u=URL.createObjectURL(blob);
+            const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
+            setTimeout(()=>URL.revokeObjectURL(u),1000);
+        }
+
         async function shareTaxSummary(method){
-            const text=getTaxSummaryText();
-            if(method==='whatsapp'){window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');}
-            else if(method==='email'){window.location.href='mailto:?subject='+encodeURIComponent('Estimated Tax Summary')+'&body='+encodeURIComponent(text);}
-            else if(method==='csv'){downloadTaxCsv();}
-            else if(method==='pdf'){window.print();}
-            else if(method==='more'){if(navigator.share)await navigator.share({title:'Estimated Tax Summary',text});else{await navigator.clipboard.writeText(text);showToast('Tax summary copied');}}
+            try{
+                const t=getTaxYearSummary();
+                if(method==='csv'){
+                    downloadBlob(buildTaxCsvBlob(),'DriverTax-records-'+t.label.replace('/','-')+'.csv');
+                    showToast('CSV downloaded');
+                    return;
+                }
+                const pdf=buildTaxPdfBlob();
+                const name='DriverTax-tax-summary-'+t.label.replace('/','-')+'.pdf';
+                if(method==='pdf'){
+                    downloadBlob(pdf,name);
+                    showToast('PDF downloaded');
+                    return;
+                }
+                const file=new File([pdf],name,{type:'application/pdf'});
+                if(navigator.canShare&&navigator.canShare({files:[file]})&&navigator.share){
+                    await navigator.share({title:'DriverTax Estimated Tax Summary',text:'Estimated tax summary',files:[file]});
+                    return;
+                }
+                downloadBlob(pdf,name);
+                showToast('PDF downloaded — attach it in '+(method==='whatsapp'?'WhatsApp':method==='email'?'your email':'the app you want'));
+            }catch(err){
+                console.error(err);
+                showToast('Could not create tax summary file');
+            }
         }
 
         async function handleReceiptSelected(input){
@@ -1934,7 +2003,7 @@ function openAccountModal() {
             try{
                 const ext=(file.name.split('.').pop()||'jpg').toLowerCase();const path=appState.currentUser.id+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
                 const {error}=await supabaseClient.storage.from('receipts').upload(path,file,{contentType:file.type||'image/jpeg',upsert:false});if(error)throw error;
-                appState.pendingReceiptPath=path;document.getElementById('receipt-preview').src=URL.createObjectURL(file);document.getElementById('receipt-date').value=isoDate(new Date());
+                appState.pendingReceiptPath=path;document.getElementById('receipt-preview').src=URL.createObjectURL(file);setDateField('receipt-date','receipt-date-label',isoDate(new Date()));
                 const cats=[...new Set([...(appState.selectedExpenses||[]),'Other'])];document.getElementById('receipt-category').innerHTML=cats.map(x=>'<option>'+x+'</option>').join('');
                 status.textContent='Receipt stored privately. AI extraction is not connected yet, so check and enter the fields manually before saving.';
                 document.getElementById('receipt-ai-confidence').textContent='Manual review';
@@ -1943,14 +2012,17 @@ function openAccountModal() {
         }
         async function confirmReceiptExpense(){
             if(!appState.currentUser||!appState.pendingReceiptPath)return;
-            const amount=Number(document.getElementById('receipt-amount').value||0);if(!(amount>0)){showToast('Enter the receipt amount');return;}
+            const amount=Number(document.getElementById('receipt-amount').value||0);
+            const validation=document.getElementById('receipt-validation-msg');
+            if(!(amount>0)){validation.textContent='Please enter or confirm the receipt amount before saving.';validation.classList.remove('hidden');return;}
+            validation.classList.add('hidden');
             const merchant=document.getElementById('receipt-merchant').value.trim()||'Receipt';
             const date=document.getElementById('receipt-date').value||isoDate(new Date());const category=document.getElementById('receipt-category').value||'Other';const vat=Number(document.getElementById('receipt-vat').value||0);
             const {data:exp,error:e1}=await supabaseClient.from('expenses').insert([{user_id:appState.currentUser.id,category,amount,merchant,expense_date:date,notes:'Receipt scan'}]).select('id').single();if(e1){showToast('Could not save expense');return;}
             const f=appState.pendingReceiptFile;const {error:e2}=await supabaseClient.from('receipts').insert([{user_id:appState.currentUser.id,expense_id:exp.id,file_path:appState.pendingReceiptPath,original_filename:f?.name||null,mime_type:f?.type||null,size_bytes:f?.size||null,ai_status:'manual_review',extracted_merchant:merchant,extracted_date:date,extracted_amount:amount,extracted_vat:vat||null,suggested_category:category,driver_confirmed:true}]);if(e2){showToast('Expense saved, receipt link needs retry');return;}
             await fetchUserData(appState.currentUser.id);cancelReceiptReview();showToast('Receipt confirmed and expense saved');switchTab('records');
         }
-        function cancelReceiptReview(){document.getElementById('receipt-review-card')?.classList.add('hidden');document.getElementById('receipt-scan-status')?.classList.add('hidden');document.getElementById('receipt-file-input').value='';appState.pendingReceiptFile=null;appState.pendingReceiptPath=null;}
+        function cancelReceiptReview(){document.getElementById('receipt-review-card')?.classList.add('hidden');document.getElementById('receipt-scan-status')?.classList.add('hidden');document.getElementById('receipt-validation-msg')?.classList.add('hidden');document.getElementById('receipt-file-input').value='';appState.pendingReceiptFile=null;appState.pendingReceiptPath=null;}
 
 function renderRegularCostLists() {
             const rows = (appState.recurringExpenses || []).map(r => {
@@ -3208,25 +3280,89 @@ function renderRegularCostLists() {
             }).join('') || '<p class="text-center text-xs text-slate-500 py-8">No records found.</p>';
         }
 
+        function getDashboardPeriodBounds(period){
+            const now=new Date(), today=isoDate(now);
+            if(period==='today') return {start:today,end:today,label:'Today'};
+            if(period==='week'){
+                const mondayOffset=(now.getDay()+6)%7;
+                const s=new Date(now); s.setDate(now.getDate()-mondayOffset);
+                const e=new Date(s); e.setDate(s.getDate()+6);
+                return {start:isoDate(s),end:isoDate(e),label:'This Week'};
+            }
+            if(period==='month'){
+                const s=new Date(now.getFullYear(),now.getMonth(),1);
+                const e=new Date(now.getFullYear(),now.getMonth()+1,0);
+                return {start:isoDate(s),end:isoDate(e),label:now.toLocaleDateString('en-GB',{month:'long',year:'numeric'})};
+            }
+            const b=currentTaxYearBounds();
+            return {start:b.start,end:b.end,label:'Tax Year '+b.label};
+        }
+
         function openTodayDetails(){
-            const d=isoDate(new Date()),a=getDayActivity(d),reg=getRecurringCostShare(d,d);
-            const profit=a.income-a.expenses-reg.total,tax=getEstimatedDailyTaxReserve(d),take=profit-tax;
-            document.getElementById('today-details-date').textContent=formatUkDate(d);
+            document.getElementById('today-details-modal').classList.remove('hidden');
+            showDashboardPeriod('today');
+        }
+        function closeTodayDetails(){document.getElementById('today-details-modal').classList.add('hidden');}
+
+        function showDashboardPeriod(period){
+            document.querySelectorAll('.dashboard-period').forEach(b=>{
+                b.classList.remove('bg-emerald-500','text-slate-950');
+                b.classList.add('text-slate-400');
+            });
+            const active=document.getElementById('today-period-'+period);
+            if(active){
+                active.classList.add('bg-emerald-500','text-slate-950');
+                active.classList.remove('text-slate-400');
+            }
+
+            const p=getDashboardPeriodBounds(period);
+            const a=getRangeActivity(p.start,p.end);
+            const reg=getRecurringCostShare(p.start,p.end);
+            const profit=a.income-a.expenses-reg.total;
+            const tax=getEstimatedTaxReserveForRange(p.start,p.end);
+            const take=profit-tax;
+
+            document.getElementById('today-details-title').textContent=p.label+' Overview';
+            document.getElementById('today-details-date').textContent=formatUkDate(p.start)+(p.start===p.end?'':' → '+formatUkDate(p.end));
             document.getElementById('today-detail-income').textContent='£'+a.income.toFixed(2);
             document.getElementById('today-detail-expense').textContent='£'+a.expenses.toFixed(2);
             document.getElementById('today-detail-profit').textContent='£'+profit.toFixed(2);
             document.getElementById('today-detail-tax').textContent='£'+tax.toFixed(2);
             document.getElementById('today-detail-takehome').textContent='£'+take.toFixed(2);
-            document.getElementById('today-regular-cost-note').textContent='Today’s share of regular costs: £'+reg.total.toFixed(2);
-            const rows=a.tx.map(t=>`<div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between"><span class="text-xs text-slate-300">${t.type==='income'?(t.source||'Income'):(t.category||'Expense')}</span><span class="text-xs font-bold ${t.type==='income'?'text-emerald-400':'text-rose-400'}">${t.type==='income'?'+':'-'}£${Number(t.amount).toFixed(2)}</span></div>`);
-            appState.mileageTrips.filter(x=>x.trip_date===d).forEach(m=>rows.push(`<div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between"><span class="text-xs text-slate-300">${m.purpose||'Mileage'}</span><span class="text-xs font-bold text-blue-400">${Number(m.business_miles).toFixed(1).replace('.0','')} mi</span></div>`));
-            document.getElementById('today-details-list').innerHTML=rows.join('')||'<p class="text-center text-xs text-slate-500 py-4">No records for today yet.</p>';
-            document.getElementById('today-details-modal').classList.remove('hidden');
-        }
-        function closeTodayDetails(){document.getElementById('today-details-modal').classList.add('hidden');}
-        function openTodayInCalendar(){closeTodayDetails();appState.selectedCalendarDate=isoDate(new Date());openCalendarTab();showCalendarDay(appState.selectedCalendarDate);}
+            document.getElementById('today-regular-cost-note').textContent=p.label+' share of regular costs: £'+reg.total.toFixed(2);
 
-        function filterExpenses(category) {
+            const rows=[];
+            (a.tx||[]).slice(0,50).forEach(t=>rows.push(
+                '<div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between">'+
+                '<div><span class="text-xs text-slate-300">'+(t.type==='income'?(t.source||'Income'):(t.category||'Expense'))+'</span>'+
+                '<p class="text-[9px] text-slate-600">'+formatUkDate(t.date)+'</p></div>'+
+                '<span class="text-xs font-bold '+(t.type==='income'?'text-emerald-400':'text-rose-400')+'">'+(t.type==='income'?'+':'-')+'£'+Number(t.amount).toFixed(2)+'</span></div>'
+            ));
+            (appState.mileageTrips||[]).filter(x=>x.trip_date>=p.start&&x.trip_date<=p.end).slice(0,25).forEach(m=>rows.push(
+                '<div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between">'+
+                '<div><span class="text-xs text-slate-300">'+(m.purpose||'Mileage')+'</span><p class="text-[9px] text-slate-600">'+formatUkDate(m.trip_date)+'</p></div>'+
+                '<span class="text-xs font-bold text-blue-400">'+Number(m.business_miles).toFixed(1).replace('.0','')+' mi</span></div>'
+            ));
+            document.getElementById('today-details-list').innerHTML=rows.join('')||'<p class="text-center text-xs text-slate-500 py-4">No records for this period.</p>';
+            document.getElementById('today-details-modal').dataset.period=period;
+        }
+
+        function openTodayInCalendar(){
+            const period=document.getElementById('today-details-modal').dataset.period||'today';
+            const p=getDashboardPeriodBounds(period);
+            closeTodayDetails();
+            openCalendarTab();
+            if(period==='today'){
+                showCalendarDay(p.start);
+            }else{
+                appState.calendarSelectionMode='range';
+                appState.calendarRangeStart=p.start;
+                appState.calendarRangeEnd=p.end;
+                showCalendarRange(p.start,p.end);
+            }
+        }
+
+        function filterExpenses(category) {        function filterExpenses(category) {
             appState.activeFilter = category;
             renderUI();
         }
