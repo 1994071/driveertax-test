@@ -1546,6 +1546,9 @@
         }
 
         function getEstimatedTaxReserveForRange(startStr,endStr){
+            // Reserve attributable to this selected period = cumulative tax-year liability
+            // at the period end minus cumulative liability immediately before the period.
+            // This intentionally avoids the old flat "period profit × 20%" shortcut.
             const b=currentTaxYearBounds();
             if(endStr<b.start||startStr>b.end) return 0;
             const end=endStr>b.end?b.end:endStr;
@@ -2592,11 +2595,12 @@ function renderRegularCostLists() {
                         <p class="text-lg font-extrabold text-blue-400 mt-1">${a.mileage.toFixed(1).replace('.0','')} mi</p>
                     </div>
                     <div class="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3">
-                        <p class="text-[9px] uppercase font-bold text-amber-300">Estimated Tax Reserve*</p>
+                        <p class="text-[9px] uppercase font-bold text-amber-300">Estimated Tax Reserve</p>
                         <p class="text-lg font-extrabold text-amber-400 mt-1">£${estTaxReserve.toFixed(2)}</p>
+                        <p class="text-[8px] text-amber-200/60 mt-1">Cumulative tax-year calculation</p>
                     </div>
                     <div class="bg-teal-500/10 border border-teal-500/20 rounded-2xl p-3">
-                        <p class="text-[9px] uppercase font-bold text-teal-300">Estimated Take-Home*</p>
+                        <p class="text-[9px] uppercase font-bold text-teal-300">Estimated Take-Home</p>
                         <p class="text-lg font-extrabold text-teal-300 mt-1">£${estimatedTakeHome.toFixed(2)}</p>
                     </div>
                 </div>
@@ -2659,14 +2663,14 @@ function renderRegularCostLists() {
                 <div class="bg-slate-950/50 rounded-xl p-3 space-y-2">
                     <div class="flex justify-between text-xs"><span class="text-slate-400">Days selected</span><span class="font-bold text-white">${days}</span></div>
                     <div class="flex justify-between text-xs"><span class="text-slate-400">Tax reserve saved</span><span class="font-bold text-amber-400">£${a.reserve.toFixed(2)}</span></div>
-                    <p class="text-[9px] text-slate-600">*Prototype estimates only. The proper UK tax engine will replace these estimates.</p>
+                    <p class="text-[9px] text-slate-600">Estimated tax reserve is based on your cumulative 2026/27 tax-year position up to the end of this selected period, not a flat percentage of this period's profit.</p>
                 </div>
 
                 <button onclick="openPeriodEntryModal()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-calendar-plus"></i> Enter totals for this period
+                    <i class="fa-solid fa-calendar-plus"></i> Catch Up Records
                 </button>
 
-                ${periodRows ? '<div class="space-y-2"><p class="text-[10px] uppercase font-bold text-slate-500">Saved period entries</p>'+periodRows+'</div>' : ''}
+                ${periodRows ? '<div class="space-y-2"><p class="text-[10px] uppercase font-bold text-slate-500">Saved Catch Up Records</p>'+periodRows+'</div>' : ''}
             `;
         }
 
