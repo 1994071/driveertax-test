@@ -2118,7 +2118,7 @@ function openAccountModal() {
             return shareSelectedTaxFiles(method);
         }
 
-        async async function handleReceiptSelected(input){
+        async function handleReceiptSelected(input){
             const file=input.files?.[0];
             if(!file||!appState.currentUser)return;
             if(file.size>10*1024*1024){showToast('Choose an image under 10 MB');return;}
