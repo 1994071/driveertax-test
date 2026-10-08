@@ -241,6 +241,13 @@
                     </div>
                 </button>
 
+                <div id="past-earnings-warning" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-[10px] text-amber-200"></div>
+                <button id="dash-past-earnings" type="button" onclick="openPastEarnings()" class="w-full text-left bg-blue-500/15 border border-blue-400/40 p-4 rounded-2xl flex items-center gap-3">
+                    <i class="fa-solid fa-calendar-plus text-xl text-blue-300"></i>
+                    <div class="flex-1"><h3 class="text-sm font-bold text-white">Add past earnings</h3><p class="text-[10px] text-blue-200 mt-1">Catch up on previous weeks or months. We check existing records.</p></div>
+                    <i class="fa-solid fa-chevron-right text-blue-300"></i>
+                </button>
+
                 <div class="grid grid-cols-2 gap-3">
                     <button onclick="openIncomeModal()" class="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-bold py-3 px-3 rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/20 transition transform active:scale-95">
                         <i class="fa-solid fa-plus-circle text-sm"></i>
@@ -516,13 +523,15 @@
                         <div id="period-calendar-grid" class="grid grid-cols-7 gap-1"></div>
                         <p id="period-calendar-status" aria-live="polite" class="text-[10px] text-blue-200 mt-3"></p>
                     </div>
-                    <div><label class="text-[11px] text-slate-400 block mb-1">Total turnover (£) — before expenses</label><input id="period-income" type="number" min="0" step="0.01" required placeholder="e.g. 5000.00" oninput="updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
-                    <div><label class="text-[11px] text-slate-400 block mb-1">Which total do you know?</label><select id="period-entry-mode" onchange="updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option value="expenses">I know my expenses</option><option value="profit">I know my profit</option></select></div>
-                    <div id="period-expenses-group"><label class="text-[11px] text-slate-400 block mb-1">Total expenses (£)</label><input id="period-expenses" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
-                    <div id="period-profit-group" class="hidden"><label class="text-[11px] text-slate-400 block mb-1">Known business profit (£) — before tax</label><input id="period-profit" type="number" step="0.01" placeholder="e.g. 3500.00 (losses can be negative)" oninput="updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
-                    <div><label class="text-[11px] text-slate-400 block mb-1">Do these totals already include regular costs?</label><select id="period-regular-included" required onchange="updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option value="">Choose one</option><option value="yes">Yes — insurance, phone and other regular costs included</option><option value="no">No — deduct my regular-cost share separately</option></select></div>
-                    <div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] text-slate-400">Business mileage (optional)</label><input id="period-mileage" type="number" min="0" step="0.1" placeholder="0.0" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div><div><label class="text-[10px] text-slate-400">Statement source (optional)</label><input id="period-source" maxlength="160" placeholder="Uber, Bolt, bank statement…" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div></div>
+                    <div><label class="text-[11px] text-slate-400 block mb-1">Total turnover (£) — before expenses</label><input id="period-income" type="number" min="0" step="0.01" required placeholder="e.g. 5000.00" oninput="resetPeriodReview();updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
+                    <div><label class="text-[11px] text-slate-400 block mb-1">Which total do you know?</label><select id="period-entry-mode" onchange="resetPeriodReview();updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option value="expenses">I know my expenses</option><option value="profit">I know my profit</option></select></div>
+                    <div id="period-expenses-group"><label class="text-[11px] text-slate-400 block mb-1">Total expenses (£)</label><input id="period-expenses" type="number" min="0" step="0.01" placeholder="0.00" oninput="resetPeriodReview();updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
+                    <div id="period-profit-group" class="hidden"><label class="text-[11px] text-slate-400 block mb-1">Known business profit (£) — before tax</label><input id="period-profit" type="number" step="0.01" placeholder="e.g. 3500.00 (losses can be negative)" oninput="resetPeriodReview();updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
+                    <div><label class="text-[11px] text-slate-400 block mb-1">Do these totals already include regular costs?</label><select id="period-regular-included" required onchange="resetPeriodReview();updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option value="">Choose one</option><option value="yes">Yes — insurance, phone and other regular costs included</option><option value="no">No — deduct my regular-cost share separately</option></select></div>
+                    <div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] text-slate-400">Business mileage (optional)</label><input id="period-mileage" type="number" min="0" step="0.1" placeholder="Leave blank to keep recorded miles" oninput="resetPeriodReview();updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div><div><label class="text-[10px] text-slate-400">Statement source (optional)</label><input id="period-source" maxlength="160" placeholder="Uber, Bolt, bank statement…" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div></div>
                     <div><label class="text-[10px] text-slate-400">Notes (optional)</label><textarea id="period-notes" maxlength="2000" rows="2" placeholder="Anything to remember about these totals" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></textarea></div>
+                    <div id="period-reconciliation" aria-live="polite" class="bg-blue-500/10 border border-blue-500/25 rounded-xl p-3 text-xs space-y-2"></div>
+                    <label id="period-review-label" class="hidden flex gap-2 text-[10px] text-blue-200"><input id="period-review-confirm" type="checkbox">I reviewed the recorded amounts and the remaining amounts to add. My entries are totals for the whole period.</label>
                     <div id="period-summary-preview" aria-live="polite" class="bg-slate-950 rounded-xl p-3 text-xs space-y-2"></div>
                     <p id="period-entry-error" role="alert" class="hidden text-[10px] text-amber-300 bg-amber-500/10 rounded-xl p-3"></p>
                     <button id="period-save-btn" type="submit" class="w-full bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs disabled:opacity-50">Save Catch Up Records</button>
@@ -912,6 +921,7 @@
                     <p id="share-email-note" class="text-[9px] text-slate-600">The selected PDF/CSV will be attached automatically.</p>
                 </div>
 
+                <div id="tax-share-fallback" class="hidden bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2 text-[10px] text-slate-300" aria-live="polite"></div>
                 <div>
                     <p class="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-2">2. Other sharing options</p>
                     <div class="grid grid-cols-3 gap-2">
@@ -1590,7 +1600,7 @@
             const recurring=getRecurringCostShare(b.start,end);
             const income=range.income;
             const expenses=range.expenses+recurring.total;
-            const profit=Math.max(0,income-expenses);
+            const profit=income-expenses;
             const tax=calculateTaxEstimate(profit);
             const saved=appState.taxReserveEntries.filter(x=>x.saved_on>=b.start&&x.saved_on<=end).reduce((s,x)=>s+Number(x.amount||0),0);
             return { ...b,end,income,expenses,profit,saved,...tax };
@@ -1638,6 +1648,10 @@
             document.getElementById('dash-today-tax').textContent = `£${todayEstTax.toFixed(2)}`;
             document.getElementById('dash-today-net').textContent = `£${todayNetTakeHome.toFixed(2)}`;
 
+            const exceeded=(appState.periodEntries||[]).filter(p=>p.reconciled&&periodTotalsExceeded(p));
+            const warning=document.getElementById('past-earnings-warning');
+            warning.classList.toggle('hidden',!exceeded.length);
+            warning.innerHTML=exceeded.map(p=>'<p>Recorded amounts exceed your past-earnings total for '+formatUkDate(p.period_start)+' to '+formatUkDate(p.period_end)+'. <button type="button" onclick="openPeriodEntryModal(\''+p.id+'\')" class="font-bold underline">Review summary</button></p>').join('');
             const ts=getTaxYearSummary();
             document.getElementById('tax-earnings').textContent = `£${ts.income.toFixed(2)}`;
             document.getElementById('tax-expenses').textContent = `-£${ts.expenses.toFixed(2)}`;
@@ -1977,6 +1991,7 @@ function openAccountModal() {
             if(!window.jspdf?.jsPDF) throw new Error('PDF generator unavailable');
             const {jsPDF}=window.jspdf;
             const doc=new jsPDF({unit:'mm',format:'a4'});
+            doc.setFont('helvetica','normal');doc.setCharSpace(0);
             const t=getTaxYearSummary(),q=taxProfileQuality();
             let y=20;
             doc.setFontSize(20);doc.text('DriverTax',20,y);y+=9;
@@ -2007,14 +2022,35 @@ function openAccountModal() {
             y+=4;doc.setFontSize(9);
             doc.text('Estimate quality: '+q.label+' — '+q.detail,20,y,{maxWidth:170});y+=12;
             doc.text('Generated '+new Date().toLocaleDateString('en-GB')+'. This is an estimate, not an HMRC calculation or submission.',20,y,{maxWidth:170});
+            const bounds=currentTaxYearBounds(),activity=getRangeActivity(bounds.start,t.end);
+            if(activity.periodEntries.length){
+                doc.addPage();y=20;doc.setFontSize(14);doc.text('Catch Up Records',20,y);y+=10;doc.setFontSize(9);
+                doc.text('Whole-period totals include dated records. Only unrecorded amounts are added.',20,y,{maxWidth:170});y+=12;
+                activity.periodEntries.forEach(p=>{
+                    if(y>235){doc.addPage();y=20;}
+                    const extra=periodUnrecordedTotals(p);
+                    doc.text(formatUkDate(p.period_start)+' to '+formatUkDate(p.period_end),20,y);y+=7;
+                    doc.text('Whole-period turnover: £'+Number(p.income_amount).toFixed(2)+' | Expenses: £'+Number(p.expense_amount).toFixed(2),20,y);y+=7;
+                    doc.text('Unrecorded amounts added: income £'+extra.income.toFixed(2)+' | expenses £'+extra.expenses.toFixed(2),20,y);y+=7;
+                    const lines=doc.splitTextToSize('Source: '+(p.statement_source||'Unspecified')+'. Regular costs '+(p.regular_costs_included?'included.':'deducted separately.'),170);
+                    doc.text(lines,20,y);y+=lines.length*5+8;
+                });
+            }
+            if(activity.overlappingPeriodEntries.length){
+                doc.addPage();doc.setFontSize(10);doc.text('Some older catch-up summaries overlap dated records and are excluded. Review them in Calendar.',20,20,{maxWidth:170});
+            }
             return doc.output('blob');
         }
 
+        function csvSafeCell(value){
+            const text=String(value??'');
+            return typeof value==='string'&&/^[\s]*[=+@-]/.test(text)?"'"+text:text;
+        }
         function buildTaxCsvBlob(){
             const t=getTaxYearSummary();
             const bounds=currentTaxYearBounds();
-            const tx=(appState.transactions||[]).filter(x=>x.date>=bounds.start&&x.date<=bounds.end);
-            const miles=(appState.mileageTrips||[]).filter(x=>x.trip_date>=bounds.start&&x.trip_date<=bounds.end);
+            const tx=(appState.transactions||[]).filter(x=>x.date>=bounds.start&&x.date<=t.end);
+            const miles=(appState.mileageTrips||[]).filter(x=>x.trip_date>=bounds.start&&x.trip_date<=t.end);
             const incomeTotals={}, expenseTotals={};
 
             tx.forEach(x=>{
@@ -2027,7 +2063,15 @@ function openAccountModal() {
                 }
             });
 
-            const totalMileage=miles.reduce((s,x)=>s+Number(x.business_miles||0),0);
+            const activity=getRangeActivity(bounds.start,t.end);
+            activity.periodEntries.forEach(p=>{
+                const extra=periodUnrecordedTotals(p);
+                const source='Catch Up - '+(p.statement_source||'Unspecified');
+                incomeTotals[source]=(incomeTotals[source]||0)+extra.income;
+                expenseTotals['Catch Up - unrecorded expenses']=(expenseTotals['Catch Up - unrecorded expenses']||0)+extra.expenses;
+            });
+            activity.recurring.items.forEach(r=>expenseTotals['Regular cost - '+r.category]=(expenseTotals['Regular cost - '+r.category]||0)+r.share);
+            const totalMileage=activity.mileage;
             const rows=[
                 ['DriverTax Records Export'],
                 ['Tax Year',t.label],
@@ -2080,11 +2124,11 @@ function openAccountModal() {
 
             const summaries=(appState.periodEntries||[]).filter(p=>p.period_start>=bounds.start&&p.period_end<=t.end);
             if(summaries.length){
-                rows.push([],['PERIOD SUMMARIES'],['From','To','Turnover','Expenses','Profit before separate regular costs','Business miles','Source','Regular costs included','Notes']);
-                summaries.forEach(p=>rows.push([p.period_start,p.period_end,p.income_amount,p.expense_amount,Number(p.income_amount)-Number(p.expense_amount),p.business_miles,p.statement_source||'',p.regular_costs_included?'Yes':'No',p.notes||'']));
+                rows.push([],['PERIOD SUMMARIES'],['From','To','Whole-period turnover','Whole-period expenses','Profit before separate regular costs','Whole-period business miles','Source','Regular costs included','Notes','Reconciled with dated records','Unrecorded income included','Unrecorded expenses included','Unrecorded mileage included']);
+                summaries.forEach(p=>{const extra=activity.periodEntries.some(x=>x.id===p.id)?periodUnrecordedTotals(p):{income:0,expenses:0,mileage:0};rows.push([p.period_start,p.period_end,p.income_amount,p.expense_amount,Number(p.income_amount)-Number(p.expense_amount),p.business_miles,p.statement_source||'',p.regular_costs_included?'Yes':'No',p.notes||'',p.reconciled?'Yes':'No',extra.income.toFixed(2),extra.expenses.toFixed(2),extra.mileage.toFixed(1)]);});
             }
-            const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');
-            return new Blob([csv],{type:'text/csv;charset=utf-8'});
+            const csv=rows.map(r=>r.map(v=>'"'+csvSafeCell(v).replaceAll('"','""')+'"').join(',')).join('\n');
+            return new Blob(['\uFEFF',csv],{type:'text/csv;charset=utf-8'});
         }
 
         function downloadBlob(blob,name){
@@ -2097,6 +2141,7 @@ function openAccountModal() {
 
         function selectTaxShareFile(type){
             selectedTaxShareFile=type;
+            document.getElementById('tax-share-fallback').classList.add('hidden');
             document.querySelectorAll('.tax-share-file').forEach(b=>{
                 b.classList.remove('bg-emerald-500/10','border-emerald-500/30','text-emerald-300');
                 b.classList.add('bg-slate-800','border-slate-700','text-slate-200');
@@ -2157,8 +2202,8 @@ function openAccountModal() {
                 if(error)throw error;
                 if(data?.error)throw new Error(data.error);
                 if(data?.ok!==true || !data?.id)throw new Error('Email provider did not confirm acceptance');
-                showToast('Tax report emailed successfully');
-                document.getElementById('share-email-note').textContent='Sent successfully to '+to;
+                showToast('Email accepted by the sending service');
+                document.getElementById('share-email-note').textContent='Accepted for sending to '+to+'. Check the inbox and spam folder.';
                 document.getElementById('share-email-note').className='text-[9px] text-emerald-400';
             }catch(err){
                 console.error('Direct tax email error',err);
@@ -2174,27 +2219,41 @@ function openAccountModal() {
             }
         }
 
+        function showTaxShareFallback(files,method){
+            const box=document.getElementById('tax-share-fallback');
+            box.replaceChildren();box.classList.remove('hidden');
+            const note=document.createElement('p');
+            note.textContent=method==='whatsapp'?'Download each file below, open WhatsApp, choose your chat and attach the files. Your browser cannot attach them automatically.':'Download each file below, then attach it using your preferred app.';
+            box.appendChild(note);
+            files.forEach(file=>{
+                const button=document.createElement('button');button.type='button';button.className='block w-full rounded-lg bg-slate-800 p-2 text-left text-blue-200';button.textContent='Download '+file.name;button.onclick=()=>downloadBlob(file,file.name);box.appendChild(button);
+            });
+            if(method==='whatsapp'){
+                const link=document.createElement('a');link.href='https://wa.me/';link.target='_blank';link.rel='noopener noreferrer';link.className='block text-emerald-300 font-bold py-2';link.textContent='Open WhatsApp';box.appendChild(link);
+            }
+        }
         async function shareSelectedTaxFiles(method){
+            if(appState.taxSharing)return;
+            appState.taxSharing=true;
             try{
                 const files=getSelectedTaxFiles();
                 if(method==='download'){
-                    files.forEach(f=>downloadBlob(f,f.name));
-                    showToast(files.length===2?'PDF and CSV downloaded':files[0].name.endsWith('.pdf')?'PDF downloaded':'CSV downloaded');
+                    if(files.length===1){downloadBlob(files[0],files[0].name);showToast('Report downloaded');}
+                    else{showTaxShareFallback(files,method);showToast('Use the download buttons for PDF and CSV');}
                     return;
                 }
-
-                if(navigator.canShare&&navigator.canShare({files})&&navigator.share){
-                    await navigator.share({title:'DriverTax Tax Summary',text:'DriverTax tax summary and records',files});
-                    return;
+                let canShare=!!navigator.share;
+                try{if(navigator.canShare)canShare=canShare&&navigator.canShare({files});}catch{canShare=false;}
+                if(canShare){
+                    try{
+                        await navigator.share({title:'DriverTax Tax Summary',text:'DriverTax tax summary and records',files});
+                        return;
+                    }catch(err){if(err.name==='AbortError'){showToast('Sharing cancelled');return;}console.warn('File sharing unavailable',err);}
                 }
-
-                files.forEach(f=>downloadBlob(f,f.name));
-                if(method==='whatsapp') showToast('Files downloaded — attach them in WhatsApp.');
-                else showToast('Files downloaded — share them using your device.');
-            }catch(err){
-                console.error(err);
-                showToast('Could not prepare files for sharing');
-            }
+                showTaxShareFallback(files,method);
+                showToast(method==='whatsapp'?'Download the files, then attach them in WhatsApp':'Use the download buttons to share your files');
+            }catch(err){console.error(err);showToast(err.message==='PDF generator unavailable'?'PDF could not load. Refresh the app or choose CSV.':'Could not prepare files for sharing');}
+            finally{appState.taxSharing=false;}
         }
 
         async function shareTaxSummary(method){
@@ -2457,9 +2516,9 @@ function renderRegularCostLists() {
                 // Calendar days, independent of daylight-saving clock changes.
                 const dayNumber = d => Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()) / 86400000;
                 let activeDays = dayNumber(activeEnd) - dayNumber(activeStart) + 1;
-                const intervals=(appState.periodEntries||[]).filter(p=>p.id!==ignoreSummaryId&&p.regular_costs_included&&p.period_start>=startStr&&p.period_end<=endStr&&
-                    !appState.transactions.some(t=>t.date>=p.period_start&&t.date<=p.period_end)&&
-                    !appState.mileageTrips.some(t=>t.trip_date>=p.period_start&&t.trip_date<=p.period_end))
+                const intervals=(appState.periodEntries||[]).filter(p=>p.id!==ignoreSummaryId&&p.regular_costs_included&&p.period_start<=endStr&&p.period_end>=startStr&&(p.reconciled||
+                    (!appState.transactions.some(t=>t.date>=p.period_start&&t.date<=p.period_end)&&
+                    !appState.mileageTrips.some(t=>t.trip_date>=p.period_start&&t.trip_date<=p.period_end))))
                     .map(p=>[Math.max(dayNumber(activeStart),dayNumber(parseIsoDate(p.period_start))),Math.min(dayNumber(activeEnd),dayNumber(parseIsoDate(p.period_end)))])
                     .filter(([a,b])=>a<=b).sort((a,b)=>a[0]-b[0]);
                 let lastEnd=-Infinity;
@@ -2485,6 +2544,21 @@ function renderRegularCostLists() {
             };
         }
 
+        function periodTotalsExceeded(p){
+            const r=recordedPeriodTotals(p.period_start,p.period_end);
+            return r.income>Number(p.income_amount)+0.005||r.expenses>Number(p.expense_amount)+0.005||r.mileage>Number(p.business_miles)+0.05;
+        }
+        function recordedPeriodTotals(start,end){
+            const tx=appState.transactions.filter(t=>t.date>=start&&t.date<=end);
+            const trips=appState.mileageTrips.filter(t=>t.trip_date>=start&&t.trip_date<=end);
+            return {income:tx.filter(t=>t.type==='income').reduce((a,t)=>a+Number(t.amount||0),0),
+                expenses:tx.filter(t=>t.type==='expense').reduce((a,t)=>a+Number(t.amount||0),0),
+                mileage:trips.reduce((a,t)=>a+Number(t.business_miles||0),0),count:tx.length+trips.length};
+        }
+        function periodUnrecordedTotals(p){
+            const r=p.reconciled?recordedPeriodTotals(p.period_start,p.period_end):{income:0,expenses:0,mileage:0};
+            return {income:Math.max(0,Number(p.income_amount||0)-r.income),expenses:Math.max(0,Number(p.expense_amount||0)-r.expenses),mileage:Math.max(0,Number(p.business_miles||0)-r.mileage)};
+        }
         function getRangeActivity(startStr, endStr) {
             const start = parseIsoDate(startStr);
             const end = parseIsoDate(endStr);
@@ -2520,7 +2594,7 @@ function renderRegularCostLists() {
                         return d >= pStart && d <= pEnd;
                     });
 
-                if (hasDatedOverlap) overlappingPeriodEntries.push(p);
+                if (hasDatedOverlap && !p.reconciled) overlappingPeriodEntries.push(p);
                 else periodEntries.push(p);
             });
 
@@ -2536,13 +2610,13 @@ function renderRegularCostLists() {
                 .reduce((sum, t) => sum + Number(t.business_miles || 0), 0);
 
             const periodIncome = periodEntries
-                .reduce((sum, p) => sum + Number(p.income_amount || 0), 0);
+                .reduce((sum, p) => sum + periodUnrecordedTotals(p).income, 0);
 
             const periodExpenses = periodEntries
-                .reduce((sum, p) => sum + Number(p.expense_amount || 0), 0);
+                .reduce((sum, p) => sum + periodUnrecordedTotals(p).expenses, 0);
 
             const periodMileage = periodEntries
-                .reduce((sum, p) => sum + Number(p.business_miles || 0), 0);
+                .reduce((sum, p) => sum + periodUnrecordedTotals(p).mileage, 0);
 
             const reserve = appState.taxReserveEntries
                 .filter(t => inRange(t.saved_on))
@@ -2771,22 +2845,23 @@ function renderRegularCostLists() {
             });
 
             (a.periodEntries || []).forEach(p => {
-                if (Number(p.income_amount || 0) > 0) {
-                    incomeBreakdown['Catch-up totals'] = (incomeBreakdown['Catch-up totals'] || 0) + Number(p.income_amount || 0);
+                const extra=periodUnrecordedTotals(p);
+                if (extra.income > 0) {
+                    incomeBreakdown['Catch-up totals'] = (incomeBreakdown['Catch-up totals'] || 0) + extra.income;
                 }
-                if (Number(p.expense_amount || 0) > 0) {
-                    expenseBreakdown['Catch-up totals'] = (expenseBreakdown['Catch-up totals'] || 0) + Number(p.expense_amount || 0);
+                if (extra.expenses > 0) {
+                    expenseBreakdown['Catch-up totals'] = (expenseBreakdown['Catch-up totals'] || 0) + extra.expenses;
                 }
             });
 
             const incomeRows = Object.entries(incomeBreakdown)
                 .sort((x,y) => y[1]-x[1])
-                .map(([name,amount]) => `<div class="flex justify-between text-[11px]"><span class="text-slate-400">${name}</span><span class="font-bold text-emerald-400">£${amount.toFixed(2)}</span></div>`)
+                .map(([name,amount]) => `<div class="flex justify-between text-[11px]"><span class="text-slate-400">${escapeHtml(name)}</span><span class="font-bold text-emerald-400">£${amount.toFixed(2)}</span></div>`)
                 .join('');
 
             const expenseRows = Object.entries(expenseBreakdown)
                 .sort((x,y) => y[1]-x[1])
-                .map(([name,amount]) => `<div class="flex justify-between text-[11px]"><span class="text-slate-400">${name}</span><span class="font-bold text-rose-400">£${amount.toFixed(2)}</span></div>`)
+                .map(([name,amount]) => `<div class="flex justify-between text-[11px]"><span class="text-slate-400">${escapeHtml(name)}</span><span class="font-bold text-rose-400">£${amount.toFixed(2)}</span></div>`)
                 .join('');
 
             const chart = getRangeChartBuckets(startStr,endStr);
@@ -2805,6 +2880,8 @@ function renderRegularCostLists() {
 
             const periodRows = (a.periodEntries || []).map(p => `
                 <div class="bg-slate-950/50 border border-slate-800 rounded-xl p-3 space-y-2">
+                    ${p.reconciled ? '<p class="text-[9px] text-blue-200">Existing dated records are included in these whole-period totals.</p>' : ''}
+                    ${p.reconciled && periodTotalsExceeded(p) ? '<p class="text-[10px] text-amber-300">Recorded amounts now exceed this summary. Edit the summary to review your totals.</p>' : ''}
                     <div class="flex justify-between gap-2"><span class="text-[10px] text-slate-400">${formatUkDate(p.period_start)} → ${formatUkDate(p.period_end)}</span><button type="button" onclick="openPeriodEntryModal('${p.id}')" class="text-[10px] text-blue-300 font-bold">Edit Summary</button></div>
                     <p class="text-[10px] text-white">Turnover £${Number(p.income_amount).toFixed(2)} · Expenses £${Number(p.expense_amount).toFixed(2)} · Profit £${(Number(p.income_amount)-Number(p.expense_amount)).toFixed(2)}</p>
                     <p class="text-[9px] text-slate-500">Period summary · ${escapeHtml(p.statement_source||'Manual totals')} · ${p.regular_costs_included?'Regular costs included':'Regular costs deducted separately'}</p>
@@ -2940,7 +3017,7 @@ function renderRegularCostLists() {
             const start=document.getElementById('period-start'),end=document.getElementById('period-end');
             if(!start.value||end.value){start.value=dateStr;end.value='';}
             else{end.value=dateStr;if(end.value<start.value)[start.value,end.value]=[end.value,start.value];}
-            updatePeriodCalendarStatus();renderCalendar(true);updatePeriodSummaryPreview();
+            updatePeriodCalendarStatus();renderCalendar(true);refreshPeriodReconciliation();
         }
         function updatePeriodCalendarStatus(){
             const start=document.getElementById('period-start').value,end=document.getElementById('period-end').value;
@@ -2956,9 +3033,27 @@ function renderRegularCostLists() {
             return {income,expenses,profit:Math.round((income-expenses)*100)/100};
         }
         function periodSummaryOverlap(start,end,ignoreId=null){
-            return (appState.periodEntries||[]).some(p=>p.id!==ignoreId&&p.period_start<=end&&p.period_end>=start)||
-                appState.transactions.some(t=>t.date>=start&&t.date<=end)||
-                appState.mileageTrips.some(t=>t.trip_date>=start&&t.trip_date<=end);
+            return (appState.periodEntries||[]).some(p=>p.id!==ignoreId&&p.period_start<=end&&p.period_end>=start);
+        }
+        function resetPeriodReview(){document.getElementById('period-review-confirm').checked=false;}
+        async function refreshPeriodReconciliation(){
+            const start=document.getElementById('period-start').value,end=document.getElementById('period-end').value;
+            const request=(appState.periodReviewRequest||0)+1;appState.periodReviewRequest=request;
+            appState.periodReviewedRecords=null;resetPeriodReview();updatePeriodSummaryPreview();
+            if(!start||!end||start>end||!appState.currentUser)return;
+            try{
+                const {data,error}=await supabaseClient.rpc('get_period_record_totals',{p_start:start,p_end:end});
+                if(request!==appState.periodReviewRequest)return;
+                if(error||!data)throw error||new Error('Could not check existing records');
+                appState.periodReviewedRecords={...data,start,end};updatePeriodSummaryPreview();
+            }catch(err){if(request===appState.periodReviewRequest){document.getElementById('period-reconciliation').textContent='Could not check existing records. Close and reopen this form to retry.';}}
+        }
+        function openPastEarnings(){
+            const week=getWeekBounds(new Date());
+            const end=parseIsoDate(week.start);end.setDate(end.getDate()-1);
+            const start=new Date(end);start.setDate(start.getDate()-6);
+            appState.calendarRangeStart=isoDate(start);appState.calendarRangeEnd=isoDate(end);appState.periodOpenedFromDashboard=true;
+            openPeriodEntryModal();
         }
         function updatePeriodSummaryPreview(){
             const mode=document.getElementById('period-entry-mode').value;
@@ -2970,10 +3065,23 @@ function renderRegularCostLists() {
             const start=document.getElementById('period-start').value,end=document.getElementById('period-end').value;
             const error=document.getElementById('period-entry-error');error.classList.add('hidden');
             if(start&&end&&periodSummaryOverlap(start,end,appState.editingPeriodId)){
-                error.textContent='These dates already contain records or another summary. Edit that summary or choose an unused date range.';error.classList.remove('hidden');
+                error.textContent='These dates overlap another summary. Edit that summary or choose another range.';error.classList.remove('hidden');
             }
             try{
                 const t=calculatePeriodSummary(Number(document.getElementById('period-income').value||0),Number(document.getElementById(mode==='profit'?'period-profit':'period-expenses').value||0),mode);
+                const r=appState.periodReviewedRecords;
+                const box=document.getElementById('period-reconciliation');
+                const ready=r&&r.start===start&&r.end===end;
+                document.getElementById('period-review-label').classList.toggle('hidden',!ready||!Number(r.count));
+                if(!ready)box.textContent=end?'Checking existing records…':'Choose an end date to check existing records.';
+                else{
+                    const money=n=>'£'+Number(n).toFixed(2);
+                    box.innerHTML='<p class="font-bold text-blue-200">Existing records included — no double counting</p><div class="grid grid-cols-3 gap-2 text-[10px]"><span></span><b>Recorded</b><b>Still to add</b><span>Income</span><span>'+money(r.income)+'</span><span>'+money(Math.max(0,t.income-r.income))+'</span><span>Expenses</span><span>'+money(r.expenses)+'</span><span>'+money(Math.max(0,t.expenses-r.expenses))+'</span></div><p class="text-[9px] text-slate-400">Your receipts and individual records stay saved. These are whole-period totals, not extra income or expenses.</p>';
+                    const mileage=document.getElementById('period-mileage').value;
+                    if(t.income+0.005<Number(r.income)||t.expenses+0.005<Number(r.expenses)||(mileage!==''&&Number(mileage)+0.05<Number(r.mileage))){
+                        error.textContent='A whole-period total is lower than the amount already recorded. Check your totals or correct the existing records first.';error.classList.remove('hidden');
+                    }
+                }
                 const included=document.getElementById('period-regular-included').value;
                 const share=included==='no'&&start&&end&&start<=end?getRecurringCostShare(start,end,appState.editingPeriodId).total:0;
                 preview.innerHTML='<div class="flex justify-between"><span>Turnover</span><b>£'+t.income.toFixed(2)+'</b></div><div class="flex justify-between"><span>Expenses'+(mode==='profit'?' (calculated)':'')+'</span><b>£'+t.expenses.toFixed(2)+'</b></div><div class="flex justify-between text-violet-300"><span>Additional regular-cost share</span><b>£'+share.toFixed(2)+'</b></div><div class="flex justify-between text-emerald-300"><span>Business profit before tax</span><b>£'+(t.profit-share).toFixed(2)+'</b></div><p class="text-[9px] text-slate-500">'+(included==='yes'?'Regular costs are included — no second deduction.':included==='no'?'Your regular-cost share will be deducted separately.':'Choose whether regular costs are included to finish this review.')+'</p>';
@@ -2991,6 +3099,7 @@ function renderRegularCostLists() {
             const end=saved?.period_end||appState.calendarRangeEnd;
             if(!start||!end){showToast('Select a date range first');return;}
             appState.editingPeriodId=saved?.id||null;
+            appState.periodReviewedRecords=null;
             document.getElementById('period-entry-label').textContent=saved?'Edit saved period summary':'Whole-period summary';
             document.getElementById('period-start').value=start;
             document.getElementById('period-end').value=saved?end:(end>today?today:end);
@@ -3007,31 +3116,39 @@ function renderRegularCostLists() {
             document.getElementById('period-save-btn').textContent=saved?'Update Summary':'Save Catch Up Records';
             updatePeriodSummaryPreview();
             document.getElementById('period-entry-modal').classList.remove('hidden');
+            refreshPeriodReconciliation();
         }
-        function closePeriodEntryModal(){document.getElementById('period-entry-modal').classList.add('hidden');}
+        function closePeriodEntryModal(){document.getElementById('period-entry-modal').classList.add('hidden');appState.periodReviewRequest=(appState.periodReviewRequest||0)+1;}
         async function handleSavePeriodEntry(e){
             e.preventDefault();if(!appState.currentUser||appState.periodSaving)return;
             const btn=document.getElementById('period-save-btn'),error=document.getElementById('period-entry-error');
             const start=document.getElementById('period-start').value,end=document.getElementById('period-end').value;
             try{
                 if(!start||!end||start>end||end>isoDate(new Date()))throw new Error('Choose a completed date range ending today or earlier.');
-                if(periodSummaryOverlap(start,end,appState.editingPeriodId))throw new Error('These dates already contain records or a saved summary. Edit the existing summary or choose another range.');
+                if(periodSummaryOverlap(start,end,appState.editingPeriodId))throw new Error('These dates overlap a saved summary. Edit that summary or choose another range.');
                 const mode=document.getElementById('period-entry-mode').value;
                 const turnover=Number(document.getElementById('period-income').value);
                 const second=Number(document.getElementById(mode==='profit'?'period-profit':'period-expenses').value);
-                calculatePeriodSummary(turnover,second,mode);
+                const totals=calculatePeriodSummary(turnover,second,mode);
+                const reviewed=appState.periodReviewedRecords;
+                if(!reviewed||reviewed.start!==start||reviewed.end!==end)throw new Error('Wait for the existing-record check before saving.');
+                const mileageValue=document.getElementById('period-mileage').value;
+                const mileage=mileageValue===''?Number(reviewed.mileage):Number(mileageValue);
+                if(totals.income+0.005<Number(reviewed.income)||totals.expenses+0.005<Number(reviewed.expenses)||mileage+0.05<Number(reviewed.mileage))throw new Error('Totals cannot be lower than existing records. Check your figures first.');
+                if(Number(reviewed.count)>0&&!document.getElementById('period-review-confirm').checked)throw new Error('Review the recorded amounts and tick the confirmation before saving.');
                 const included=document.getElementById('period-regular-included').value;
                 if(!included)throw new Error('Choose whether your totals include regular costs.');
                 appState.periodSaving=true;btn.disabled=true;btn.textContent='Saving…';
                 const {data,error:saveError}=await supabaseClient.rpc('save_period_summary',{p_id:appState.editingPeriodId||null,p_summary:{
                     period_start:start,period_end:end,turnover,entry_mode:mode,expenses:mode==='expenses'?second:null,profit:mode==='profit'?second:null,
-                    regular_costs_included:included==='yes',business_miles:Number(document.getElementById('period-mileage').value||0),
+                    regular_costs_included:included==='yes',business_miles:mileage,reconcile:true,review_signature:reviewed.signature,
                     statement_source:document.getElementById('period-source').value.trim(),notes:document.getElementById('period-notes').value.trim()}});
-                if(saveError)throw new Error(saveError.message==='period_summary_overlap'?'These dates now contain other records. Refresh and choose another range.':saveError.message);
+                if(saveError){if(saveError.message==='period_records_changed')refreshPeriodReconciliation();throw new Error(saveError.message==='period_records_changed'?'Records changed since your review. Review the updated amounts and save again.':saveError.message==='period_summary_overlap'?'These dates overlap another saved summary.':saveError.message);}
                 if(!data)throw new Error('Save could not be confirmed. Refresh before retrying.');
                 const editing=!!appState.editingPeriodId;
                 closePeriodEntryModal();await fetchUserData(appState.currentUser.id);
                 appState.calendarRangeStart=start;appState.calendarRangeEnd=end;appState.calendarSelectionMode='range';appState.calendarDate=parseIsoDate(start);
+                if(appState.periodOpenedFromDashboard){appState.periodOpenedFromDashboard=false;openCalendarModal();}
                 showCalendarRange(start,end);showToast(editing?'Summary updated':'Whole-period summary saved');
             }catch(err){error.textContent=err.message||'Could not save summary';error.classList.remove('hidden');}
             finally{appState.periodSaving=false;btn.disabled=false;btn.textContent=appState.editingPeriodId?'Update Summary':'Save Catch Up Records';}
@@ -3108,7 +3225,7 @@ function renderRegularCostLists() {
             `;
 
             const activityHtml = items.join('') || '<p class="text-center text-xs text-slate-500 py-2">No activity recorded for this day.</p>';
-            const summaryLinks=(appState.periodEntries||[]).filter(p=>p.period_start<=dateStr&&p.period_end>=dateStr).map(p=>'<div class="bg-blue-500/10 rounded-xl p-3 text-[10px] text-blue-200">This day belongs to a saved period summary. Daily totals are unavailable. <button onclick="viewPeriodSummary(\''+p.id+'\')" class="font-bold underline">View whole-period totals</button></div>').join('');
+            const summaryLinks=(appState.periodEntries||[]).filter(p=>p.period_start<=dateStr&&p.period_end>=dateStr).map(p=>'<div class="bg-blue-500/10 rounded-xl p-3 text-[10px] text-blue-200">This day belongs to a saved period summary. Unrecorded catch-up totals are available for the full period. <button onclick="viewPeriodSummary(\''+p.id+'\')" class="font-bold underline">View whole-period totals</button></div>').join('');
             document.getElementById('calendar-day-items').innerHTML = summaryLinks + activityHtml + dailyAnalysis;
 
             const actions = document.getElementById('calendar-day-actions');

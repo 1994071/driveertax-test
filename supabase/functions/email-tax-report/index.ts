@@ -13,14 +13,15 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
-    const client = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
-    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
-    const { data: auth, error: authError } = await client.auth.getUser(token);
-    if (authError || !auth.user) return new Response(JSON.stringify({ error: "Sign in to send a report." }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const body = await req.json();
     const resendKey = Deno.env.get("RESEND_API_KEY");
     const fromEmail = Deno.env.get("REPORT_FROM_EMAIL");
-    if (body?.action === "status") return new Response(JSON.stringify({ configured: Boolean(resendKey && fromEmail) }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (body?.action === "status") return new Response(JSON.stringify({ configured: Boolean(resendKey && fromEmail), providerConfigured: Boolean(resendKey), senderConfigured: Boolean(fromEmail) }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const client = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
+    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+    if (!token) return new Response(JSON.stringify({ error: "Sign in to send a report." }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const { data: auth, error: authError } = await client.auth.getUser(token);
+    if (authError || !auth.user) return new Response(JSON.stringify({ error: "Sign in to send a report." }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (!resendKey) return new Response(JSON.stringify({ error: "Email service is not configured yet." }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (!fromEmail) return new Response(JSON.stringify({ error: "Sender email is not configured yet." }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
@@ -64,7 +65,7 @@ Deno.serve(async (req: Request) => {
     });
 
     const result = await resendResponse.json().catch(() => ({}));
-    if (!resendResponse.ok) {
+    if (!resendResponse.ok || !result?.id) {
       console.error("Resend error", result);
       return new Response(JSON.stringify({ error: result?.message || "Email provider rejected the message." }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }

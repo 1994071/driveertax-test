@@ -1,0 +1,32 @@
+const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
+const {parseHTML}=require('linkedom'),{jsPDF}=require('jspdf');
+const html=fs.readFileSync(__dirname+'/../index.html','utf8'),{window}=parseHTML(html);let ctx,calls=[],downloads=[],shared=[],shareError=null;
+window.jspdf={jsPDF};window.supabase={createClient:()=>({rpc:async(name,payload)=>{
+ if(name==='get_period_record_totals')return {data:{...vm.runInContext(`recordedPeriodTotals('${payload.p_start}','${payload.p_end}')`,ctx),signature:'snapshot'},error:null};
+ calls.push(payload);return {data:'saved',error:null};}})};
+const navigator={canShare:()=>true,share:async payload=>{if(shareError)throw shareError;shared.push(payload);}};
+ctx=vm.createContext({window,document:window.document,console,Date,setTimeout,Blob,File,navigator,URL});
+const source=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x=>x[1]).find(x=>x.includes('let appState'));vm.runInContext(source,ctx);const run=s=>vm.runInContext(s,ctx);
+for(const id of ['period-entry-mode','period-regular-included'])Object.defineProperty(window.document.getElementById(id),'value',{writable:true,value:''});
+run("appState.currentUser={id:'driver'};showToast=()=>{};fetchUserData=async()=>{};showCalendarRange=()=>{};openCalendarModal=()=>{};appState.calendarRangeStart='2026-09-01';appState.calendarRangeEnd='2026-09-07';appState.transactions=[{id:'i',type:'income',date:'2026-09-02',amount:500,source:'Uber'},{id:'e',type:'expense',date:'2026-09-02',amount:100,category:'Fuel',notes:'=HYPERLINK(\"bad\")'}];appState.mileageTrips=[{id:'m',trip_date:'2026-09-02',business_miles:20}];appState.recurringExpenses=[{id:'r',is_active:false,start_date:'2026-09-01',end_date:'2026-09-07',frequency:'yearly',amount:365.2425,category:'Phone'}];");
+(async()=>{
+ run('openPeriodEntryModal()');await run('refreshPeriodReconciliation()');
+ for(const [id,value]of [['period-income','2000'],['period-expenses','500'],['period-regular-included','yes'],['period-mileage','50']])window.document.getElementById(id).value=value;
+ run('updatePeriodSummaryPreview()');assert.ok(window.document.getElementById('period-reconciliation').textContent.includes('1500.00'));
+ await run('handleSavePeriodEntry({preventDefault(){}})');assert.equal(calls.length,0);assert.ok(window.document.getElementById('period-entry-error').textContent.includes('tick'));
+ window.document.getElementById('period-review-confirm').checked=true;await run('handleSavePeriodEntry({preventDefault(){}})');assert.equal(calls.length,1);assert.equal(calls[0].p_summary.review_signature,'snapshot');assert.equal(calls[0].p_summary.reconcile,true);
+ run("appState.periodEntries=[{id:'p',period_start:'2026-09-01',period_end:'2026-09-07',income_amount:2000,expense_amount:500,business_miles:50,reconciled:true,regular_costs_included:true,statement_source:'Uber'}]");
+ assert.equal(run("getRangeActivity('2026-09-01','2026-09-07').income"),2000);assert.equal(run("getRangeActivity('2026-09-01','2026-09-07').expenses"),500);assert.equal(run("getRangeActivity('2026-09-01','2026-09-07').mileage"),50);
+ assert.equal(run("getRecurringCostShare('2026-09-02','2026-09-03').total"),0);
+ run("appState.transactions.push({id:'e2',type:'expense',date:'2026-09-03',amount:50,category:'Fuel'})");assert.equal(run("getRangeActivity('2026-09-01','2026-09-07').expenses"),500);
+ assert.equal(run('getTaxYearSummary().income'),2000);assert.equal(run('getTaxYearSummary().profit'),1500);
+ const csv=await run('buildTaxCsvBlob()').text();assert.ok(csv.includes('"1500.00","350.00","30.0"'));assert.ok(csv.includes("'=HYPERLINK"));
+ const pdf=await run('buildTaxPdfBlob()').arrayBuffer();assert.ok(Buffer.from(pdf).subarray(0,5).toString()==='%PDF-');fs.writeFileSync('/tmp/drivertax-tested-report.pdf',Buffer.from(pdf));
+ const files=run("selectTaxShareFile('both');getSelectedTaxFiles()");assert.equal(files.length,2);assert.ok(files.every(f=>f.size>100));
+ await run("shareSelectedTaxFiles('whatsapp')");assert.equal(shared.length,1);assert.equal(shared[0].files.length,2);
+ shareError={name:'AbortError'};await run("shareSelectedTaxFiles('whatsapp')");assert.ok(window.document.getElementById('tax-share-fallback').classList.contains('hidden'));
+ shareError={name:'NotAllowedError'};await run("shareSelectedTaxFiles('whatsapp')");assert.equal(window.document.getElementById('tax-share-fallback').querySelectorAll('button').length,2);assert.equal(window.document.getElementById('tax-share-fallback').querySelector('a').getAttribute('href'),'https://wa.me/');
+ run("appState.transactions.push({id:'e3',type:'expense',date:'2026-09-03',amount:600,category:'Fuel'})");assert.equal(run("getRangeActivity('2026-09-01','2026-09-07').expenses"),750);assert.equal(run('periodTotalsExceeded(appState.periodEntries[0])'),true);
+ run("appState.transactions=[];appState.mileageTrips=[];appState.periodEntries=[{id:'loss',period_start:'2026-09-01',period_end:'2026-09-07',income_amount:100,expense_amount:150,business_miles:0,reconciled:true,regular_costs_included:true}]");assert.equal(run('getTaxYearSummary().profit'),-50);assert.equal(run('getTaxYearSummary().total'),0);
+ console.log('PASS: reviewed top-ups, no double counting, later receipts, mileage, regular costs, tax totals/losses, real PDF, CSV reconciliation/formula escaping, native file share, cancellation and manual WhatsApp attachments.');
+})().catch(e=>{console.error(e);process.exit(1)});
