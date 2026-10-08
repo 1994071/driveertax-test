@@ -505,7 +505,17 @@
 
                 <form onsubmit="handleSavePeriodEntry(event)" class="space-y-3 max-h-[70vh] overflow-y-auto">
                     <p class="text-[10px] text-slate-400">Enter whole-period totals from your statements. Individual days are not estimated.</p>
-                    <div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] text-slate-400">From</label><input id="period-start" type="date" required onchange="updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div><div><label class="text-[10px] text-slate-400">To</label><input id="period-end" type="date" required onchange="updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div></div>
+                    <input id="period-start" type="hidden"><input id="period-end" type="hidden">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <button type="button" onclick="changePeriodCalendarMonth(-1)" aria-label="Previous month" class="w-8 h-8 rounded-xl bg-slate-800 text-slate-300"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                            <h3 id="period-calendar-month-title" class="text-sm font-bold text-white"></h3>
+                            <button type="button" onclick="changePeriodCalendarMonth(1)" aria-label="Next month" class="w-8 h-8 rounded-xl bg-slate-800 text-slate-300"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                        </div>
+                        <div class="grid grid-cols-7 gap-1 text-center text-[9px] font-bold text-slate-500 mb-2"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+                        <div id="period-calendar-grid" class="grid grid-cols-7 gap-1"></div>
+                        <p id="period-calendar-status" aria-live="polite" class="text-[10px] text-blue-200 mt-3"></p>
+                    </div>
                     <div><label class="text-[11px] text-slate-400 block mb-1">Total turnover (£) — before expenses</label><input id="period-income" type="number" min="0" step="0.01" required placeholder="e.g. 5000.00" oninput="updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
                     <div><label class="text-[11px] text-slate-400 block mb-1">Which total do you know?</label><select id="period-entry-mode" onchange="updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option value="expenses">I know my expenses</option><option value="profit">I know my profit</option></select></div>
                     <div id="period-expenses-group"><label class="text-[11px] text-slate-400 block mb-1">Total expenses (£)</label><input id="period-expenses" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
@@ -2638,36 +2648,39 @@ function renderRegularCostLists() {
             showCalendarRange(start, end);
         }
 
-        function renderCalendar() {
-            const d = new Date(appState.calendarDate);
+        function renderCalendar(forPeriod = false) {
+            const d = new Date(forPeriod ? appState.periodCalendarDate : appState.calendarDate);
+            const prefix = forPeriod ? 'period-calendar' : 'calendar';
+            const start = forPeriod ? document.getElementById('period-start').value : appState.calendarRangeStart;
+            const end = forPeriod ? document.getElementById('period-end').value : appState.calendarRangeEnd;
             const year = d.getFullYear();
             const month = d.getMonth();
-            const title = document.getElementById('calendar-month-title');
+            const title = document.getElementById(prefix + '-month-title');
             if (title) title.textContent = d.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
 
             const first = new Date(year, month, 1);
             const days = new Date(year, month + 1, 0).getDate();
             const mondayIndex = (first.getDay() + 6) % 7;
-            const grid = document.getElementById('calendar-grid');
+            const grid = document.getElementById(prefix + '-grid');
             if (!grid) return;
             let html = '';
             for (let i=0;i<mondayIndex;i++) html += '<div></div>';
             for (let day=1; day<=days; day++) {
                 const ds = year + '-' + String(month+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
                 const a = getDayActivity(ds);
-                const selected = ds === appState.selectedCalendarDate;
+                const selected = !forPeriod && ds === appState.selectedCalendarDate;
                 const today = ds === isoDate(new Date());
-                const inRange = appState.calendarRangeStart && appState.calendarRangeEnd &&
-                    parseIsoDate(ds) >= parseIsoDate(appState.calendarRangeStart) &&
-                    parseIsoDate(ds) <= parseIsoDate(appState.calendarRangeEnd);
-                const rangeStart = ds === appState.calendarRangeStart;
-                const rangeEnd = ds === appState.calendarRangeEnd;
+                const inRange = start && end &&
+                    parseIsoDate(ds) >= parseIsoDate(start) &&
+                    parseIsoDate(ds) <= parseIsoDate(end);
+                const rangeStart = ds === start;
+                const rangeEnd = ds === end;
                 const activeClass = inRange || rangeStart || rangeEnd
                     ? 'border-blue-400 bg-blue-500/15'
                     : (selected ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-800 bg-slate-950/50');
 
                 html += `
-                    <button type="button" onclick="handleCalendarDateClick('${ds}')" class="min-h-[48px] rounded-xl border p-1 flex flex-col items-center justify-center ${activeClass}">
+                    <button type="button" onclick="${forPeriod ? 'handlePeriodCalendarDateClick' : 'handleCalendarDateClick'}('${ds}')" ${forPeriod && ds > isoDate(new Date()) ? 'disabled' : ''} aria-label="${formatUkDate(ds)}" aria-pressed="${!!(inRange || rangeStart || rangeEnd)}" class="disabled:opacity-30 min-h-[48px] rounded-xl border p-1 flex flex-col items-center justify-center ${activeClass}">
                         <span class="text-[11px] font-bold ${today ? 'text-emerald-400' : 'text-slate-200'}">${day}</span>
                         <div class="flex gap-0.5 mt-1">
                             ${a.income > 0 ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>' : ''}
@@ -2917,6 +2930,24 @@ function renderRegularCostLists() {
             `;
         }
 
+        function changePeriodCalendarMonth(delta){
+            const d=new Date(appState.periodCalendarDate);
+            d.setDate(1);d.setMonth(d.getMonth()+delta);
+            appState.periodCalendarDate=d;renderCalendar(true);
+        }
+        function handlePeriodCalendarDateClick(dateStr){
+            if(dateStr>isoDate(new Date()))return;
+            const start=document.getElementById('period-start'),end=document.getElementById('period-end');
+            if(!start.value||end.value){start.value=dateStr;end.value='';}
+            else{end.value=dateStr;if(end.value<start.value)[start.value,end.value]=[end.value,start.value];}
+            updatePeriodCalendarStatus();renderCalendar(true);updatePeriodSummaryPreview();
+        }
+        function updatePeriodCalendarStatus(){
+            const start=document.getElementById('period-start').value,end=document.getElementById('period-end').value;
+            document.getElementById('period-calendar-status').textContent=end
+                ? 'From '+formatUkDate(start)+' to '+formatUkDate(end)+'. Tap a date to choose a new range.'
+                : start ? 'From '+formatUkDate(start)+'. Now tap the end date.' : 'Tap the start date, then the end date.';
+        }
         function calculatePeriodSummary(turnover,second,mode){
             if(!Number.isFinite(turnover)||!Number.isFinite(second)||turnover<0)throw new Error('Enter valid totals.');
             const income=Math.round(turnover*100)/100;
@@ -2963,7 +2994,8 @@ function renderRegularCostLists() {
             document.getElementById('period-entry-label').textContent=saved?'Edit saved period summary':'Whole-period summary';
             document.getElementById('period-start').value=start;
             document.getElementById('period-end').value=saved?end:(end>today?today:end);
-            document.getElementById('period-end').max=today;
+            appState.periodCalendarDate=parseIsoDate(start);
+            updatePeriodCalendarStatus();renderCalendar(true);
             document.getElementById('period-income').value=saved?.income_amount??'';
             document.getElementById('period-expenses').value=saved?.expense_amount??'';
             document.getElementById('period-profit').value=saved?Number(saved.income_amount)-Number(saved.expense_amount):'';
