@@ -40,3 +40,11 @@ Receipt DOM tests require `linkedom`: `node tests/receipt-duplicate-checks.cjs`.
 ## Navigation and week selection
 
 Bottom navigation is Dashboard / Calendar / Scan / Tax. Records remains accessible through Dashboard's View All link, with a Back to Dashboard control; receipt saves return to Dashboard. Calendar Week and dashboard This Week share Monday–Sunday bounds, including weeks spanning a month or year boundary. On 8 October 2026 the range is 5–11 October, replacing the former Calendar 8–14 monthly block.
+
+## Catch Up Records: whole-period summaries
+
+Select dates, enter turnover, then choose known expenses or known profit. Expenses/profit are derived automatically; negative profits are supported. A required regular-cost choice controls whether allocated recurring costs are deducted separately. Mileage, statement source and notes are optional. The live review displays business profit before tax. Saved summaries have an Edit Summary control and appear in CSV exports.
+
+The `save_period_summary` RPC validates and derives totals, restricts entries to completed dates within one tax year, and prevents overlap with dated records or existing summaries. Driver access uses auth.uid() and existing RLS policies. `supabase/schema/period_summaries.sql` has been applied. Period totals are counted only when the selected range contains the entire summary; partial selections link to the full summary instead of inventing daily income.
+
+Verification: `node tests/period-summary-checks.cjs` (requires linkedom), plus existing regression checks. Rolled-back database fixtures verified derived expenses, editing, overlap rejection and tax-year boundary validation.
