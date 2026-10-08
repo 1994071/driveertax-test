@@ -8,6 +8,6 @@ for(const [date,start,end] of [['2026-10-08','2026-10-05','2026-10-11'],['2026-1
  const week=run(`getWeekBounds(parseIsoDate('${date}'))`);assert.equal(week.start,start);assert.equal(week.end,end);
 }
 run("renderCalendar=()=>{};showCalendarRange=()=>{};selectCalendarPreset('week')");assert.equal(run('appState.calendarRangeStart'),'2026-10-05');assert.equal(run('appState.calendarRangeEnd'),'2026-10-11');
-assert.equal(run("getDashboardPeriodBounds('week').start"),'2026-10-05');assert.equal(run("getDashboardPeriodBounds('week').end"),'2026-10-11');
+assert.equal(run("getDashboardPeriodBounds('week').start"),'2026-10-05');assert.equal(run("getDashboardPeriodBounds('week').end"),'2026-10-08');
 const nav=html.match(/<nav\b[^>]*>[\s\S]*?<\/nav>/)[0];assert.equal((nav.match(/class="nav-btn/g)||[]).length,4);assert.ok(!nav.includes('nav-records'));assert.ok(html.includes('Back to Dashboard'));assert.ok(html.includes('View All'));
-console.log('PASS: Calendar/Dashboard week consistency, Monday/Sunday boundaries, cross-month/year weeks and four-item navigation.');
+console.log('PASS: Calendar full week and Dashboard week-to-date, Monday/Sunday boundaries, cross-month/year weeks and four-item navigation.');
