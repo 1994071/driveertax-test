@@ -28,3 +28,11 @@ node tests/email-checks.cjs
 The optional `tests/batch-checks.cjs` exercises the UI with Playwright. It needs Playwright and an installed Chromium browser. Browser execution was unavailable in the build environment, so visual verification remains outstanding.
 
 Tax source references: https://www.gov.uk/guidance/rates-and-thresholds-for-employers-2026-to-2027, https://www.gov.uk/self-employed-national-insurance-rates, https://www.gov.uk/marriage-allowance.
+
+## Duplicate receipt warnings
+
+The scanner warns for an identical file (SHA-256 fingerprint), or an existing expense with matching merchant, date and total. Both warnings offer **Cancel** and **Save anyway**. A fresh database check runs on confirmation. Saving anyway is tied to the current receipt details; changed details require a fresh acknowledgement when still matching.
+
+The `save_scanned_receipt` RPC respects RLS, serializes identical-file saves per driver, inserts both records atomically, and uses a save request ID so retries return the same expense. Its schema SQL in `supabase/schema/receipt_duplicates.sql` has been applied. Legacy receipt files have no fingerprint; matching details still produce a warning. A retaken photograph is detected through matching details rather than a file hash, so OCR mistakes can affect detection.
+
+Receipt DOM tests require `linkedom`: `node tests/receipt-duplicate-checks.cjs`. Database checks ran inside a rolled-back transaction and covered warning enforcement, explicit duplicate override, retry safety, and file-owner validation.

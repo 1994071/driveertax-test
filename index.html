@@ -337,6 +337,11 @@
                     </div>
                     <div><label class="text-[10px] text-slate-500 font-bold">Category</label><select id="receipt-category" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></select></div>
                     <p id="receipt-validation-msg" class="hidden text-[10px] font-semibold text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-xl p-2"></p>
+                    <div id="receipt-duplicate-warning" role="alert" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 space-y-2">
+                        <p id="receipt-duplicate-title" class="text-xs font-bold text-amber-300">Possible duplicate receipt</p>
+                        <p id="receipt-duplicate-details" class="text-[10px] text-amber-200"></p>
+                        <div class="flex gap-2"><button type="button" onclick="cancelReceiptReview()" class="bg-slate-800 text-white px-3 py-2 rounded-lg text-[10px] font-bold">Cancel</button><button type="button" onclick="savePossibleDuplicateReceipt()" class="bg-amber-400 text-slate-950 px-3 py-2 rounded-lg text-[10px] font-bold">Save anyway</button></div>
+                    </div>
                     <div class="grid grid-cols-2 gap-2">
                         <button onclick="cancelReceiptReview()" class="bg-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs">Cancel</button>
                         <button id="receipt-confirm-btn" onclick="confirmReceiptExpense()" class="bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs disabled:opacity-50 disabled:cursor-not-allowed">Confirm & Save</button>
@@ -2191,11 +2196,51 @@ function openAccountModal() {
             return shareSelectedTaxFiles(method);
         }
 
+        async function receiptFileHash(file){
+            if(!globalThis.crypto?.subtle)throw new Error('Receipt checks require a secure HTTPS connection.');
+            const digest=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());
+            return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+        }
+        function normaliseReceiptMerchant(value){
+            return String(value||'').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
+        }
+        function receiptDetailsFingerprint(merchant,date,amount){
+            return JSON.stringify([appState.pendingReceiptHash,normaliseReceiptMerchant(merchant),date,Math.round(amount*100)]);
+        }
+        function matchingReceiptExpense(rows,merchant,date,amount){
+            const name=normaliseReceiptMerchant(merchant);
+            if(!name || name==='receipt')return null;
+            return rows.find(r=>normaliseReceiptMerchant(r.merchant||r.vendor)===name &&
+                (r.expense_date||r.date)===date && Math.round(Number(r.amount)*100)===Math.round(amount*100))||null;
+        }
+        async function findSavedReceiptHash(hash){
+            const {data,error}=await supabaseClient.from('receipts').select('id,expense_id,extracted_date,extracted_amount').eq('user_id',appState.currentUser.id).eq('content_sha256',hash).limit(1);
+            if(error)throw error;
+            return data?.[0]||null;
+        }
+        function showReceiptDuplicateWarning(merchant,date,amount,exact=false){
+            appState.receiptDuplicateCandidate=receiptDetailsFingerprint(merchant,date,amount);
+            document.getElementById('receipt-duplicate-title').textContent=exact?'Receipt already added':'Possible duplicate receipt';
+            document.getElementById('receipt-duplicate-details').textContent=exact
+                ? 'This receipt has already been added. Cancel to avoid adding it twice, or choose Save anyway to add another expense.'
+                : 'An expense for '+merchant+' on '+formatUkDate(date)+' for £'+amount.toFixed(2)+' already exists. Cancel or choose Save anyway to add another expense.';
+            document.getElementById('receipt-duplicate-warning').classList.remove('hidden');
+            showToast(exact?'This receipt has already been added':'Possible duplicate receipt');
+        }
+        function savePossibleDuplicateReceipt(){
+            appState.receiptDuplicateOverride=appState.receiptDuplicateCandidate;
+            confirmReceiptExpense();
+        }
+
         async function handleReceiptSelected(input){
             const file=input.files?.[0];
             if(!file||!appState.currentUser)return;
+            if(appState.receiptScanning||appState.receiptSaving){showToast('Please wait for the current receipt');return;}
             if(file.size>10*1024*1024){showToast('Choose an image under 10 MB');return;}
 
+            cancelReceiptReview();
+            appState.receiptScanning=true;
+            input.disabled=true;
             appState.pendingReceiptFile=file;
             appState.pendingReceiptAi=false;
             const status=document.getElementById('receipt-scan-status');
@@ -2204,9 +2249,14 @@ function openAccountModal() {
 
             status.classList.remove('hidden');
             review.classList.add('hidden');
-            status.innerHTML='<i class="fa-solid fa-cloud-arrow-up text-emerald-400 mr-2"></i>Uploading receipt securely…';
+            status.textContent='Checking whether this receipt has already been added…';
 
             try{
+                const hash=await receiptFileHash(file);
+                appState.pendingReceiptHash=hash;
+                appState.pendingReceiptSaveId=crypto.randomUUID();
+                appState.pendingReceiptExactMatch=!!(await findSavedReceiptHash(hash));
+                status.textContent='Uploading receipt securely…';
                 const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
                 const path=appState.currentUser.id+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
                 const {error}=await supabaseClient.storage.from('receipts').upload(path,file,{
@@ -2220,7 +2270,7 @@ function openAccountModal() {
                 setDateField('receipt-date','receipt-date-label',isoDate(new Date()));
 
                 const cats=[...new Set([...(appState.selectedExpenses||[]),'Fuel','Parking','Tolls','Vehicle Repairs','Vehicle Cleaning','Phone','Insurance','Licensing','Other'])];
-                document.getElementById('receipt-category').innerHTML=cats.map(x=>'<option>'+x+'</option>').join('');
+                document.getElementById('receipt-category').innerHTML=cats.map(x=>'<option>'+escapeHtml(x)+'</option>').join('');
 
                 document.getElementById('receipt-merchant').value='';
                 document.getElementById('receipt-amount').value='';
@@ -2239,6 +2289,7 @@ function openAccountModal() {
                     confidenceEl.textContent='Manual review';
                     confidenceEl.className='text-[9px] font-bold text-amber-300';
                     review.classList.remove('hidden');
+                    if(appState.pendingReceiptExactMatch)showReceiptDuplicateWarning('',isoDate(new Date()),0,true);
                     return;
                 }
 
@@ -2255,13 +2306,21 @@ function openAccountModal() {
                 confidenceEl.className='text-[9px] font-bold '+(confidence>=0.85?'text-emerald-300':confidence>=0.60?'text-amber-300':'text-rose-300');
                 status.innerHTML='<i class="fa-solid fa-circle-check text-emerald-400 mr-2"></i>Receipt read automatically. Please check the details, then tap Confirm & Save.';
                 review.classList.remove('hidden');
+                const merchant=document.getElementById('receipt-merchant').value;
+                const receiptDate=document.getElementById('receipt-date').value;
+                const amount=Number(document.getElementById('receipt-amount').value||0);
+                const possible=matchingReceiptExpense(appState.transactions.filter(t=>t.type==='expense'),merchant,receiptDate,amount);
+                if(appState.pendingReceiptExactMatch||possible)showReceiptDuplicateWarning(merchant,receiptDate,amount,appState.pendingReceiptExactMatch);
             }catch(err){
                 console.error(err);
-                status.innerHTML='<i class="fa-solid fa-triangle-exclamation text-rose-400 mr-2"></i>Upload failed. Please retry.';
+                status.textContent='Could not check or upload this receipt. Please retry.';
+                appState.pendingReceiptPath=null;
+            }finally{
+                appState.receiptScanning=false;input.disabled=false;
             }
         }
         async function confirmReceiptExpense(){
-            if(!appState.currentUser||!appState.pendingReceiptPath)return;
+            if(!appState.currentUser||!appState.pendingReceiptPath||appState.receiptScanning)return;
             if(appState.receiptSaving)return;
 
             const btn=document.getElementById('receipt-confirm-btn');
@@ -2278,51 +2337,33 @@ function openAccountModal() {
             if(btn){btn.disabled=true;btn.textContent='Saving…';}
             validation.classList.add('hidden');
 
-            let createdExpenseId=null;
-
             try{
                 const merchant=document.getElementById('receipt-merchant').value.trim()||'Receipt';
                 const date=document.getElementById('receipt-date').value||isoDate(new Date());
                 const category=document.getElementById('receipt-category').value||'Other';
                 const vat=Number(document.getElementById('receipt-vat').value||0);
 
-                const {data:exp,error:e1}=await supabaseClient.from('expenses').insert([{
-                    user_id:appState.currentUser.id,
-                    category,
-                    amount,
-                    merchant,
-                    expense_date:date,
-                    notes:'Receipt scan',
-                    receipt_attached:true
-                }]).select('id').single();
-
-                if(e1) throw e1;
-                createdExpenseId=exp.id;
-
-                const f=appState.pendingReceiptFile;
-                const {error:e2}=await supabaseClient.from('receipts').insert([{
-                    user_id:appState.currentUser.id,
-                    expense_id:createdExpenseId,
-                    file_path:appState.pendingReceiptPath,
-                    original_filename:f?.name||null,
-                    mime_type:f?.type||null,
-                    size_bytes:f?.size||null,
-                    ai_status:appState.pendingReceiptAi?'completed':'failed',
-                    extracted_merchant:merchant,
-                    extracted_date:date,
-                    extracted_amount:amount,
-                    extracted_vat:vat||null,
-                    suggested_category:category,
-                    driver_confirmed:true
-                }]);
-
-                if(e2){
-                    // Keep expense + receipt consistent. If linking fails, remove the newly-created
-                    // expense so another tap cannot create duplicate expenses.
-                    await supabaseClient.from('expenses').delete().eq('id',createdExpenseId).eq('user_id',appState.currentUser.id);
-                    createdExpenseId=null;
-                    throw e2;
+                if(!appState.pendingReceiptHash)throw new Error('Receipt fingerprint is missing. Please select the image again.');
+                const exact=!!(await findSavedReceiptHash(appState.pendingReceiptHash));
+                const fingerprint=receiptDetailsFingerprint(merchant,date,amount);
+                const {data:existing,error:matchError}=await supabaseClient.from('expenses').select('id,merchant,amount,expense_date').eq('user_id',appState.currentUser.id).eq('expense_date',date).eq('amount',amount);
+                if(matchError)throw matchError;
+                const possible=matchingReceiptExpense(existing||[],merchant,date,amount);
+                if((exact||possible) && appState.receiptDuplicateOverride!==fingerprint){
+                    showReceiptDuplicateWarning(merchant,date,amount,exact);
+                    return;
                 }
+                document.getElementById('receipt-duplicate-warning').classList.add('hidden');
+                const f=appState.pendingReceiptFile;
+                const {data:savedId,error:saveError}=await supabaseClient.rpc('save_scanned_receipt',{
+                    p_receipt:{merchant,date,category,amount,vat:vat||null,
+                        file_path:appState.pendingReceiptPath,content_sha256:appState.pendingReceiptHash,save_request_id:appState.pendingReceiptSaveId,
+                        original_filename:f?.name||null,mime_type:f?.type||null,size_bytes:f?.size||null,
+                        ai_completed:!!appState.pendingReceiptAi,duplicate_override:appState.receiptDuplicateOverride===fingerprint}
+                });
+                if(saveError?.message==='receipt_duplicate'){showReceiptDuplicateWarning(merchant,date,amount,true);return;}
+                if(saveError)throw saveError;
+                if(!savedId)throw new Error('The receipt save was not confirmed.');
 
                 await fetchUserData(appState.currentUser.id);
                 cancelReceiptReview();
@@ -2330,14 +2371,14 @@ function openAccountModal() {
                 switchTab('records');
             }catch(err){
                 console.error('Receipt save error',err);
-                validation.textContent='Could not save this receipt. Nothing new was saved — please try again.';
+                validation.textContent='Could not confirm the save. Please retry; duplicate checks will run again.';
                 validation.classList.remove('hidden');
             }finally{
                 appState.receiptSaving=false;
                 if(btn){btn.disabled=false;btn.textContent='Confirm & Save';}
             }
         }
-        function cancelReceiptReview(){document.getElementById('receipt-review-card')?.classList.add('hidden');document.getElementById('receipt-scan-status')?.classList.add('hidden');document.getElementById('receipt-validation-msg')?.classList.add('hidden');document.getElementById('receipt-file-input').value='';appState.pendingReceiptFile=null;appState.pendingReceiptPath=null;appState.pendingReceiptAi=false;}
+        function cancelReceiptReview(){document.getElementById('receipt-review-card')?.classList.add('hidden');document.getElementById('receipt-scan-status')?.classList.add('hidden');document.getElementById('receipt-validation-msg')?.classList.add('hidden');document.getElementById('receipt-file-input').value='';appState.pendingReceiptFile=null;appState.pendingReceiptPath=null;appState.pendingReceiptAi=false;appState.pendingReceiptHash=null;appState.pendingReceiptSaveId=null;appState.pendingReceiptExactMatch=false;appState.receiptDuplicateOverride=null;appState.receiptDuplicateCandidate=null;document.getElementById('receipt-duplicate-warning')?.classList.add('hidden');}
 
 function renderRegularCostLists() {
             const rows = (appState.recurringExpenses || []).filter(r => r.is_active).map(r => {
