@@ -78,3 +78,9 @@ Driver choices are saved in account-scoped localStorage (`drivertax-dashboard-v1
 Optional app-open reminders show a dismissible, once-per-day banner at or after the driver's chosen UK time. There is no background push service. A downloadable daily .ics event with a display alarm and Europe/London daylight-saving rules is provided for the driver's calendar; importing and removing that event are managed by the calendar app separately. No external calendar is modified automatically.
 
 Validation: `TZ=Europe/London node tests/weekly-dashboard-checks.cjs` (requires linkedom) covers Dashboard cutoffs, regular costs, fair comparisons, detail totals, goals, review invalidation, partial ranges, account separation, reminder time/dismissal/off, calendar structure, DST and unavailable storage. Existing tax, navigation, receipt, reconciliation and report checks pass. Actual calendar import/notifications remain device-dependent.
+
+## Dashboard guided entry and emojis
+
+Dashboard Add Income and the shift reminder's Add income action now call the same `startDailyEntry` flow as Calendar, using the current UK date. Income saves advance to expenses; the existing optional expense/mileage steps and skips are retained. Standalone expense entry and receipt scanning remain separate actions. Main Dashboard options use distinct decorative emojis beside their existing labels.
+
+Validation: `TZ=Europe/London node tests/dashboard-daily-entry-checks.cjs` (linkedom) checks the actual Dashboard click handler, income save progression, date consistency and skipping expenses/mileage without extra saves. Weekly Dashboard regression checks also pass.
