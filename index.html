@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CabTax UK - Driver Expense & Tax Tracker</title>
+    <title>DriverTax - Driver Expense & Tax Tracker</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -733,7 +733,7 @@
         </div>
 
         <!-- Recurring Expense Modal -->
-        <div id="recurring-expense-modal" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-[78] flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div id="recurring-expense-modal" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-[86] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex justify-between items-center">
                     <div><h3 class="font-bold text-sm text-white">Add Regular Cost</h3><p class="text-[10px] text-slate-500 mt-1">Monthly or yearly business cost</p></div>
@@ -938,7 +938,7 @@
                         <div class="flex items-center justify-between"><h3 class="text-xs font-bold text-white">Personal & Work Details</h3><span id="account-tax-year" class="text-[9px] text-emerald-300 font-bold">2026/27</span></div>
                         <div><label class="text-[10px] text-slate-500 font-bold">Name</label><input id="profile-name" type="text" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
                         <div><label class="text-[10px] text-slate-500 font-bold">Email</label><input id="profile-email" type="email" disabled class="mt-1 w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-400"></div>
-                        <div><label class="text-[10px] text-slate-500 font-bold">Work type</label><select id="profile-work-type" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option>Taxi / Private Hire</option><option>Food Delivery</option><option>Parcel / Courier</option><option>Multi-platform Driver</option><option>Other</option></select></div>
+                        <div><label class="text-[10px] text-slate-500 font-bold">Work type</label><select id="profile-work-type" onchange="renderProfilePreferenceChips()" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option>Taxi / Private Hire</option><option>Food Delivery</option><option>Parcel / Courier</option><option>Multi-platform Driver</option><option>Other</option></select></div>
                         <div>
                             <label class="text-[10px] text-slate-500 font-bold">Platforms</label>
                             <div id="profile-platform-chips" class="flex flex-wrap gap-2 mt-2"></div>
@@ -956,21 +956,12 @@
                     <div class="flex items-center justify-between"><div><h3 class="text-xs font-bold text-white">Regular Costs</h3><p class="text-[9px] text-slate-500">Monthly and yearly costs</p></div><button type="button" onclick="openRecurringExpenseModal()" class="bg-violet-500/10 border border-violet-500/30 text-violet-300 px-3 py-2 rounded-xl text-[10px] font-bold">+ Add</button></div>
                     <div id="account-regular-cost-list" class="space-y-2"></div>
                 </div>
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
-                    <div class="flex items-center justify-between"><div><h3 class="text-xs font-bold text-white">Vehicle <span class="text-slate-500">(Optional)</span></h3><p class="text-[9px] text-slate-500">Only add this if it is useful to you</p></div><button id="vehicle-toggle-btn" type="button" onclick="toggleVehicleDetails()" class="text-[10px] font-bold text-blue-300">Add details</button></div>
-                    <div id="vehicle-details-form" class="hidden space-y-2">
-                        <div class="grid grid-cols-2 gap-2"><input id="vehicle-make" placeholder="Make" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><input id="vehicle-model" placeholder="Model" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
-                        <div class="grid grid-cols-2 gap-2"><input id="vehicle-year" type="number" min="1950" max="2100" placeholder="Year" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><input id="vehicle-registration" placeholder="Registration" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white uppercase"></div>
-                        <div class="grid grid-cols-2 gap-2"><select id="profile-vehicle-type" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option value="">Vehicle type</option><option>Car</option><option>Van</option><option>Motorcycle</option><option>Bicycle</option><option>Other</option></select><select id="vehicle-fuel" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option value="">Fuel type</option><option>Petrol</option><option>Diesel</option><option>Hybrid</option><option>Plug-in Hybrid</option><option>Electric</option><option>Other</option></select></div>
-                        <button type="button" onclick="saveVehicleDetails()" class="w-full bg-blue-500/15 border border-blue-500/25 text-blue-300 font-bold py-2.5 rounded-xl text-xs">Save Vehicle Details</button>
-                    </div>
-                </div>
                 <button type="button" onclick="signOutUser()" class="w-full border border-rose-500/25 bg-rose-500/10 text-rose-300 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-right-from-bracket mr-1"></i> Sign Out</button>
             </div>
         </div>
 
         <!-- Regular Cost Date Picker --><!-- Regular Cost Date Picker -->
-        <div id="recurring-date-picker-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div id="recurring-date-picker-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-[88] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex items-center justify-between">
                     <div>
@@ -1000,7 +991,7 @@
         </div>
 
         <!-- Regular Cost Saved -->
-        <div id="recurring-next-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-[79] flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div id="recurring-next-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-[87] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="text-center space-y-2">
                     <div class="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
@@ -1053,7 +1044,7 @@
             selectedPlatforms: [],
             selectedExpenses: [],
             calendarDate: new Date(),
-            selectedCalendarDate: new Date().toISOString().split('T')[0],
+            selectedCalendarDate: isoDate(new Date()),
             calendarSelectionMode: 'day',
             calendarRangeStart: null,
             calendarRangeEnd: null,
@@ -1086,7 +1077,7 @@
                 diag.className = 'text-[10px] text-rose-400 text-center';
             }
 
-            const todayIso = new Date().toISOString().split('T')[0];
+            const todayIso = isoDate(new Date());
             const incDate = document.getElementById('income-date');
             const expDate = document.getElementById('expense-date');
             const mileageDate = document.getElementById('mileage-date');
@@ -1423,7 +1414,7 @@
 
         async function fetchUserData(userId) {
             try {
-                const todayIso = new Date().toISOString().split('T')[0];
+                const todayIso = isoDate(new Date());
 
                 const [profileRes, taxProfileRes, incomeRes, expenseRes, mileageRes, reserveRes, periodRes, recurringRes, receiptRes] = await Promise.all([
                     supabaseClient.from('profiles').select('*').eq('id', userId).single(),
@@ -1433,7 +1424,7 @@
                     supabaseClient.from('mileage').select('*').eq('user_id', userId).order('trip_date', { ascending: false }),
                     supabaseClient.from('tax_reserve').select('*').eq('user_id', userId).order('saved_on', { ascending: false }),
                     supabaseClient.from('period_entries').select('*').eq('user_id', userId).order('period_start', { ascending: false }),
-                    supabaseClient.from('recurring_expenses').select('*').eq('user_id', userId).eq('is_active', true).order('created_at', { ascending: false }),
+                    supabaseClient.from('recurring_expenses').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
                     supabaseClient.from('receipts').select('*').eq('user_id', userId).order('created_at', { ascending: false })
                 ]);
 
@@ -1520,6 +1511,8 @@
 
         // Tab Switcher
         function switchTab(tabId) {
+            document.getElementById('calendar-modal')?.classList.add('hidden');
+            appState.activeTab=tabId;
             document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
             const target=document.getElementById(`view-${tabId}`);
             if (!target) return;
@@ -1548,7 +1541,7 @@
                 return tax;
             }
             const basic=37700+bandExtension;
-            const higherWidth=Math.max(0,125140-12570-basic);
+            const higherWidth=87440;
             const b=Math.min(x,basic); tax+=b*0.20; x-=b;
             if(x>0){const h=Math.min(x,higherWidth);tax+=h*0.40;x-=h;}
             if(x>0) tax+=x*0.45;
@@ -1566,10 +1559,10 @@
             const adjustedNet=Math.max(0,totalIncome-grossReliefExtension);
             let allowance=Math.max(0,12570-Math.max(0,adjustedNet-100000)/2);
             if(p.blind_person_allowance) allowance+=3250;
-            if(p.marriage_allowance==='receiving') allowance+=1260;
             if(p.marriage_allowance==='transferring') allowance=Math.max(0,allowance-1260);
             const taxable=Math.max(0,totalIncome-allowance);
-            const incomeTax=calculateBandTax(taxable,residence,grossReliefExtension);
+            const eligibleMarriageCredit=p.marriage_allowance==='receiving' && taxable <= (residence==='Scotland'?31092:37700)+grossReliefExtension;
+            const incomeTax=Math.max(0,calculateBandTax(taxable,residence,grossReliefExtension)-(eligibleMarriageCredit?252:0));
             const seProfit=Math.max(0,Number(businessProfit||0)+otherSe);
             const class4=Math.min(Math.max(0,seProfit-12570),37700)*0.06 + Math.max(0,seProfit-50270)*0.02;
             const thresholds={ '1':26900,'2':29385,'4':33795,'5':25000 };
@@ -1583,7 +1576,9 @@
 
         function getTaxYearSummary(endDate=null) {
             const b=currentTaxYearBounds();
-            const end=endDate && endDate<b.end ? endDate : b.end;
+            const today=isoDate(new Date());
+            const requestedEnd=endDate || today;
+            const end=requestedEnd<b.end ? requestedEnd : b.end;
             const range=getRangeActivity(b.start,end);
             const recurring=getRecurringCostShare(b.start,end);
             const income=range.income;
@@ -1604,7 +1599,8 @@
             const dayBefore=new Date(parseIsoDate(startStr)); dayBefore.setDate(dayBefore.getDate()-1);
             const beforeStr=isoDate(dayBefore);
             const after=getTaxYearSummary(end).total;
-            const before=beforeStr<b.start?0:getTaxYearSummary(beforeStr).total;
+            // Other annual income exists before the driver's first recorded day too.
+            const before=beforeStr<b.start?calculateTaxEstimate(0).total:getTaxYearSummary(beforeStr).total;
             return Math.max(0,after-before);
         }
 
@@ -1756,6 +1752,7 @@
         }
 
         function openCalendarTab() {
+            appState.calendarReturnTab=appState.activeTab||'dashboard';
             document.querySelectorAll('.nav-btn').forEach(btn => { btn.classList.remove('text-emerald-400'); btn.classList.add('text-slate-400'); });
             const btn=document.getElementById('nav-calendar'); if(btn){btn.classList.remove('text-slate-400');btn.classList.add('text-emerald-400');}
             openCalendarModal();
@@ -1773,6 +1770,7 @@
 
         function closeCalendarModal() {
             document.getElementById('calendar-modal').classList.add('hidden');
+            switchTab(appState.calendarReturnTab||appState.activeTab||'dashboard');
         }
 
         function calendarGoToday() {
@@ -1781,6 +1779,7 @@
 
         function changeCalendarMonth(delta) {
             const d = new Date(appState.calendarDate);
+            d.setDate(1);
             d.setMonth(d.getMonth() + delta);
             appState.calendarDate = d;
             renderCalendar();
@@ -1871,8 +1870,8 @@
 
         
         function chipButton(value,selected,handler,color='emerald'){
-            const safe=value.replace(/'/g,"\\'");
-            return '<button type="button" onclick="'+handler+"('"+safe+"')"+'" class="px-3 py-2 rounded-xl border text-[10px] font-bold '+(selected?'border-'+color+'-500 bg-'+color+'-500/10 text-'+color+'-300':'border-slate-800 bg-slate-950 text-slate-400')+'">'+value+'</button>';
+            const safe=escapeHtml(JSON.stringify(value));
+            return '<button type="button" onclick="'+handler+"("+safe+")"+'" class="px-3 py-2 rounded-xl border text-[10px] font-bold '+(selected?'border-'+color+'-500 bg-'+color+'-500/10 text-'+color+'-300':'border-slate-800 bg-slate-950 text-slate-400')+'">'+escapeHtml(value)+'</button>';
         }
         function renderProfilePreferenceChips(){
             const platformDefaults=platformMap[document.getElementById('profile-work-type')?.value||appState.selectedWorkType]||['Uber','Bolt','FREENOW','Deliveroo','Just Eat','Amazon Flex','Other'];
@@ -1899,25 +1898,15 @@ function openAccountModal() {
             document.getElementById('profile-email').value=email;
             document.getElementById('profile-work-type').value=p.primary_work_type || appState.selectedWorkType || 'Other';
             renderProfilePreferenceChips();
-            document.getElementById('vehicle-make').value=p.vehicle_make || '';
-            document.getElementById('vehicle-model').value=p.vehicle_model || '';
-            document.getElementById('vehicle-year').value=p.vehicle_year || '';
-            document.getElementById('vehicle-registration').value=p.vehicle_registration || '';
-            document.getElementById('profile-vehicle-type').value=p.vehicle_type || '';
-            document.getElementById('vehicle-fuel').value=p.fuel_type || '';
-            const hasVehicle=!!(p.vehicle_make||p.vehicle_model||p.vehicle_year||p.vehicle_registration||p.vehicle_type||p.fuel_type);
-            document.getElementById('vehicle-details-form').classList.toggle('hidden',!hasVehicle);
-            document.getElementById('vehicle-toggle-btn').textContent=hasVehicle?'Hide':'Add details';
             renderRegularCostLists();
             refreshAvatarPreview();
             document.getElementById('account-modal')?.classList.remove('hidden');
         }
 
-        function closeAccountModal() { document.getElementById('account-modal')?.classList.add('hidden'); }
-
-        function toggleVehicleDetails(){
-            const box=document.getElementById('vehicle-details-form'); box.classList.toggle('hidden');
-            document.getElementById('vehicle-toggle-btn').textContent=box.classList.contains('hidden')?'Add details':'Hide';
+        function closeAccountModal() {
+            appState.selectedPlatforms=[...(appState.profile?.platforms||[])];
+            appState.selectedExpenses=[...(appState.profile?.usual_expenses||[])];
+            document.getElementById('account-modal')?.classList.add('hidden');
         }
 
         async function saveProfileDetails(e){
@@ -1929,23 +1918,6 @@ function openAccountModal() {
             const {error}=await supabaseClient.from('profiles').update({full_name,primary_work_type,work_types:[primary_work_type],platforms,usual_expenses,updated_at:new Date().toISOString()}).eq('id',appState.currentUser.id);
             if(error){showToast('Could not save profile');return;}
             await fetchUserData(appState.currentUser.id); openAccountModal(); showToast('Profile updated');
-        }
-
-        async function saveVehicleDetails(){
-            if(!appState.currentUser) return;
-            const yr=Number(document.getElementById('vehicle-year').value||0);
-            const payload={
-                vehicle_make:document.getElementById('vehicle-make').value.trim()||null,
-                vehicle_model:document.getElementById('vehicle-model').value.trim()||null,
-                vehicle_year:yr||null,
-                vehicle_registration:document.getElementById('vehicle-registration').value.trim().toUpperCase()||null,
-                vehicle_type:document.getElementById('profile-vehicle-type').value||null,
-                fuel_type:document.getElementById('vehicle-fuel').value||null,
-                updated_at:new Date().toISOString()
-            };
-            const {error}=await supabaseClient.from('profiles').update(payload).eq('id',appState.currentUser.id);
-            if(error){showToast('Could not save vehicle details');return;}
-            await fetchUserData(appState.currentUser.id); openAccountModal(); showToast('Vehicle details saved');
         }
 
         async function uploadProfileAvatar(input){
@@ -1978,7 +1950,16 @@ function openAccountModal() {
             const {error}=await supabaseClient.from('tax_profiles').upsert(payload,{onConflict:'user_id'});if(error){showToast('Could not save Tax Profile');return;}await fetchUserData(appState.currentUser.id);closeTaxProfileModal();showToast('Tax Profile saved');
         }
 
-        function openTaxShareModal(){selectTaxShareFile('pdf');document.getElementById('tax-share-modal').classList.remove('hidden');}
+        function openTaxShareModal(){selectTaxShareFile('pdf');document.getElementById('tax-share-modal').classList.remove('hidden');checkTaxEmailStatus();}
+        async function checkTaxEmailStatus(){
+            const note=document.getElementById('share-email-note');
+            note.textContent='Checking email service…';
+            try{
+                const {data,error}=await supabaseClient.functions.invoke('email-tax-report',{body:{action:'status'}});
+                if(error)throw error;
+                note.textContent=data?.configured?'The selected PDF/CSV will be attached automatically.':'Email setup is incomplete. Reports can still be downloaded.';
+            }catch{note.textContent='Email service could not be checked. Reports can still be downloaded.';}
+        }
         function closeTaxShareModal(){document.getElementById('tax-share-modal').classList.add('hidden');}
         function getTaxSummaryText(){
             const t=getTaxYearSummary(),q=taxProfileQuality();
@@ -2163,15 +2144,17 @@ function openAccountModal() {
                 });
                 if(error)throw error;
                 if(data?.error)throw new Error(data.error);
+                if(data?.ok!==true || !data?.id)throw new Error('Email provider did not confirm acceptance');
                 showToast('Tax report emailed successfully');
                 document.getElementById('share-email-note').textContent='Sent successfully to '+to;
                 document.getElementById('share-email-note').className='text-[9px] text-emerald-400';
             }catch(err){
                 console.error('Direct tax email error',err);
-                const msg=String(err?.message||'');
+                let msg=String(err?.message||'');
+                try{const detail=await err?.context?.json();if(detail?.error)msg=detail.error;}catch{}
                 if(msg.includes('503')||msg.toLowerCase().includes('configured')) showToast('Email setup needs finishing first');
                 else showToast('Email could not be sent');
-                document.getElementById('share-email-note').textContent='Email service is not ready yet. Your files are still available to download.';
+                document.getElementById('share-email-note').textContent=msg+' Your files are still available to download.';
                 document.getElementById('share-email-note').className='text-[9px] text-amber-400';
             }finally{
                 btn.disabled=false;
@@ -2357,10 +2340,10 @@ function openAccountModal() {
         function cancelReceiptReview(){document.getElementById('receipt-review-card')?.classList.add('hidden');document.getElementById('receipt-scan-status')?.classList.add('hidden');document.getElementById('receipt-validation-msg')?.classList.add('hidden');document.getElementById('receipt-file-input').value='';appState.pendingReceiptFile=null;appState.pendingReceiptPath=null;appState.pendingReceiptAi=false;}
 
 function renderRegularCostLists() {
-            const rows = (appState.recurringExpenses || []).map(r => {
+            const rows = (appState.recurringExpenses || []).filter(r => r.is_active).map(r => {
                 const freq = r.frequency === 'yearly' ? 'Yearly' : 'Monthly';
                 return '<div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3">'+
-                    '<div class="min-w-0"><p class="text-[11px] font-bold text-white truncate">'+(r.category || 'Regular cost')+'</p>'+
+                    '<div class="min-w-0"><p class="text-[11px] font-bold text-white truncate">'+escapeHtml(r.category || 'Regular cost')+'</p>'+
                     '<p class="text-[9px] text-slate-500">£'+Number(r.amount||0).toFixed(2)+' · '+freq+' · from '+formatUkDate(r.start_date)+'</p></div>'+
                     '<div class="flex gap-1 shrink-0">'+
                     '<button type="button" onclick="editRecurringCost(\''+r.id+'\')" class="bg-slate-800 text-slate-300 px-2 py-1.5 rounded-lg text-[9px] font-bold">Edit</button>'+
@@ -2376,8 +2359,10 @@ function renderRegularCostLists() {
 
         function editRecurringCost(id) {
             const r=(appState.recurringExpenses||[]).find(x=>x.id===id);
-            if(!r) return;
+            if(!r || !r.is_active) return;
             appState.editingRecurringId=id;
+            const select=document.getElementById('recurring-category');
+            if(![...select.options].some(o=>o.value===r.category)) select.add(new Option(r.category,r.category));
             appState.recurringReturnContext=document.getElementById('account-modal')?.classList.contains('hidden') ? 'onboarding' : 'account';
             document.getElementById('recurring-category').value=r.category || 'Other';
             document.getElementById('recurring-amount').value=Number(r.amount||0).toFixed(2);
@@ -2390,7 +2375,7 @@ function renderRegularCostLists() {
 
         async function stopRecurringCost(id) {
             if(!appState.currentUser) return;
-            const { error }=await supabaseClient.from('recurring_expenses').update({is_active:false,updated_at:new Date().toISOString()}).eq('id',id).eq('user_id',appState.currentUser.id);
+            const { error }=await supabaseClient.from('recurring_expenses').update({is_active:false,end_date:isoDate(new Date()),updated_at:new Date().toISOString()}).eq('id',id).eq('user_id',appState.currentUser.id);
             if(error){ showToast('Could not stop regular cost'); return; }
             await fetchUserData(appState.currentUser.id);
             renderRegularCostLists();
@@ -2412,13 +2397,18 @@ function renderRegularCostLists() {
             const items = [];
 
             (appState.recurringExpenses || []).forEach(r => {
-                if (!r.is_active || !r.start_date) return;
+                if (!r.start_date || (!r.is_active && !r.end_date)) return;
 
                 const recurringStart = parseIsoDate(r.start_date);
                 if (recurringStart > end) return;
 
                 const activeStart = recurringStart > start ? recurringStart : start;
-                const activeDays = Math.floor((end - activeStart) / 86400000) + 1;
+                const stoppedAt = r.end_date ? parseIsoDate(r.end_date) : end;
+                const activeEnd = stoppedAt < end ? stoppedAt : end;
+                if (activeStart > activeEnd) return;
+                // Calendar days, independent of daylight-saving clock changes.
+                const dayNumber = d => Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()) / 86400000;
+                const activeDays = dayNumber(activeEnd) - dayNumber(activeStart) + 1;
                 const annualAmount = r.frequency === 'monthly'
                     ? Number(r.amount || 0) * 12
                     : Number(r.amount || 0);
@@ -3156,7 +3146,7 @@ function renderRegularCostLists() {
         }
 
         function finishDailyEntry() {
-            const dateStr = appState.dailyEntryDate || appState.selectedCalendarDate || new Date().toISOString().split('T')[0];
+            const dateStr = appState.dailyEntryDate || appState.selectedCalendarDate || isoDate(new Date());
 
             document.getElementById('income-modal')?.classList.add('hidden');
             document.getElementById('expense-modal')?.classList.add('hidden');
@@ -3263,7 +3253,7 @@ function renderRegularCostLists() {
         }
 
         function quickAddForSelectedDay(type) {
-            const date = appState.selectedCalendarDate || new Date().toISOString().split('T')[0];
+            const date = appState.selectedCalendarDate || isoDate(new Date());
             if (type === 'income') addIncomeForDay(date);
             if (type === 'expense') addExpenseForDay(date);
         }
@@ -3339,7 +3329,7 @@ function renderRegularCostLists() {
             btn.textContent = appState.editingMileageId ? 'Updating...' : 'Saving to Cloud...';
 
             const business_miles = parseFloat(document.getElementById('mileage-miles').value);
-            const trip_date = document.getElementById('mileage-date').value || new Date().toISOString().split('T')[0];
+            const trip_date = document.getElementById('mileage-date').value || isoDate(new Date());
             const purpose = document.getElementById('mileage-purpose').value.trim();
             const notes = document.getElementById('mileage-notes').value.trim();
             const editId = appState.editingMileageId;
@@ -3401,7 +3391,7 @@ function renderRegularCostLists() {
             btn.textContent = 'Saving to Cloud...';
 
             const amount = parseFloat(document.getElementById('reserve-amount').value);
-            const saved_on = document.getElementById('reserve-date').value || new Date().toISOString().split('T')[0];
+            const saved_on = document.getElementById('reserve-date').value || isoDate(new Date());
             const notes = document.getElementById('reserve-notes').value.trim();
 
             try {
@@ -3436,7 +3426,7 @@ function renderRegularCostLists() {
 
             const source = document.getElementById('income-source').value;
             const amount = parseFloat(document.getElementById('income-amount').value);
-            const earned_on = document.getElementById('income-date').value || new Date().toISOString().split('T')[0];
+            const earned_on = document.getElementById('income-date').value || isoDate(new Date());
             const notes = document.getElementById('income-notes').value;
             const editId = appState.editingIncomeId;
 
@@ -3495,7 +3485,7 @@ function renderRegularCostLists() {
             const category = document.getElementById('expense-category').value;
             const amount = parseFloat(document.getElementById('expense-amount').value);
             const merchant = document.getElementById('expense-merchant')?.value.trim() || null;
-            const expense_date = document.getElementById('expense-date').value || new Date().toISOString().split('T')[0];
+            const expense_date = document.getElementById('expense-date').value || isoDate(new Date());
             const notes = document.getElementById('expense-notes').value;
             const editId = appState.editingExpenseId;
 
@@ -3556,7 +3546,7 @@ function renderRegularCostLists() {
 
         async function quickAddFuelPreset(amount) {
             if (!appState.currentUser) return;
-            const todayIso = new Date().toISOString().split('T')[0];
+            const todayIso = isoDate(new Date());
             await supabaseClient.from('expenses').insert([{
                 user_id: appState.currentUser.id,
                 category: 'Fuel',
@@ -3572,7 +3562,7 @@ function renderRegularCostLists() {
 
         async function quickAddPreset(vendor, amount, category) {
             if (!appState.currentUser) return;
-            const todayIso = new Date().toISOString().split('T')[0];
+            const todayIso = isoDate(new Date());
             await supabaseClient.from('expenses').insert([{
                 user_id: appState.currentUser.id,
                 category: category,
@@ -3914,7 +3904,7 @@ function renderRegularCostLists() {
 
             try {
                 let data, error;
-                const payload = { category, amount, frequency, start_date, notes, is_active:true, updated_at:new Date().toISOString() };
+                const payload = { category, amount, frequency, start_date, notes, is_active:true, end_date:null, updated_at:new Date().toISOString() };
                 if (appState.editingRecurringId) {
                     ({ data, error } = await supabaseClient.from('recurring_expenses').update(payload).eq('id',appState.editingRecurringId).eq('user_id',appState.currentUser.id).select('id, category, amount, frequency, start_date').single());
                 } else {
