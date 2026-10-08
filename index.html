@@ -226,10 +226,10 @@
                     <div class="grid grid-cols-2 gap-2.5 pt-3 border-t border-slate-700/50">
                         <div class="bg-slate-950/40 p-2.5 rounded-xl"><span class="text-[10px] text-slate-400 block">Turnover</span><span id="dash-today-earnings" class="text-sm font-bold text-emerald-300">£0.00</span></div>
                         <div class="bg-slate-950/40 p-2.5 rounded-xl"><span class="text-[10px] text-slate-400 block">Expenses incl. regular costs</span><span id="dash-today-expenses" class="text-sm font-bold text-rose-300">£0.00</span></div>
-                        <div class="bg-slate-950/40 p-2.5 rounded-xl"><span class="text-[10px] text-slate-400 block">Estimated tax reserve</span><span id="dash-today-tax" class="text-sm font-bold text-amber-300">£0.00</span></div>
+                        <div class="bg-slate-950/40 p-2.5 rounded-xl"><span id="dash-tax-label" class="text-[10px] text-slate-400 block">Tax reserve for this week</span><span id="dash-today-tax" class="text-sm font-bold text-amber-300">£0.00</span></div>
                         <div class="bg-slate-950/40 p-2.5 rounded-xl"><span class="text-[10px] text-slate-400 block">Estimated take-home</span><span id="dash-today-net" class="text-sm font-bold text-emerald-300">£0.00</span></div>
                     </div>
-                    <p class="text-[9px] text-slate-400">Based on saved records. Profit is before tax; take-home is after the estimated tax reserve.</p>
+                    <p id="dash-tax-year-note" class="text-[10px] text-slate-300"></p><p class="text-[9px] text-slate-400">Period reserve estimates the tax added by the profit shown above. No annual earnings forecast is assumed. Take-home is after this reserve.</p>
                 </div>
                 <div id="shift-reminder-banner" class="hidden border border-blue-400/30 bg-blue-500/10 rounded-2xl p-4 space-y-2" aria-live="polite">
                     <p class="text-sm font-bold text-white">Finished your shift?</p><p class="text-[11px] text-blue-200">When you're parked, take a moment to add your income and check your receipts.</p>
@@ -1643,18 +1643,17 @@
         }
 
         function getEstimatedTaxReserveForRange(startStr,endStr){
-            // Reserve attributable to this selected period = cumulative tax-year liability
-            // at the period end minus cumulative liability immediately before the period.
-            // This intentionally avoids the old flat "period profit × 20%" shortcut.
+            // Attribute only the selected range's recorded business profit to its reserve.
+            // A catch-up summary ending in this range can cover earlier weeks/months:
+            // subtracting dated tax-year snapshots would charge its entire tax here.
             const b=currentTaxYearBounds();
-            if(endStr<b.start||startStr>b.end) return 0;
-            const end=endStr>b.end?b.end:endStr;
-            const dayBefore=new Date(parseIsoDate(startStr)); dayBefore.setDate(dayBefore.getDate()-1);
-            const beforeStr=isoDate(dayBefore);
-            const after=getTaxYearSummary(end).total;
-            // Other annual income exists before the driver's first recorded day too.
-            const before=beforeStr<b.start?calculateTaxEstimate(0).total:getTaxYearSummary(beforeStr).total;
-            return Math.max(0,after-before);
+            if(!startStr||!endStr||startStr>endStr||endStr<b.start||startStr>b.end)return 0;
+            const start=startStr<b.start?b.start:startStr,end=endStr>b.end?b.end:endStr;
+            const annual=getTaxYearSummary(end),selected=getRangeActivity(start,end);
+            const periodProfit=selected.income-selected.expenses-selected.recurring.total;
+            if(periodProfit<=0)return 0;
+            const withoutPeriod=calculateTaxEstimate(annual.profit-periodProfit).total;
+            return Math.max(0,annual.total-withoutPeriod);
         }
 
         function getEstimatedDailyTaxReserve(dateStr){ return getEstimatedTaxReserveForRange(dateStr,dateStr); }
@@ -1752,6 +1751,9 @@
             document.getElementById('dash-today-earnings').textContent='£'+summary.income.toFixed(2);
             document.getElementById('dash-today-expenses').textContent='£'+summary.expenses.toFixed(2);
             document.getElementById('dash-today-tax').textContent='£'+summary.tax.toFixed(2);
+            document.getElementById('dash-tax-label').textContent=period==='week'?'Tax reserve for this week':period==='month'?'Tax reserve for this month':'Tax reserve for today';
+            const year=getTaxYearSummary();
+            document.getElementById('dash-tax-year-note').textContent='Tax year '+year.label+': estimated amount remaining £'+year.total.toFixed(2)+'. View Tax for the breakdown.';
             document.getElementById('dash-today-net').textContent='£'+(summary.profit-summary.tax).toFixed(2);
             const today=period==='today'?summary:dashboardPeriodSummary('today');
             document.getElementById('dash-today-note').textContent="Today's recorded profit: £"+today.profit.toFixed(2)+(today.partial?' (whole-period catch-up amounts shown in their full range)':'');

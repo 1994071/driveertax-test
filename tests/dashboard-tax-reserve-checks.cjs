@@ -1,0 +1,20 @@
+const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict'),{parseHTML}=require('linkedom');
+const html=fs.readFileSync(__dirname+'/../index.html','utf8'),{window}=parseHTML(html);
+window.supabase={createClient:()=>({})};window.localStorage={getItem:()=>null};
+class FixedDate extends Date{constructor(...args){super(...(args.length?args:['2026-10-08T12:00:00Z']));}}
+const ctx=vm.createContext({window,document:window.document,console,Date:FixedDate,setTimeout});
+const script=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x=>x[1]).find(x=>x.includes('let appState'));vm.runInContext(script,ctx);const run=s=>vm.runInContext(s,ctx),near=(a,b)=>assert.ok(Math.abs(a-b)<.001,`${a} != ${b}`);
+run("appState.currentUser={id:'driver'};appState.periodEntries=[{id:'past',period_start:'2026-08-01',period_end:'2026-10-07',income_amount:30000,expense_amount:0,business_miles:0,reconciled:true,regular_costs_included:true}];appState.transactions=[{id:'current',type:'income',date:'2026-10-08',amount:100}];");
+near(run('getTaxYearSummary().total'),4557.8);
+near(run("getEstimatedTaxReserveForRange('2026-10-05','2026-10-08')"),26);
+near(run("dashboardPeriodSummary('week').profit"),100);run('renderDriverDashboard()');
+assert.equal(window.document.getElementById('dash-today-tax').textContent,'£26.00');assert.equal(window.document.getElementById('dash-today-net').textContent,'£74.00');assert.ok(window.document.getElementById('dash-tax-year-note').textContent.includes('£4557.80'));
+near(run("getEstimatedTaxReserveForRange('2026-10-05','2026-10-07')"),0);
+near(run("getEstimatedTaxReserveForRange('2026-08-01','2026-10-08')"),4557.8);
+run("appState.periodEntries=[];appState.transactions=[{id:'before',type:'income',date:'2026-09-01',amount:30000},{id:'current',type:'income',date:'2026-10-08',amount:100}]");near(run("getEstimatedTaxReserveForRange('2026-10-05','2026-10-08')"),26);
+run("appState.transactions=[{type:'income',date:'2026-10-08',amount:4121},{type:'expense',date:'2026-10-08',amount:1037}]");near(run("getEstimatedTaxReserveForRange('2026-10-05','2026-10-08')"),0);
+run("appState.transactions=[{type:'income',date:'2026-09-01',amount:12500},{type:'income',date:'2026-10-08',amount:100}]");near(run("getEstimatedTaxReserveForRange('2026-10-05','2026-10-08')"),7.8);
+run("appState.taxProfile={paye_income:30000};appState.transactions=[{type:'income',date:'2026-10-08',amount:100}]");near(run("getEstimatedTaxReserveForRange('2026-10-05','2026-10-08')"),20);
+run('appState.transactions=[]');near(run("getEstimatedTaxReserveForRange('2026-10-05','2026-10-08')"),0);
+run("appState.taxProfile=null;appState.transactions=[{type:'income',date:'2026-09-01',amount:30000},{type:'expense',date:'2026-10-08',amount:100}]");near(run("getEstimatedTaxReserveForRange('2026-10-05','2026-10-08')"),0);
+console.log('PASS: past summary ending this week does not inflate weekly tax; selected profit/reserve/take-home and annual estimate remain separate; dated history, thresholds, other income and loss cases.');

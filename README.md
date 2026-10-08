@@ -84,3 +84,11 @@ Validation: `TZ=Europe/London node tests/weekly-dashboard-checks.cjs` (requires 
 Dashboard Add Income and the shift reminder's Add income action now call the same `startDailyEntry` flow as Calendar, using the current UK date. Income saves advance to expenses; the existing optional expense/mileage steps and skips are retained. Standalone expense entry and receipt scanning remain separate actions. Main Dashboard options use distinct decorative emojis beside their existing labels.
 
 Validation: `TZ=Europe/London node tests/dashboard-daily-entry-checks.cjs` (linkedom) checks the actual Dashboard click handler, income save progression, date consistency and skipping expenses/mileage without extra saves. Weekly Dashboard regression checks also pass.
+
+## Dashboard period tax reserve correction
+
+Period reserve is now the difference between the tax estimate at the selected end date and the estimate with the selected range's recorded business profit removed. It uses the existing annual thresholds, other income and tax profile, and returns zero for a nonpositive selected profit. This replaces subtracting dated cumulative snapshots: when a multiweek catch-up summary ended this week, the old snapshots could attribute the whole summary's tax to this week even when its income was excluded from the weekly profit view. The full tax-year calculation remains separate and unchanged.
+
+Dashboard explicitly labels tax reserve for today/this week/this month and shows the tax-year estimate separately. It does not assume an annual earnings forecast. Regression case: £30,000 past turnover in a summary ending 7 October plus £100 on 8 October produced £4,557.80 weekly reserve before; it now produces £26 weekly reserve and £74 estimated take-home, with the £4,557.80 tax-year estimate preserved.
+
+Validation: `TZ=Europe/London node tests/dashboard-tax-reserve-checks.cjs` (linkedom) covers that ending-summary bug, full summary ranges, dated history, annual allowance crossing, PAYE income baseline, empty ranges and loss ranges. Existing tax/weekly Dashboard/reconciliation/sharing/daily-entry checks pass. 2026/27 ordinary Income Tax and Class 4 thresholds were rechecked against https://www.gov.uk/income-tax-rates and https://www.gov.uk/self-employed-national-insurance-rates.
