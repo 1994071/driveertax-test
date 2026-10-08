@@ -290,7 +290,7 @@
             <!-- VIEW 2: RECORDS -->
             <section id="view-records" class="p-5 space-y-4 hidden">
                 <div>
-                    <h2 class="text-lg font-bold text-white">Records</h2>
+                    <div class="flex items-center justify-between"><h2 class="text-lg font-bold text-white">Records</h2><button type="button" onclick="switchTab('dashboard')" class="text-xs font-bold text-emerald-400">Back to Dashboard</button></div>
                     <p class="text-[11px] text-slate-400 mt-1">Income, expenses and mileage in one place.</p>
                 </div>
                 <div class="grid grid-cols-4 gap-1.5 bg-slate-900 border border-slate-800 rounded-2xl p-1.5">
@@ -418,7 +418,6 @@
         <!-- Navigation Bar -->
         <nav class="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-2 py-2.5 flex justify-around items-center z-40">
             <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex flex-col items-center space-y-1 text-emerald-400 transition"><i class="fa-solid fa-house text-base"></i><span class="text-[10px] font-semibold">Dashboard</span></button>
-            <button onclick="switchTab('records')" id="nav-records" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 transition"><i class="fa-solid fa-list text-base"></i><span class="text-[10px] font-semibold">Records</span></button>
             <button onclick="openCalendarTab()" id="nav-calendar" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 transition"><i class="fa-solid fa-calendar-days text-base"></i><span class="text-[10px] font-semibold">Calendar</span></button>
             <button onclick="switchTab('scan')" id="nav-scan" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 transition"><i class="fa-solid fa-camera text-base"></i><span class="text-[10px] font-semibold">Scan</span></button>
             <button onclick="switchTab('tax')" id="nav-tax" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 transition"><i class="fa-solid fa-file-invoice-dollar text-base"></i><span class="text-[10px] font-semibold">Tax</span></button>
@@ -1527,7 +1526,7 @@
                 btn.classList.remove('text-emerald-400');
                 btn.classList.add('text-slate-400');
             });
-            const activeBtn = document.getElementById(`nav-${tabId}`);
+            const activeBtn = document.getElementById(`nav-${tabId==='records'?'dashboard':tabId}`);
             if (activeBtn) {
                 activeBtn.classList.remove('text-slate-400');
                 activeBtn.classList.add('text-emerald-400');
@@ -2368,7 +2367,7 @@ function openAccountModal() {
                 await fetchUserData(appState.currentUser.id);
                 cancelReceiptReview();
                 showToast('Receipt confirmed and expense saved');
-                switchTab('records');
+                switchTab('dashboard');
             }catch(err){
                 console.error('Receipt save error',err);
                 validation.textContent='Could not confirm the save. Please retry; duplicate checks will run again.';
@@ -2555,11 +2554,9 @@ function renderRegularCostLists() {
             let end = new Date(now);
 
             if (type === 'week') {
-                const day = now.getDate();
-                const blockStartDay = Math.floor((day - 1) / 7) * 7 + 1;
-                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-                start = new Date(now.getFullYear(), now.getMonth(), blockStartDay);
-                end = new Date(now.getFullYear(), now.getMonth(), Math.min(blockStartDay + 6, lastDay));
+                const week=getWeekBounds(now);
+                start=parseIsoDate(week.start);
+                end=parseIsoDate(week.end);
             } else if (type === 'month') {
                 start = new Date(now.getFullYear(), now.getMonth(), 1);
                 end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -3701,15 +3698,17 @@ function renderRegularCostLists() {
             }catch(err){console.error('Expense delete error',err);showToast('Could not delete expense');}
         }
 
+        function getWeekBounds(date=new Date()){
+            const start=new Date(date);
+            start.setDate(start.getDate()-(start.getDay()+6)%7);
+            const end=new Date(start);end.setDate(start.getDate()+6);
+            return {start:isoDate(start),end:isoDate(end),label:'This Week'};
+        }
+
         function getDashboardPeriodBounds(period){
             const now=new Date(), today=isoDate(now);
             if(period==='today') return {start:today,end:today,label:'Today'};
-            if(period==='week'){
-                const mondayOffset=(now.getDay()+6)%7;
-                const s=new Date(now); s.setDate(now.getDate()-mondayOffset);
-                const e=new Date(s); e.setDate(s.getDate()+6);
-                return {start:isoDate(s),end:isoDate(e),label:'This Week'};
-            }
+            if(period==='week')return getWeekBounds(now);
             if(period==='month'){
                 const s=new Date(now.getFullYear(),now.getMonth(),1);
                 const e=new Date(now.getFullYear(),now.getMonth()+1,0);

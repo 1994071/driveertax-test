@@ -51,7 +51,7 @@ const assert=require('node:assert/strict');
   document.getElementById('profile-platform-chips').firstChild.click();
   if(!appState.selectedPlatforms.includes(name))throw new Error('Custom platform escaping failed');
   switchTab('records');openCalendarTab();closeCalendarModal();
-  if(!document.getElementById('nav-records').classList.contains('text-emerald-400'))throw new Error('Calendar return navigation failed');
+  if(!document.getElementById('nav-dashboard').classList.contains('text-emerald-400'))throw new Error('Calendar return navigation failed');
   if(document.getElementById('vehicle-make'))throw new Error('Vehicle section still present');
   return {lowProfitTax:low.total,standardTax:standard.total,highIncomeTax:high.incomeTax,pastCost:past,futureCost:future};
  });

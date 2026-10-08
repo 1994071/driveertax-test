@@ -36,3 +36,7 @@ The scanner warns for an identical file (SHA-256 fingerprint), or an existing ex
 The `save_scanned_receipt` RPC respects RLS, serializes identical-file saves per driver, inserts both records atomically, and uses a save request ID so retries return the same expense. Its schema SQL in `supabase/schema/receipt_duplicates.sql` has been applied. Legacy receipt files have no fingerprint; matching details still produce a warning. A retaken photograph is detected through matching details rather than a file hash, so OCR mistakes can affect detection.
 
 Receipt DOM tests require `linkedom`: `node tests/receipt-duplicate-checks.cjs`. Database checks ran inside a rolled-back transaction and covered warning enforcement, explicit duplicate override, retry safety, and file-owner validation.
+
+## Navigation and week selection
+
+Bottom navigation is Dashboard / Calendar / Scan / Tax. Records remains accessible through Dashboard's View All link, with a Back to Dashboard control; receipt saves return to Dashboard. Calendar Week and dashboard This Week share Monday–Sunday bounds, including weeks spanning a month or year boundary. On 8 October 2026 the range is 5–11 October, replacing the former Calendar 8–14 monthly block.
