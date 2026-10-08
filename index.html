@@ -255,6 +255,11 @@
                     <i class="fa-solid fa-chevron-right text-blue-300"></i>
                 </button>
 
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="dash-create-invoice" type="button" onclick="openInvoiceCreate()" class="rounded-2xl border border-blue-400/30 bg-blue-500/10 p-3 text-xs font-bold text-blue-200"><span aria-hidden="true">📄</span> Create invoice</button>
+                    <button type="button" onclick="openInvoices()" class="rounded-2xl border border-slate-700 bg-slate-900 p-3 text-xs font-bold text-white"><span aria-hidden="true">📂</span> View invoices<span id="dash-invoice-outstanding" class="block text-[10px] text-slate-300 font-normal mt-1"></span></button>
+                </div>
+
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
                     <div class="flex justify-between gap-2 items-center"><h3 class="text-sm font-bold text-white"><span aria-hidden="true">🎯</span> Your weekly profit goal</h3><button type="button" onclick="openDashboardSettings()" class="text-xs text-blue-300 font-bold">Set goal & reminders</button></div>
                     <p id="dash-goal-text" class="text-xs text-slate-300">Choose a goal that suits your week.</p>
@@ -1052,6 +1057,56 @@
             </div>
         </div>
 
+        <div id="invoice-list-modal" class="hidden absolute inset-0 bg-slate-950/95 z-[95] p-5 overflow-y-auto">
+            <div class="flex justify-between items-center mb-4"><h2 class="text-lg font-bold text-white">Your invoices</h2><button type="button" onclick="closeInvoiceScreens()" aria-label="Close invoices" class="w-8 h-8 bg-slate-800 rounded-full text-white">✕</button></div>
+            <button type="button" onclick="openInvoiceCreate()" class="w-full bg-blue-400 text-slate-950 rounded-xl p-3 text-xs font-bold mb-3">📄 Create invoice</button>
+            <p id="invoice-list-summary" class="text-xs text-slate-300 mb-3"></p>
+            <label for="invoice-list-filter" class="text-[11px] text-slate-300">Show</label><select id="invoice-list-filter" onchange="renderInvoices()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white mb-4"><option value="all">All invoices</option><option value="unpaid">Unpaid</option><option value="paid">Paid</option><option value="cancelled">Cancelled</option></select>
+            <div id="invoice-list" class="space-y-3"></div>
+        </div>
+        <div id="invoice-create-modal" class="hidden absolute inset-0 bg-slate-950/95 z-[96] p-5 overflow-y-auto">
+            <div class="flex justify-between items-center mb-4"><h2 class="text-lg font-bold text-white">Create invoice</h2><button type="button" onclick="closeInvoiceCreate()" aria-label="Close invoice form" class="w-8 h-8 bg-slate-800 rounded-full text-white">✕</button></div>
+            <form id="invoice-create-form" onsubmit="issueDriverInvoice(event)" class="space-y-3 pb-8">
+                <p class="text-[10px] text-slate-300 bg-blue-500/10 rounded-xl p-3">For non-VAT businesses. Review your details before issuing. An invoice number is assigned on save; issuing does not send it or add income.</p>
+<div><label for="invoice-seller-name" class="block text-[11px] text-slate-300 mb-1">Your full legal name</label><input id="invoice-seller-name" type="text" maxlength="160" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></div>
+<div><label for="invoice-trading-name" class="block text-[11px] text-slate-300 mb-1">Trading name (optional)</label><input id="invoice-trading-name" type="text" maxlength="160" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></div>
+<div><label for="invoice-seller-address" class="block text-[11px] text-slate-300 mb-1">Your business / contact address</label><textarea id="invoice-seller-address" maxlength="1000" rows="2" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></textarea></div>
+<div><label for="invoice-seller-contact" class="block text-[11px] text-slate-300 mb-1">Your email or phone number</label><input id="invoice-seller-contact" type="text" maxlength="180" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></div>
+<div><label for="invoice-customer-name" class="block text-[11px] text-slate-300 mb-1">Customer / company name</label><input id="invoice-customer-name" type="text" maxlength="160" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></div>
+<div><label for="invoice-customer-address" class="block text-[11px] text-slate-300 mb-1">Customer address</label><textarea id="invoice-customer-address" maxlength="1000" rows="2" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></textarea></div>
+<div><label for="invoice-customer-email" class="block text-[11px] text-slate-300 mb-1">Customer email (optional)</label><input id="invoice-customer-email" type="email" maxlength="180" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></div>
+
+                <div class="grid grid-cols-3 gap-2"><div><label for="invoice-date" class="text-[10px] text-slate-300">Invoice date</label><input id="invoice-date" type="date" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-xs text-white"></div><div><label for="invoice-supply-date" class="text-[10px] text-slate-300">Service date</label><input id="invoice-supply-date" type="date" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-xs text-white"></div><div><label for="invoice-due-date" class="text-[10px] text-slate-300">Payment due</label><input id="invoice-due-date" type="date" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-xs text-white"></div></div>
+                <h3 class="text-xs font-bold text-white">Jobs / services</h3><div id="invoice-items" class="space-y-2"></div>
+                <button type="button" onclick="addInvoiceItem()" class="text-xs font-bold text-blue-200">+ Add another item</button>
+                <p id="invoice-total-preview" class="text-lg font-bold text-emerald-300" aria-live="polite">Total £0.00</p>
+                <div><label for="invoice-payment-details" class="block text-[11px] text-slate-300 mb-1">How to pay (optional)</label><textarea id="invoice-payment-details" rows="2" maxlength="1000" placeholder="Bank transfer details or payment instructions" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></textarea></div>
+                <div><label for="invoice-notes" class="block text-[11px] text-slate-300 mb-1">Notes (optional)</label><textarea id="invoice-notes" rows="2" maxlength="2000" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></textarea></div>
+                <label class="flex gap-2 items-start text-[11px] text-slate-200"><input id="invoice-non-vat" type="checkbox" required class="accent-blue-400 mt-1">I am not VAT registered for this business. No VAT will be charged.</label>
+                <p id="invoice-create-error" role="alert" class="hidden text-xs text-amber-200"></p>
+                <button id="invoice-issue-btn" type="submit" class="w-full bg-blue-400 text-slate-950 rounded-xl p-3 text-xs font-bold disabled:opacity-50">Issue invoice</button>
+            </form>
+        </div>
+        <div id="invoice-detail-modal" class="hidden absolute inset-0 bg-slate-950/95 z-[97] p-5 overflow-y-auto">
+            <div class="flex justify-between items-center mb-4"><h2 id="invoice-detail-title" class="text-lg font-bold text-white">Invoice</h2><button type="button" onclick="closeInvoiceDetail()" aria-label="Close invoice" class="w-8 h-8 bg-slate-800 rounded-full text-white">✕</button></div>
+            <div id="invoice-detail-content" class="space-y-3 text-xs text-slate-300"></div>
+            <div class="grid grid-cols-2 gap-2 mt-4"><button type="button" onclick="shareInvoice('download')" class="bg-blue-400 text-slate-950 rounded-xl p-3 text-xs font-bold">Download PDF</button><button type="button" onclick="shareInvoice('whatsapp')" class="bg-emerald-500/15 text-emerald-200 border border-emerald-400/30 rounded-xl p-3 text-xs font-bold">WhatsApp / Share</button></div>
+            <div id="invoice-share-fallback" class="hidden bg-slate-900 border border-slate-700 rounded-xl p-3 mt-3 space-y-2 text-xs text-slate-300"></div>
+            <div class="bg-slate-900 border border-slate-700 rounded-xl p-3 mt-3 space-y-2"><label for="invoice-send-email" class="text-[11px] text-slate-300">Email invoice PDF</label><input id="invoice-send-email" type="email" placeholder="customer@example.com" class="w-full bg-slate-950 rounded-xl p-2.5 text-xs text-white"><button id="invoice-email-btn" type="button" onclick="sendInvoiceEmail()" class="text-xs text-blue-200 font-bold">Send invoice</button><p id="invoice-email-status" class="text-[10px] text-slate-400" aria-live="polite">Email requires the sending service to be configured.</p></div>
+            <div class="grid grid-cols-2 gap-2 mt-4"><button id="invoice-mark-paid-btn" type="button" onclick="openInvoicePayment()" class="bg-emerald-400 text-slate-950 rounded-xl p-3 text-xs font-bold">Mark paid</button><button id="invoice-cancel-btn" type="button" onclick="cancelInvoice()" class="bg-slate-800 text-slate-200 rounded-xl p-3 text-xs font-bold">Cancel invoice</button></div>
+            <p id="invoice-action-error" role="alert" class="hidden text-xs text-amber-200 mt-3"></p><p class="text-[10px] text-slate-400 mt-4 pb-6">Issued details are kept as a record. To correct an unpaid invoice, cancel it and create a replacement. Payments are recorded in full; partial payments are not supported yet.</p>
+        </div>
+        <div id="invoice-payment-modal" class="hidden absolute inset-0 bg-slate-950/95 z-[98] flex items-end sm:items-center justify-center p-4">
+            <div class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3">
+                <div class="flex justify-between"><h3 class="font-bold text-sm text-white">Record full payment</h3><button type="button" onclick="closeInvoicePayment()" aria-label="Close payment" class="text-white">✕</button></div>
+                <p id="invoice-payment-total" class="text-sm text-emerald-300 font-bold"></p>
+                <label for="invoice-paid-date" class="block text-xs text-slate-300">Date payment received</label><input id="invoice-paid-date" type="date" onchange="renderInvoicePaymentOptions()" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white">
+                <label for="invoice-payment-income" class="block text-xs text-slate-300">How should this payment be recorded?</label><select id="invoice-payment-income" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></select>
+                <p id="invoice-payment-hint" class="text-[10px] text-slate-300"></p><p id="invoice-payment-error" role="alert" class="hidden text-xs text-amber-200"></p>
+                <button id="invoice-payment-save-btn" type="button" onclick="recordInvoicePayment()" class="w-full bg-emerald-400 text-slate-950 rounded-xl p-3 text-xs font-bold disabled:opacity-50">Confirm payment</button>
+            </div>
+        </div>
+
         <!-- Toast Notification Container -->
         <div id="toast" class="hidden absolute top-14 left-1/2 transform -translate-x-1/2 bg-slate-900 border border-emerald-500/40 text-white text-xs px-4 py-2 rounded-xl shadow-xl z-50 flex items-center gap-2">
             <i class="fa-solid fa-circle-check text-emerald-400"></i>
@@ -1079,6 +1134,7 @@
             periodEntries: [],
             recurringExpenses: [],
             receipts: [],
+            invoices: [],
             selectedExpenseId: null,
             profile: null,
             taxProfile: null,
@@ -1145,7 +1201,7 @@
                     appState.currentUser = null;
                     appState.dashboardPeriod='week';appState.dashboardPreferences=null;appState.dashboardPreferenceKey=null;appState.homeCalendarOpened=false;
                     document.getElementById('shift-reminder-banner').classList.add('hidden');
-                    closeDashboardSettings();
+                    closeDashboardSettings();closeInvoiceScreens();appState.invoices=[];
                     document.getElementById('auth-screen').classList.remove('hidden');
                 }
             });
@@ -1460,7 +1516,7 @@
             appState.currentUser = null;
                     appState.dashboardPeriod='week';appState.dashboardPreferences=null;appState.dashboardPreferenceKey=null;appState.homeCalendarOpened=false;
                     document.getElementById('shift-reminder-banner').classList.add('hidden');
-                    closeDashboardSettings();
+                    closeDashboardSettings();closeInvoiceScreens();appState.invoices=[];
             document.getElementById('auth-screen').classList.remove('hidden');
             showToast("Signed out");
         }
@@ -1469,7 +1525,7 @@
             try {
                 const todayIso = isoDate(new Date());
 
-                const [profileRes, taxProfileRes, incomeRes, expenseRes, mileageRes, reserveRes, periodRes, recurringRes, receiptRes] = await Promise.all([
+                const [profileRes, taxProfileRes, incomeRes, expenseRes, mileageRes, reserveRes, periodRes, recurringRes, receiptRes, invoiceRes] = await Promise.all([
                     supabaseClient.from('profiles').select('*').eq('id', userId).single(),
                     supabaseClient.from('tax_profiles').select('*').eq('user_id', userId).maybeSingle(),
                     supabaseClient.from('income').select('*').eq('user_id', userId),
@@ -1478,7 +1534,8 @@
                     supabaseClient.from('tax_reserve').select('*').eq('user_id', userId).order('saved_on', { ascending: false }),
                     supabaseClient.from('period_entries').select('*').eq('user_id', userId).order('period_start', { ascending: false }),
                     supabaseClient.from('recurring_expenses').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
-                    supabaseClient.from('receipts').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+                    supabaseClient.from('receipts').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+                    supabaseClient.from('invoices').select('*').eq('user_id', userId).order('created_at', { ascending: false })
                 ]);
 
                 if (profileRes.error) throw profileRes.error;
@@ -1490,6 +1547,7 @@
                 if (periodRes.error) throw periodRes.error;
                 if (recurringRes.error) throw recurringRes.error;
                 if (receiptRes.error) throw receiptRes.error;
+                if (invoiceRes.error) throw invoiceRes.error;
 
                 let transactions = [];
                 let totalInc = 0;
@@ -1540,6 +1598,7 @@
                 appState.monthlyExpenses = totalExp;
                 appState.transactions = transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
                 appState.receipts = receiptRes.data || [];
+                appState.invoices = invoiceRes.data || [];
                 appState.mileageTrips = mileageRes.data || [];
                 appState.taxReserveEntries = reserveRes.data || [];
                 appState.periodEntries = periodRes.data || [];
@@ -1664,6 +1723,169 @@
             const hasCore=!!p.tax_residence && p.paye_income!==null && p.pension_income!==null && p.property_income!==null && p.other_self_employed_income!==null;
             const hasLoans=!!p.student_loan_plan && p.postgraduate_loan!==null;
             return hasCore&&hasLoans?{label:'High',detail:'Estimate uses your saved Tax Profile and current app records.'}:{label:'Medium',detail:'Some Tax Profile details are still incomplete.'};
+        }
+
+        function invoiceById(id=appState.selectedInvoiceId){return (appState.invoices||[]).find(i=>i.id===id);}
+        function closeInvoiceScreens(){['invoice-list-modal','invoice-create-modal','invoice-detail-modal','invoice-payment-modal'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));appState.selectedInvoiceId=null;}
+        function openInvoices(){closeInvoiceScreens();document.getElementById('invoice-list-modal').classList.remove('hidden');renderInvoices();}
+        function closeInvoiceCreate(){if(!appState.invoiceSaving)document.getElementById('invoice-create-modal').classList.add('hidden');}
+        function closeInvoiceDetail(){document.getElementById('invoice-detail-modal').classList.add('hidden');closeInvoicePayment();}
+        function closeInvoicePayment(){if(!appState.invoicePaying)document.getElementById('invoice-payment-modal').classList.add('hidden');}
+        function renderInvoices(){
+            const invoices=appState.invoices||[],unpaid=invoices.filter(i=>i.status==='unpaid'),outstanding=unpaid.reduce((sum,i)=>sum+Number(i.total),0);
+            document.getElementById('dash-invoice-outstanding').textContent=unpaid.length?unpaid.length+' unpaid · £'+outstanding.toFixed(2):'Manage your invoices';
+            document.getElementById('invoice-list-summary').textContent=unpaid.length+' unpaid · £'+outstanding.toFixed(2)+' outstanding. Unpaid invoices are not added to income.';
+            const filter=document.getElementById('invoice-list-filter').value||'all';
+            document.getElementById('invoice-list').innerHTML=invoices.filter(i=>filter==='all'||i.status===filter).map(i=>{
+                const overdue=i.status==='unpaid'&&i.due_date<driverToday();
+                return '<button type="button" onclick="openInvoiceDetail(\''+i.id+'\')" class="w-full text-left bg-slate-900 border border-slate-700 rounded-xl p-3"><div class="flex justify-between gap-2"><b class="text-white">'+escapeHtml(i.invoice_number)+'</b><b class="text-emerald-300">£'+Number(i.total).toFixed(2)+'</b></div><p class="text-xs text-slate-300 mt-1">'+escapeHtml(i.customer_name)+'</p><p class="text-[10px] '+(overdue?'text-amber-200':'text-slate-400')+' mt-1">'+(overdue?'Overdue':i.status==='paid'?'Paid':i.status==='cancelled'?'Cancelled':'Unpaid')+' · Due '+formatUkDate(i.due_date)+'</p></button>';
+            }).join('')||'<p class="text-xs text-slate-300 py-4">No invoices here yet.</p>';
+        }
+        function openInvoiceCreate(){
+            if(!appState.currentUser)return;
+            document.getElementById('invoice-create-form').reset();appState.invoiceRequestId=crypto.randomUUID();
+            const previous=(appState.invoices||[])[0],p=appState.profile||{};
+            document.getElementById('invoice-seller-name').value=previous?.seller_name||p.full_name||'';
+            document.getElementById('invoice-trading-name').value=previous?.trading_name||'';
+            document.getElementById('invoice-seller-address').value=previous?.seller_address||'';
+            document.getElementById('invoice-seller-contact').value=previous?.seller_contact||appState.currentUser.email||'';
+            document.getElementById('invoice-payment-details').value=previous?.payment_details||'';
+            const today=driverToday(),due=parseIsoDate(today);due.setDate(due.getDate()+7);
+            document.getElementById('invoice-date').value=today;document.getElementById('invoice-date').max=today;
+            document.getElementById('invoice-supply-date').value=today;document.getElementById('invoice-due-date').value=isoDate(due);
+            document.getElementById('invoice-items').innerHTML='';addInvoiceItem();
+            document.getElementById('invoice-create-error').classList.add('hidden');document.getElementById('invoice-create-modal').classList.remove('hidden');
+        }
+        function addInvoiceItem(){
+            const box=document.getElementById('invoice-items');if(box.children.length>=20){showToast('Up to 20 items per invoice');return;}
+            const id='invoice-item-'+((appState.invoiceItemCounter||0)+1);appState.invoiceItemCounter=(appState.invoiceItemCounter||0)+1;
+            const row=document.createElement('div');row.id=id;row.className='invoice-item bg-slate-900 border border-slate-700 rounded-xl p-3 space-y-2';
+            row.innerHTML='<label class="block text-[10px] text-slate-300">Description<input data-invoice-field="description" type="text" required maxlength="200" placeholder="e.g. Airport transfer Birmingham to Heathrow" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"></label><div class="grid grid-cols-2 gap-2"><label class="text-[10px] text-slate-300">Quantity<input data-invoice-field="quantity" type="number" min="0.01" max="100000" step="0.01" required value="1" oninput="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"></label><label class="text-[10px] text-slate-300">Unit price (£)<input data-invoice-field="unit_price" type="number" min="0" max="10000000" step="0.01" required placeholder="0.00" oninput="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"></label></div><button type="button" onclick="removeInvoiceItem(\''+id+'\')" class="text-[10px] text-slate-300">Remove item</button>';
+            box.appendChild(row);updateInvoiceTotal();
+        }
+        function removeInvoiceItem(id){const box=document.getElementById('invoice-items');if(box.children.length===1){showToast('Keep at least one invoice item');return;}document.getElementById(id)?.remove();updateInvoiceTotal();}
+        function readInvoiceItems(){return [...document.querySelectorAll('#invoice-items .invoice-item')].map(row=>({description:row.querySelector('[data-invoice-field="description"]').value.trim(),quantity:Number(row.querySelector('[data-invoice-field="quantity"]').value),unit_price:Number(row.querySelector('[data-invoice-field="unit_price"]').value)}));}
+        function calculateInvoiceTotal(items){
+            if(!items.length||items.length>20)throw new Error('Add between 1 and 20 items.');
+            let pennies=0;items.forEach(item=>{
+                if(!Number.isFinite(item.quantity)||!Number.isFinite(item.unit_price)||item.quantity<=0||item.quantity>100000||item.unit_price<0||item.unit_price>10000000)throw new Error('Check quantity and unit price.');
+                pennies+=Math.round(Math.round(item.quantity*100)*Math.round(item.unit_price*100)/100);
+            });return pennies/100;
+        }
+        function updateInvoiceTotal(){try{document.getElementById('invoice-total-preview').textContent='Total £'+calculateInvoiceTotal(readInvoiceItems()).toFixed(2)+' · No VAT charged';}catch{document.getElementById('invoice-total-preview').textContent='Add a quantity and price to see your total.';}}
+        async function issueDriverInvoice(event){
+            event.preventDefault();if(!appState.currentUser||appState.invoiceSaving)return;
+            const error=document.getElementById('invoice-create-error'),button=document.getElementById('invoice-issue-btn');error.classList.add('hidden');
+            try{
+                const fields=['seller-name','trading-name','seller-address','seller-contact','customer-name','customer-address','customer-email','date','supply-date','due-date','payment-details','notes'];
+                const payload={};fields.forEach(field=>payload[field==='date'?'invoice_date':field.replaceAll('-','_')]=document.getElementById('invoice-'+field).value.trim());
+                payload.items=readInvoiceItems();payload.non_vat_confirmed=document.getElementById('invoice-non-vat').checked;
+                if(!payload.non_vat_confirmed)throw new Error('This version supports non-VAT invoices only.');
+                if(['seller_name','seller_address','seller_contact','customer_name','customer_address'].some(key=>!payload[key]))throw new Error('Complete your details and the customer name and address.');
+                if(!payload.invoice_date||!payload.supply_date||!payload.due_date||payload.due_date<payload.invoice_date||payload.invoice_date>driverToday())throw new Error('Check invoice, service and due dates.');
+                if(payload.items.some(i=>!i.description)||calculateInvoiceTotal(payload.items)<=0)throw new Error('Add a description and positive invoice total.');
+                appState.invoiceSaving=true;button.disabled=true;button.textContent='Issuing…';
+                const {data,error:saveError}=await supabaseClient.rpc('create_driver_invoice',{p_invoice:payload,p_request_id:appState.invoiceRequestId});
+                if(saveError)throw saveError;if(!data)throw new Error('Save could not be confirmed. Retry to recover the same invoice.');
+                document.getElementById('invoice-create-modal').classList.add('hidden');await fetchUserData(appState.currentUser.id);openInvoiceDetail(data);showToast('Invoice issued. Choose how to share it.');
+            }catch(err){error.textContent=err.message||'Could not issue invoice. Retry to recover the same invoice before creating another.';error.classList.remove('hidden');}
+            finally{appState.invoiceSaving=false;button.disabled=false;button.textContent='Issue invoice';}
+        }
+        function openInvoiceDetail(id){
+            const inv=invoiceById(id);if(!inv){showToast('Refresh to load your invoice');return;}appState.selectedInvoiceId=id;
+            document.getElementById('invoice-detail-title').textContent=inv.invoice_number;
+            const lines=(inv.items||[]).map(i=>'<div class="flex justify-between gap-3 border-b border-slate-700 py-2"><div><b>'+escapeHtml(i.description)+'</b><p class="text-[10px] text-slate-400">'+i.quantity+' × £'+Number(i.unit_price).toFixed(2)+'</p></div><span>£'+Number(i.line_total).toFixed(2)+'</span></div>').join('');
+            const escapedLines=value=>escapeHtml(value||'').replaceAll('\n','<br>');
+            document.getElementById('invoice-detail-content').innerHTML='<div class="bg-slate-900 rounded-xl p-3 space-y-2"><p class="font-bold text-white">'+escapeHtml(inv.status.toUpperCase())+' · £'+Number(inv.total).toFixed(2)+'</p><p>Invoice '+formatUkDate(inv.invoice_date)+' · Service '+formatUkDate(inv.supply_date)+' · Due '+formatUkDate(inv.due_date)+'</p>'+(inv.status==='paid'?'<p>Paid '+formatUkDate(inv.paid_on)+' · '+(inv.payment_mode==='existing'?'Linked to existing income':'Income added')+'</p>':'')+'</div><div class="bg-slate-900 rounded-xl p-3"><p class="text-[10px] text-slate-400">FROM</p><b>'+escapeHtml(inv.seller_name)+'</b><p>'+escapedLines(inv.trading_name)+'</p><p>'+escapedLines(inv.seller_address)+'</p><p>'+escapeHtml(inv.seller_contact)+'</p></div><div class="bg-slate-900 rounded-xl p-3"><p class="text-[10px] text-slate-400">BILL TO</p><b>'+escapeHtml(inv.customer_name)+'</b><p>'+escapedLines(inv.customer_address)+'</p></div><div>'+lines+'</div><p class="text-lg text-emerald-300 font-bold">Total £'+Number(inv.total).toFixed(2)+'</p><p>No VAT charged.</p><p>'+escapedLines(inv.payment_details)+'</p><p>'+escapedLines(inv.notes)+'</p>';
+            document.getElementById('invoice-send-email').value=inv.customer_email||'';
+            document.getElementById('invoice-email-status').textContent='Email requires the sending service to be configured.';
+            ['invoice-mark-paid-btn','invoice-cancel-btn'].forEach(id=>document.getElementById(id).classList.toggle('hidden',inv.status!=='unpaid'));
+            document.getElementById('invoice-action-error').classList.add('hidden');document.getElementById('invoice-share-fallback').classList.add('hidden');
+            document.getElementById('invoice-detail-modal').classList.remove('hidden');
+        }
+        function buildInvoicePdfBlob(inv){
+            if(!window.jspdf?.jsPDF)throw new Error('PDF generator unavailable');
+            const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'});doc.setFont('helvetica','normal');let y=22;
+            const ensure=height=>{if(y+height>276){doc.addPage();y=22;doc.setFontSize(9);doc.text('Invoice '+inv.invoice_number+' (continued)',20,y);y+=10;}};
+            const text=(value,size=10,bold=false)=>{doc.setFontSize(size);doc.setFont('helvetica',bold?'bold':'normal');const lines=doc.splitTextToSize(String(value||''),170);lines.forEach(line=>{ensure(6);doc.text(line,20,y);y+=6;});};
+            text(inv.status==='cancelled'?'CANCELLED INVOICE':'INVOICE',22,true);text(inv.invoice_number,12,true);y+=3;
+            text('Invoice date: '+formatUkDate(inv.invoice_date)+' | Service date: '+formatUkDate(inv.supply_date),10);text('Payment due: '+formatUkDate(inv.due_date));
+            if(inv.status==='paid')text('PAID - received '+formatUkDate(inv.paid_on),11,true);y+=5;
+            text('FROM',10,true);text(inv.seller_name,12,true);if(inv.trading_name)text(inv.trading_name);text(inv.seller_address);text(inv.seller_contact);y+=5;
+            text('BILL TO',10,true);text(inv.customer_name,12,true);text(inv.customer_address);if(inv.customer_email)text(inv.customer_email);y+=5;
+            text('SERVICES',10,true);
+            inv.items.forEach(item=>{ensure(24);text(item.description,11,true);text(item.quantity+' x £'+Number(item.unit_price).toFixed(2)+' = £'+Number(item.line_total).toFixed(2));y+=4;});
+            ensure(28);y+=4;text('TOTAL: £'+Number(inv.total).toFixed(2),16,true);text('No VAT charged. Non-VAT invoice.',9);y+=5;
+            if(inv.payment_details){text('PAYMENT DETAILS',10,true);text(inv.payment_details);text('Please use '+inv.invoice_number+' as your payment reference.',9);y+=5;}
+            if(inv.notes){text('NOTES',10,true);text(inv.notes);}
+            const pages=doc.getNumberOfPages();for(let n=1;n<=pages;n++){doc.setPage(n);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text(inv.invoice_number+' | '+n+' / '+pages,20,287);}
+            return doc.output('blob');
+        }
+        function invoicePdfFile(inv){return new File([buildInvoicePdfBlob(inv)],inv.invoice_number+'.pdf',{type:'application/pdf'});}
+        async function shareInvoice(method){
+            const inv=invoiceById();if(!inv||appState.invoiceSharing)return;appState.invoiceSharing=true;
+            try{
+                const file=invoicePdfFile(inv);if(method==='download'){downloadBlob(file,file.name);showToast('Invoice PDF downloaded');return;}
+                let canShare=!!navigator.share;try{if(navigator.canShare)canShare=canShare&&navigator.canShare({files:[file]});}catch{canShare=false;}
+                if(canShare){try{await navigator.share({title:'Invoice '+inv.invoice_number,files:[file]});return;}catch(err){if(err.name==='AbortError')return;}}
+                const box=document.getElementById('invoice-share-fallback');box.replaceChildren();box.classList.remove('hidden');
+                const note=document.createElement('p');note.textContent='Download the PDF, open WhatsApp and attach it to your chosen chat.';box.appendChild(note);
+                const button=document.createElement('button');button.type='button';button.className='text-blue-200 font-bold';button.textContent='Download invoice PDF';button.onclick=()=>downloadBlob(file,file.name);box.appendChild(button);
+                const link=document.createElement('a');link.href='https://wa.me/';link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open WhatsApp';link.className='block text-emerald-200 font-bold';box.appendChild(link);
+            }catch(err){showToast(err.message||'Could not prepare invoice PDF');}finally{appState.invoiceSharing=false;}
+        }
+        async function sendInvoiceEmail(){
+            const inv=invoiceById();if(!inv||appState.invoiceEmailing)return;
+            const to=document.getElementById('invoice-send-email').value.trim(),note=document.getElementById('invoice-email-status'),button=document.getElementById('invoice-email-btn');
+            if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){note.textContent='Enter a valid recipient email.';return;}
+            if(inv.status==='cancelled'){note.textContent='This invoice was cancelled. Create a replacement before sending.';return;}
+            appState.invoiceEmailing=true;button.disabled=true;note.textContent='Sending…';
+            try{
+                const file=invoicePdfFile(inv),content=await fileToBase64(file);
+                const {data,error}=await supabaseClient.functions.invoke('email-tax-report',{body:{to,subject:'Invoice '+inv.invoice_number+' from '+(inv.trading_name||inv.seller_name),text:'Please find invoice '+inv.invoice_number+' attached.\nTotal: £'+Number(inv.total).toFixed(2)+'\nDue: '+formatUkDate(inv.due_date)+'\nFrom: '+inv.seller_name,attachments:[{filename:file.name,content}]}});
+                if(error)throw error;if(data?.ok!==true||!data?.id)throw new Error(data?.error||'The provider did not confirm acceptance');
+                note.textContent='Accepted for sending to '+to+'. Check delivery with the recipient.';
+            }catch(err){let message=err.message||'Could not send invoice';try{const body=await err?.context?.json();if(body?.error)message=body.error;}catch{}note.textContent=message+' You can still download and share the PDF.';}
+            finally{appState.invoiceEmailing=false;button.disabled=false;}
+        }
+        function openInvoicePayment(){
+            const inv=invoiceById();if(!inv||inv.status!=='unpaid')return;
+            document.getElementById('invoice-payment-total').textContent=inv.invoice_number+' · £'+Number(inv.total).toFixed(2);
+            document.getElementById('invoice-paid-date').value=driverToday();document.getElementById('invoice-paid-date').max=driverToday();
+            document.getElementById('invoice-payment-error').classList.add('hidden');renderInvoicePaymentOptions();document.getElementById('invoice-payment-modal').classList.remove('hidden');
+        }
+        function renderInvoicePaymentOptions(){
+            const inv=invoiceById();if(!inv)return;const date=document.getElementById('invoice-paid-date').value;
+            const matches=(appState.transactions||[]).filter(t=>t.type==='income'&&t.date===date&&Math.abs(Number(t.amount)-Number(inv.total))<.005);
+            const used=new Set((appState.invoices||[]).filter(i=>i.id!==inv.id&&i.income_id).map(i=>i.income_id));
+            const available=matches.filter(t=>!used.has(t.id));
+            const period=(appState.periodEntries||[]).some(p=>p.period_start<=date&&p.period_end>=date);
+            let options='<option value="">Choose how to record this payment</option>';
+            available.forEach(t=>options+='<option value="'+t.id+'">Link existing '+escapeHtml(t.source||'income')+' · £'+Number(t.amount).toFixed(2)+' · '+formatUkDate(t.date)+'</option>');
+            if(!matches.length&&!period)options+='<option value="new">Add a new income record for this payment</option>';
+            document.getElementById('invoice-payment-income').innerHTML=options;
+            document.getElementById('invoice-payment-income').value=!matches.length&&!period?'new':'';
+            document.getElementById('invoice-payment-hint').textContent=available.length?'Matching income exists. Link it so it is not added twice.':matches.length?'Matching income is already linked to another invoice. Review your records first.':period?'This date is covered by a catch-up summary. Add or find its dated income, refresh, then link it here to avoid counting it twice.':'A new income record will be added only when you confirm full payment.';
+        }
+        async function recordInvoicePayment(){
+            const inv=invoiceById();if(!inv||appState.invoicePaying)return;
+            const choice=document.getElementById('invoice-payment-income').value,date=document.getElementById('invoice-paid-date').value;
+            const error=document.getElementById('invoice-payment-error'),button=document.getElementById('invoice-payment-save-btn');error.classList.add('hidden');
+            try{
+                if(!choice||!date||date>driverToday())throw new Error('Choose a valid received date and how to record the payment.');
+                appState.invoicePaying=true;button.disabled=true;
+                const {data,error:saveError}=await supabaseClient.rpc('pay_driver_invoice',{p_id:inv.id,p_paid_on:date,p_income_id:choice==='new'?null:choice});
+                if(saveError)throw saveError;if(!data)throw new Error('Payment could not be confirmed. Refresh before retrying.');
+                await fetchUserData(appState.currentUser.id);document.getElementById('invoice-payment-modal').classList.add('hidden');openInvoiceDetail(inv.id);showToast(choice==='new'?'Invoice paid and income added':'Invoice paid; existing income linked');
+            }catch(err){error.textContent=err.message==='invoice_possible_duplicate_income'?'Matching income now exists. Close this payment form, refresh your records and link the existing income.':err.message||'Could not record payment';error.classList.remove('hidden');}
+            finally{appState.invoicePaying=false;button.disabled=false;}
+        }
+        async function cancelInvoice(){
+            const inv=invoiceById();if(!inv||inv.status!=='unpaid'||appState.invoiceCancelling)return;
+            if(!confirm('Cancel '+inv.invoice_number+'? It will remain in your records and cannot be marked paid.'))return;
+            appState.invoiceCancelling=true;const error=document.getElementById('invoice-action-error');
+            try{const {error:saveError}=await supabaseClient.rpc('cancel_driver_invoice',{p_id:inv.id});if(saveError)throw saveError;await fetchUserData(appState.currentUser.id);openInvoiceDetail(inv.id);showToast('Invoice cancelled');}
+            catch(err){error.textContent=err.message||'Could not cancel invoice';error.classList.remove('hidden');}finally{appState.invoiceCancelling=false;}
         }
 
         function driverClock(now=new Date()){
@@ -1838,6 +2060,7 @@
             appState.todayExpenses=todayActivity.expenses;
 
             renderDriverDashboard();
+            renderInvoices();
 
             const exceeded=(appState.periodEntries||[]).filter(p=>p.reconciled&&periodTotalsExceeded(p));
             const warning=document.getElementById('past-earnings-warning');
