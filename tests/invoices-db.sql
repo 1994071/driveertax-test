@@ -40,7 +40,7 @@ begin
  begin perform public.pay_driver_invoice(third_id,payment_day);raise exception 'Cancelled invoice paid';
  exception when others then if sqlerrm<>'A cancelled invoice cannot be paid' then raise;end if;end;
  begin perform public.create_driver_invoice(payload||jsonb_build_object('non_vat_confirmed',false),gen_random_uuid());raise exception 'VAT accepted';
- exception when others then if sqlerrm<>'This feature supports non-VAT invoices only' then raise;end if;end;
+ exception when others then if sqlerrm<>'Confirm that you are not VAT registered' then raise;end if;end;
  perform set_config('request.jwt.claim.sub',gen_random_uuid()::text,true);
  if exists(select 1 from public.invoices where id=first_id) then raise exception 'Other driver invoice visible';end if;
  begin perform public.pay_driver_invoice(first_id,payment_day);raise exception 'Other driver payment accepted';exception when insufficient_privilege then null;end;

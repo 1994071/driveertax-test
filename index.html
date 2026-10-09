@@ -231,6 +231,12 @@
                     </div>
                     <p id="dash-tax-year-note" class="text-[10px] text-slate-300"></p><p class="text-[9px] text-slate-400">Period reserve estimates the tax added by the profit shown above. No annual earnings forecast is assumed. Take-home is after this reserve.</p>
                 </div>
+                <div id="dash-invoice-centre" class="border border-blue-400/40 bg-gradient-to-br from-blue-500/20 to-slate-900 rounded-2xl p-4 space-y-3">
+                    <h3 class="text-sm font-bold text-white">📄 Invoice Centre</h3><p id="dash-invoice-outstanding" class="text-xs text-blue-100"></p><p id="dash-invoice-alert" class="text-[11px] text-amber-200" aria-live="polite"></p>
+                    <div class="grid grid-cols-2 gap-2"><button id="dash-create-invoice" type="button" onclick="openInvoiceCreate()" class="bg-blue-400 text-slate-950 rounded-xl p-3 text-xs font-bold">+ Create invoice</button><button type="button" onclick="openInvoices()" class="bg-slate-800 border border-slate-600 text-white rounded-xl p-3 text-xs font-bold">View invoices</button></div>
+                    <button type="button" onclick="openVatCentre()" class="text-[11px] text-blue-200 font-bold">VAT settings & records →</button>
+                    <p id="dash-vat-coverage" class="hidden text-[10px] text-amber-100"></p>
+                </div>
                 <div id="shift-reminder-banner" class="hidden border border-blue-400/30 bg-blue-500/10 rounded-2xl p-4 space-y-2" aria-live="polite">
                     <p class="text-sm font-bold text-white">Finished your shift?</p><p class="text-[11px] text-blue-200">When you're parked, take a moment to add your income and check your receipts.</p>
                     <div class="flex gap-3"><button type="button" onclick="dismissShiftReminder();startDailyEntry(driverToday())" class="text-xs text-blue-200 font-bold">Add income</button><button type="button" onclick="dismissShiftReminder();switchTab('scan')" class="text-xs text-blue-200 font-bold">Scan receipt</button><button type="button" onclick="dismissShiftReminder()" class="text-xs text-slate-300">Dismiss today</button></div>
@@ -255,10 +261,7 @@
                     <i class="fa-solid fa-chevron-right text-blue-300"></i>
                 </button>
 
-                <div class="grid grid-cols-2 gap-2">
-                    <button id="dash-create-invoice" type="button" onclick="openInvoiceCreate()" class="rounded-2xl border border-blue-400/30 bg-blue-500/10 p-3 text-xs font-bold text-blue-200"><span aria-hidden="true">📄</span> Create invoice</button>
-                    <button type="button" onclick="openInvoices()" class="rounded-2xl border border-slate-700 bg-slate-900 p-3 text-xs font-bold text-white"><span aria-hidden="true">📂</span> View invoices<span id="dash-invoice-outstanding" class="block text-[10px] text-slate-300 font-normal mt-1"></span></button>
-                </div>
+
 
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
                     <div class="flex justify-between gap-2 items-center"><h3 class="text-sm font-bold text-white"><span aria-hidden="true">🎯</span> Your weekly profit goal</h3><button type="button" onclick="openDashboardSettings()" class="text-xs text-blue-300 font-bold">Set goal & reminders</button></div>
@@ -1061,13 +1064,13 @@
             <div class="flex justify-between items-center mb-4"><h2 class="text-lg font-bold text-white">Your invoices</h2><button type="button" onclick="closeInvoiceScreens()" aria-label="Close invoices" class="w-8 h-8 bg-slate-800 rounded-full text-white">✕</button></div>
             <button type="button" onclick="openInvoiceCreate()" class="w-full bg-blue-400 text-slate-950 rounded-xl p-3 text-xs font-bold mb-3">📄 Create invoice</button>
             <p id="invoice-list-summary" class="text-xs text-slate-300 mb-3"></p>
-            <label for="invoice-list-filter" class="text-[11px] text-slate-300">Show</label><select id="invoice-list-filter" onchange="renderInvoices()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white mb-4"><option value="all">All invoices</option><option value="unpaid">Unpaid</option><option value="paid">Paid</option><option value="cancelled">Cancelled</option></select>
+            <label for="invoice-list-filter" class="text-[11px] text-slate-300">Show</label><select id="invoice-list-filter" onchange="renderInvoices()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white mb-4"><option value="all">Active invoices</option><option value="drafts">Drafts</option><option value="archived">Archived</option><option value="unpaid">Unpaid</option><option value="paid">Paid</option><option value="cancelled">Cancelled</option></select>
             <div id="invoice-list" class="space-y-3"></div>
         </div>
         <div id="invoice-create-modal" class="hidden absolute inset-0 bg-slate-950/95 z-[96] p-5 overflow-y-auto">
             <div class="flex justify-between items-center mb-4"><h2 class="text-lg font-bold text-white">Create invoice</h2><button type="button" onclick="closeInvoiceCreate()" aria-label="Close invoice form" class="w-8 h-8 bg-slate-800 rounded-full text-white">✕</button></div>
             <form id="invoice-create-form" onsubmit="issueDriverInvoice(event)" class="space-y-3 pb-8">
-                <p class="text-[10px] text-slate-300 bg-blue-500/10 rounded-xl p-3">For non-VAT businesses. Review your details before issuing. An invoice number is assigned on save; issuing does not send it or add income.</p>
+                <p class="text-[10px] text-slate-300 bg-blue-500/10 rounded-xl p-3">Save unfinished details as a draft. Draft dates can be in the future. Issue when ready, using today’s actual issue date; the service and due dates may be later. Issuing assigns a number, but does not send it or add income.</p>
 <div><label for="invoice-seller-name" class="block text-[11px] text-slate-300 mb-1">Your full legal name</label><input id="invoice-seller-name" type="text" maxlength="160" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></div>
 <div><label for="invoice-trading-name" class="block text-[11px] text-slate-300 mb-1">Trading name (optional)</label><input id="invoice-trading-name" type="text" maxlength="160" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></div>
 <div><label for="invoice-seller-address" class="block text-[11px] text-slate-300 mb-1">Your business / contact address</label><textarea id="invoice-seller-address" maxlength="1000" rows="2" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></textarea></div>
@@ -1076,22 +1079,24 @@
 <div><label for="invoice-customer-address" class="block text-[11px] text-slate-300 mb-1">Customer address</label><textarea id="invoice-customer-address" maxlength="1000" rows="2" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></textarea></div>
 <div><label for="invoice-customer-email" class="block text-[11px] text-slate-300 mb-1">Customer email (optional)</label><input id="invoice-customer-email" type="email" maxlength="180" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></div>
 
-<div class="grid grid-cols-3 gap-2"><div><span class="text-[10px] text-slate-300">Invoice date</span><input id="invoice-date" type="hidden"><button id="invoice-date-display" type="button" onclick="openInvoiceCalendar('invoice-date')" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-xs text-white mt-1"></button></div><div><span class="text-[10px] text-slate-300">Service date</span><input id="invoice-supply-date" type="hidden"><button id="invoice-supply-date-display" type="button" onclick="openInvoiceCalendar('invoice-supply-date')" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-xs text-white mt-1"></button></div><div><span class="text-[10px] text-slate-300">Payment due</span><input id="invoice-due-date" type="hidden"><button id="invoice-due-date-display" type="button" onclick="openInvoiceCalendar('invoice-due-date')" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-xs text-white mt-1"></button></div></div>
+<div class="grid grid-cols-3 gap-2"><div><span class="text-[10px] text-slate-300">Intended issue date</span><input id="invoice-date" type="hidden"><button id="invoice-date-display" type="button" onclick="openInvoiceCalendar('invoice-date')" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-xs text-white mt-1"></button></div><div><span class="text-[10px] text-slate-300">Service date</span><input id="invoice-supply-date" type="hidden"><button id="invoice-supply-date-display" type="button" onclick="openInvoiceCalendar('invoice-supply-date')" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-xs text-white mt-1"></button></div><div><span class="text-[10px] text-slate-300">Payment due</span><input id="invoice-due-date" type="hidden"><button id="invoice-due-date-display" type="button" onclick="openInvoiceCalendar('invoice-due-date')" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-xs text-white mt-1"></button></div></div>
                 <div class="flex flex-wrap gap-2 text-[10px] text-blue-200"><span class="text-slate-400">Payment terms</span><button type="button" onclick="setInvoiceTerms(0)">Due now</button><button type="button" onclick="setInvoiceTerms(7)">7 days</button><button type="button" onclick="setInvoiceTerms(14)">14 days</button><button type="button" onclick="setInvoiceTerms(30)">30 days</button></div>
+                <div class="bg-slate-900 rounded-xl p-3 space-y-2"><label class="flex gap-2 text-xs text-white"><input id="invoice-vat-enabled" type="checkbox" onchange="updateInvoiceVatFields()">Charge VAT (registered business)</label><p id="invoice-vat-profile-note" class="text-[10px] text-slate-300"></p><button type="button" onclick="openVatCentre()" class="text-[11px] text-blue-200">Edit VAT settings</button><label id="invoice-price-basis-label" class="hidden block text-[11px] text-slate-300">Unit prices<select id="invoice-price-basis" onchange="updateInvoiceTotal()" class="w-full bg-slate-950 p-2 rounded-lg text-white"><option value="exclusive">Excluding VAT</option><option value="inclusive">Including VAT</option></select></label></div>
                 <h3 class="text-xs font-bold text-white">Jobs / services</h3><div id="invoice-items" class="space-y-2"></div>
                 <button type="button" onclick="addInvoiceItem()" class="text-xs font-bold text-blue-200">+ Add another item</button>
                 <p id="invoice-total-preview" class="text-lg font-bold text-emerald-300" aria-live="polite">Total £0.00</p>
 <fieldset class="bg-slate-900 border border-slate-700 rounded-xl p-3 space-y-2"><legend class="text-xs font-bold text-white">How the customer can pay</legend>
 <label class="block text-[11px] text-slate-300">Payment method<select id="invoice-payment-method" onchange="updateInvoicePaymentFields()" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"><option value="other">Payment instructions</option><option value="bank">Bank transfer</option><option value="link">Payment link</option><option value="cash">Cash</option></select></label>
-<div id="invoice-bank-fields" class="hidden space-y-2"><label class="block text-[11px] text-slate-300">Bank name<input id="invoice-bank-name" list="invoice-banks" maxlength="100" placeholder="Search or enter another bank" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></label><datalist id="invoice-banks"><option value="Barclays"></option><option value="HSBC"></option><option value="Lloyds Bank"></option><option value="NatWest"></option><option value="Santander"></option><option value="Halifax"></option><option value="Bank of Scotland"></option><option value="Royal Bank of Scotland"></option><option value="Nationwide"></option><option value="TSB"></option><option value="Metro Bank"></option><option value="Monzo"></option><option value="Starling Bank"></option><option value="Virgin Money"></option><option value="The Co-operative Bank"></option><option value="Revolut"></option></datalist>
+<div id="invoice-bank-fields" class="hidden space-y-2"><label class="block text-[11px] text-slate-300">Bank name<input id="invoice-bank-name" list="invoice-banks" maxlength="100" placeholder="Search or enter another bank" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></label><datalist id="invoice-banks"><option value="Barclays"></option><option value="HSBC"></option><option value="Lloyds Bank"></option><option value="NatWest"></option><option value="Santander"></option><option value="Halifax"></option><option value="Bank of Scotland"></option><option value="Royal Bank of Scotland"></option><option value="Nationwide"></option><option value="TSB"></option><option value="Metro Bank"></option><option value="Monzo"></option><option value="Starling Bank"></option><option value="Virgin Money"></option><option value="The Co-operative Bank"></option><option value="Revolut"></option></datalist><button type="button" onclick="enterOtherInvoiceBank()" class="text-[11px] font-bold text-blue-200">Other bank — type its name</button>
 <label class="block text-[11px] text-slate-300">Account holder<input id="invoice-account-holder" maxlength="160" autocomplete="off" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></label>
 <div class="grid grid-cols-2 gap-2"><label class="text-[11px] text-slate-300">Sort code<input id="invoice-sort-code" inputmode="numeric" maxlength="8" placeholder="12-34-56" autocomplete="off" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></label><label class="text-[11px] text-slate-300">Account number<input id="invoice-account-number" inputmode="numeric" maxlength="8" placeholder="8 digits" autocomplete="off" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></label></div></div>
 <div id="invoice-link-fields" class="hidden"><label class="block text-[11px] text-slate-300">Payment link<input id="invoice-payment-link" type="url" maxlength="400" placeholder="https://…" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></label><p class="text-[10px] text-slate-400 mt-1">Use a link from your payment provider.</p></div>
 <label class="block text-[11px] text-slate-300">Additional instructions (optional)<textarea id="invoice-payment-details" rows="2" maxlength="500" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></textarea></label>
 <p class="text-[10px] text-slate-400">The invoice number is the payment reference. Details are reused from your last issued invoice; check them before issuing. Bank suggestions do not verify the account.</p></fieldset>
                 <div><label for="invoice-notes" class="block text-[11px] text-slate-300 mb-1">Notes (optional)</label><textarea id="invoice-notes" rows="2" maxlength="2000" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></textarea></div>
-                <label class="flex gap-2 items-start text-[11px] text-slate-200"><input id="invoice-non-vat" type="checkbox" required class="accent-blue-400 mt-1">I am not VAT registered for this business. No VAT will be charged.</label>
+                <label id="invoice-non-vat-label" class="flex gap-2 items-start text-[11px] text-slate-200"><input id="invoice-non-vat" type="checkbox" required class="accent-blue-400 mt-1">I am not VAT registered for this business. No VAT will be charged.</label>
                 <p id="invoice-create-error" role="alert" class="hidden text-xs text-amber-200"></p>
+                <div class="grid grid-cols-2 gap-2"><button id="invoice-draft-btn" type="button" onclick="saveInvoiceDraft()" class="bg-slate-800 border border-slate-600 rounded-xl p-3 text-xs font-bold text-white">Save draft</button><button id="invoice-delete-draft-btn" type="button" onclick="deleteInvoiceDraft()" class="hidden bg-slate-800 rounded-xl p-3 text-xs font-bold text-rose-200">Delete draft</button></div>
                 <button id="invoice-issue-btn" type="submit" class="w-full bg-blue-400 text-slate-950 rounded-xl p-3 text-xs font-bold disabled:opacity-50">Issue invoice</button>
             </form>
         </div>
@@ -1102,6 +1107,7 @@
             <div id="invoice-share-fallback" class="hidden bg-slate-900 border border-slate-700 rounded-xl p-3 mt-3 space-y-2 text-xs text-slate-300"></div>
             <div class="bg-slate-900 border border-slate-700 rounded-xl p-3 mt-3 space-y-2"><label for="invoice-send-email" class="text-[11px] text-slate-300">Email invoice PDF</label><input id="invoice-send-email" type="email" placeholder="customer@example.com" class="w-full bg-slate-950 rounded-xl p-2.5 text-xs text-white"><button id="invoice-email-btn" type="button" onclick="sendInvoiceEmail()" class="text-xs text-blue-200 font-bold">Send invoice</button><p id="invoice-email-status" class="text-[10px] text-slate-400" aria-live="polite">Email requires the sending service to be configured.</p></div>
             <div class="grid grid-cols-2 gap-2 mt-4"><button id="invoice-mark-paid-btn" type="button" onclick="openInvoicePayment()" class="bg-emerald-400 text-slate-950 rounded-xl p-3 text-xs font-bold">Mark paid</button><button id="invoice-cancel-btn" type="button" onclick="cancelInvoice()" class="bg-slate-800 text-slate-200 rounded-xl p-3 text-xs font-bold">Cancel invoice</button></div>
+            <button id="invoice-archive-btn" type="button" onclick="toggleInvoiceArchive()" class="w-full mt-3 bg-slate-800 text-white rounded-xl p-3 text-xs font-bold">Archive invoice</button><button id="invoice-credit-pdf-btn" type="button" onclick="downloadInvoiceCredit()" class="hidden w-full mt-3 text-blue-200 text-xs font-bold">Download full credit note PDF</button>
             <p id="invoice-action-error" role="alert" class="hidden text-xs text-amber-200 mt-3"></p><p class="text-[10px] text-slate-400 mt-4 pb-6">Issued details are kept as a record. To correct an unpaid invoice, cancel it and create a replacement. Payments are recorded in full; partial payments are not supported yet.</p>
         </div>
         <div id="invoice-payment-modal" class="hidden absolute inset-0 bg-slate-950/95 z-[98] flex items-end sm:items-center justify-center p-4">
@@ -1115,6 +1121,19 @@
             </div>
         </div>
 
+        <div id="vat-centre-modal" class="hidden absolute inset-0 bg-slate-950/95 z-[98] p-5 overflow-y-auto">
+            <div class="flex justify-between mb-4"><h2 class="text-lg font-bold text-white">VAT settings & records</h2><button type="button" onclick="closeVatCentre()" class="text-white" aria-label="Close VAT">✕</button></div>
+            <form onsubmit="saveVatProfile(event)" class="bg-slate-900 rounded-xl p-3 space-y-3 text-xs text-slate-200">
+                <label class="flex gap-2"><input id="vat-registered" type="checkbox">This business is VAT registered</label>
+                <label class="block">UK VAT number<input id="vat-number" maxlength="14" placeholder="9 digits (GB prefix optional)" class="block w-full bg-slate-950 rounded-lg p-2 mt-1"></label>
+                <label class="block">Registration effective date<input id="vat-registration-date" type="date" class="block w-full bg-slate-950 rounded-lg p-2 mt-1"></label>
+                <label class="block">VAT accounting method<select id="vat-scheme" class="block w-full bg-slate-950 rounded-lg p-2 mt-1"><option value="standard">Standard — tax point / invoice basis</option><option value="cash">Cash accounting — payments basis</option><option disabled>Flat Rate — not supported yet</option></select></label>
+                <p class="text-[10px] text-slate-400">Use the method your business actually uses. Cash accounting requires eligibility. Registration details are your declaration, not an HMRC verification. VAT settings changes affect new invoices; issued snapshots stay fixed.</p>
+                <p id="vat-profile-error" role="alert" class="hidden text-amber-200"></p><button id="vat-profile-save" class="bg-blue-400 rounded-xl p-3 font-bold text-slate-950 w-full">Save VAT settings</button>
+            </form>
+            <div class="bg-slate-900 rounded-xl p-3 mt-4 space-y-3 text-xs text-slate-200"><h3 class="font-bold text-white">Recorded VAT position</h3><div class="grid grid-cols-2 gap-2"><label>From<input id="vat-range-from" type="date" onchange="renderVatRecords()" class="block w-full bg-slate-950 rounded-lg p-2"></label><label>To<input id="vat-range-to" type="date" onchange="renderVatRecords()" class="block w-full bg-slate-950 rounded-lg p-2"></label></div><p id="vat-record-totals" class="text-sm text-emerald-200"></p><p class="text-[10px] text-amber-100">Only recorded VAT invoices and eligible purchase VAT below are included. Other earnings, receipt scans, regular costs and catch-up totals are not automatically classified for VAT. Review missing records. This is not a VAT return or HMRC submission; income tax remains a separate estimate.</p><div id="vat-record-list" class="space-y-2"></div><button type="button" onclick="downloadVatRecords()" class="text-blue-200 font-bold">Download VAT CSV</button></div>
+            <form onsubmit="saveVatPurchase(event)" class="bg-slate-900 rounded-xl p-3 mt-4 space-y-3 text-xs text-slate-200"><h3 class="font-bold text-white">Record eligible purchase VAT</h3><p class="text-[10px] text-slate-400">Your recorded expense must already exclude private spending. Enter only VAT attributable to that recorded business expense.</p><label class="block">Recorded expense (amount actually paid)<select id="vat-purchase-expense" onchange="prefillVatPurchase()" class="block w-full bg-slate-950 rounded-lg p-2"></select></label><label class="block">Supplier UK VAT number<input id="vat-purchase-supplier" maxlength="14" class="block w-full bg-slate-950 rounded-lg p-2"></label><label class="block">VAT tax point on supplier invoice<input id="vat-purchase-tax-point" type="date" class="block w-full bg-slate-950 rounded-lg p-2"></label><div class="grid grid-cols-2 gap-2"><label>VAT shown (£)<input id="vat-purchase-amount" type="number" min="0.01" step="0.01" class="block w-full bg-slate-950 rounded-lg p-2"></label><label>Eligible business share (%)<input id="vat-purchase-percent" type="number" min="0.01" max="100" step="0.01" value="100" class="block w-full bg-slate-950 rounded-lg p-2"></label></div><label class="flex gap-2"><input id="vat-purchase-evidence" type="checkbox">I hold a valid VAT invoice and have checked this amount is reclaimable for business use.</label><p class="text-[10px] text-slate-400">Do not automatically reclaim vehicle, fuel or private-use VAT. This form supports ordinary UK purchases at rates up to 20%; special rules, imports and reverse charges are not supported.</p><p id="vat-purchase-error" role="alert" class="hidden text-amber-200"></p><button class="bg-blue-400 rounded-xl p-3 font-bold text-slate-950 w-full">Save purchase VAT</button><button type="button" onclick="deleteVatPurchase()" class="text-rose-200">Remove selected purchase VAT record</button></form>
+        </div>
         <div id="invoice-calendar-modal" role="dialog" aria-modal="true" aria-labelledby="invoice-calendar-title" class="hidden absolute inset-0 bg-slate-950/95 z-[99] flex items-center justify-center p-4"><div class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4"><div class="flex justify-between mb-4"><h3 id="invoice-calendar-title" class="text-sm font-bold text-white">Select date</h3><button type="button" onclick="closeInvoiceCalendar()" aria-label="Close date picker" class="text-white">✕</button></div><div class="flex items-center justify-between mb-4"><button type="button" onclick="changeInvoiceCalendarMonth(-1)" aria-label="Previous month" class="w-8 h-8 rounded-xl bg-slate-800 text-slate-300">‹</button><h3 id="invoice-calendar-month-title" class="text-sm font-bold text-white"></h3><button type="button" onclick="changeInvoiceCalendarMonth(1)" aria-label="Next month" class="w-8 h-8 rounded-xl bg-slate-800 text-slate-300">›</button></div><div class="grid grid-cols-7 gap-1 text-center text-[9px] font-bold text-slate-500 mb-2"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div><div id="invoice-calendar-grid" class="grid grid-cols-7 gap-1"></div><p class="text-[10px] text-slate-400 mt-3">Choose a day. Dots show your recorded activity.</p></div></div>
 
         <!-- Toast Notification Container -->
@@ -1144,7 +1163,7 @@
             periodEntries: [],
             recurringExpenses: [],
             receipts: [],
-            invoices: [],
+            invoices: [], invoiceDrafts: [], vatProfile: null, vatPurchases: [], invoiceCredits: [],
             selectedExpenseId: null,
             profile: null,
             taxProfile: null,
@@ -1211,7 +1230,7 @@
                     appState.currentUser = null;
                     appState.dashboardPeriod='week';appState.dashboardPreferences=null;appState.dashboardPreferenceKey=null;appState.homeCalendarOpened=false;
                     document.getElementById('shift-reminder-banner').classList.add('hidden');
-                    closeDashboardSettings();closeInvoiceScreens();appState.invoices=[];
+                    closeDashboardSettings();closeInvoiceScreens();appState.invoices=[];appState.invoiceDrafts=[];appState.vatProfile=null;appState.vatPurchases=[];appState.invoiceCredits=[];
                     document.getElementById('auth-screen').classList.remove('hidden');
                 }
             });
@@ -1526,7 +1545,7 @@
             appState.currentUser = null;
                     appState.dashboardPeriod='week';appState.dashboardPreferences=null;appState.dashboardPreferenceKey=null;appState.homeCalendarOpened=false;
                     document.getElementById('shift-reminder-banner').classList.add('hidden');
-                    closeDashboardSettings();closeInvoiceScreens();appState.invoices=[];
+                    closeDashboardSettings();closeInvoiceScreens();appState.invoices=[];appState.invoiceDrafts=[];appState.vatProfile=null;appState.vatPurchases=[];appState.invoiceCredits=[];
             document.getElementById('auth-screen').classList.remove('hidden');
             showToast("Signed out");
         }
@@ -1535,7 +1554,7 @@
             try {
                 const todayIso = isoDate(new Date());
 
-                const [profileRes, taxProfileRes, incomeRes, expenseRes, mileageRes, reserveRes, periodRes, recurringRes, receiptRes, invoiceRes] = await Promise.all([
+                const [profileRes, taxProfileRes, incomeRes, expenseRes, mileageRes, reserveRes, periodRes, recurringRes, receiptRes, invoiceRes, draftRes, vatProfileRes, vatPurchaseRes, creditRes] = await Promise.all([
                     supabaseClient.from('profiles').select('*').eq('id', userId).single(),
                     supabaseClient.from('tax_profiles').select('*').eq('user_id', userId).maybeSingle(),
                     supabaseClient.from('income').select('*').eq('user_id', userId),
@@ -1545,7 +1564,11 @@
                     supabaseClient.from('period_entries').select('*').eq('user_id', userId).order('period_start', { ascending: false }),
                     supabaseClient.from('recurring_expenses').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
                     supabaseClient.from('receipts').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
-                    supabaseClient.from('invoices').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+                    supabaseClient.from('invoices').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+                    supabaseClient.from('invoice_drafts').select('*').eq('user_id', userId).order('updated_at', { ascending: false }),
+                    supabaseClient.from('vat_profiles').select('*').eq('user_id', userId).maybeSingle(),
+                    supabaseClient.from('vat_purchases').select('*').eq('user_id', userId),
+                    supabaseClient.from('invoice_credits').select('*').eq('user_id', userId)
                 ]);
 
                 if (profileRes.error) throw profileRes.error;
@@ -1559,6 +1582,8 @@
                 if (receiptRes.error) throw receiptRes.error;
                 if (invoiceRes.error) throw invoiceRes.error;
 
+                for(const result of [draftRes,vatProfileRes,vatPurchaseRes,creditRes])if(result.error)throw result.error;
+                appState.invoiceDrafts=draftRes.data||[];appState.vatProfile=vatProfileRes.data;appState.vatPurchases=vatPurchaseRes.data||[];appState.invoiceCredits=creditRes.data||[];
                 let transactions = [];
                 let totalInc = 0;
                 let totalExp = 0;
@@ -1566,13 +1591,14 @@
                 let todayExp = 0;
 
                 (incomeRes.data || []).forEach(inc => {
-                    const amt = Number(inc.amount);
+                    const linkedInvoice=(invoiceRes.data||[]).find(i=>i.status==='paid'&&i.income_id===inc.id), vatAmount=linkedInvoice?.vat_enabled?Number(linkedInvoice.vat_total):0;
+                    const amt = moneyRound(Number(inc.amount)-vatAmount);
                     const dateStr = inc.earned_on || inc.created_at?.split('T')[0] || todayIso;
                     transactions.push({
                         id: inc.id,
                         type: 'income',
                         source: inc.source || 'Uber',
-                        amount: amt,
+                        amount: amt, grossAmount:Number(inc.amount), vatAmount, invoiceId:linkedInvoice?.id,
                         date: dateStr,
                         notes: inc.notes
                     });
@@ -1583,7 +1609,8 @@
                 });
 
                 (expenseRes.data || []).forEach(exp => {
-                    const amt = Number(exp.amount);
+                    const vatAmount=Number(appState.vatPurchases.find(v=>v.expense_id===exp.id)?.claim_amount||0);
+                    const amt = moneyRound(Number(exp.amount)-vatAmount);
                     const dateStr = exp.expense_date || exp.created_at?.split('T')[0] || todayIso;
                     transactions.push({
                         id: exp.id,
@@ -1592,7 +1619,7 @@
                         vendor: exp.merchant || exp.category || 'Expense',
                         merchant: exp.merchant || '',
                         receipt_attached: !!exp.receipt_attached,
-                        amount: amt,
+                        amount: amt, grossAmount:Number(exp.amount), vatAmount,
                         date: dateStr,
                         notes: exp.notes
                     });
@@ -1735,25 +1762,69 @@
             return hasCore&&hasLoans?{label:'High',detail:'Estimate uses your saved Tax Profile and current app records.'}:{label:'Medium',detail:'Some Tax Profile details are still incomplete.'};
         }
 
+        function normalizeVatNumber(value){return String(value||'').toUpperCase().replace(/^GB/,'').replace(/\s/g,'');}
+        function openVatCentre(){
+            const p=appState.vatProfile||{};document.getElementById('vat-registered').checked=!!p.registered;document.getElementById('vat-number').value=p.vat_number||'';document.getElementById('vat-registration-date').value=p.registration_date||'';document.getElementById('vat-scheme').value=p.scheme||'standard';
+            const today=driverToday();document.getElementById('vat-range-from').value=today.slice(0,8)+'01';document.getElementById('vat-range-to').value=today;
+            document.getElementById('vat-profile-error').classList.add('hidden');document.getElementById('vat-purchase-error').classList.add('hidden');renderVatPurchaseOptions();renderVatRecords();document.getElementById('vat-centre-modal').classList.remove('hidden');
+        }
+        function closeVatCentre(){document.getElementById('vat-centre-modal').classList.add('hidden');updateInvoiceVatFields();}
+        async function saveVatProfile(event){
+            event.preventDefault();if(appState.vatProfileSaving)return;const error=document.getElementById('vat-profile-error');error.classList.add('hidden');
+            try{const registered=!!document.getElementById('vat-registered').checked,number=normalizeVatNumber(document.getElementById('vat-number').value),date=document.getElementById('vat-registration-date').value,scheme=document.getElementById('vat-scheme').value;
+                if(registered&&(!/^\d{9}(\d{3})?$/.test(number)||!date))throw new Error('Enter a UK VAT number (9 or 12 digits) and effective registration date.');if(!['standard','cash'].includes(scheme))throw new Error('This VAT method is not supported yet.');
+                appState.vatProfileSaving=true;document.getElementById('vat-profile-save').disabled=true;const {error:e}=await supabaseClient.from('vat_profiles').upsert({user_id:appState.currentUser.id,registered,vat_number:registered?number:'',registration_date:registered?date:null,scheme,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(e)throw e;await fetchUserData(appState.currentUser.id);updateInvoiceVatFields();renderVatRecords();showToast('VAT settings saved');
+            }catch(e){error.textContent=e.message||'Could not save VAT settings';error.classList.remove('hidden');}finally{appState.vatProfileSaving=false;document.getElementById('vat-profile-save').disabled=false;}
+        }
+        function getVatEntries(){
+            const entries=[];for(const i of appState.invoices||[]){if(!i.vat_enabled)continue;
+                const taxDate=i.vat_scheme==='cash'?(i.status==='paid'?i.paid_on:null):(i.paid_on&&i.paid_on<i.tax_point?i.paid_on:i.tax_point);
+                if(taxDate)entries.push({type:'Sale',date:taxDate,reference:i.invoice_number,net:Number(i.subtotal),output:Number(i.vat_total),input:0,scheme:i.vat_scheme});
+                const credit=(appState.invoiceCredits||[]).find(c=>c.invoice_id===i.id);if(i.status==='cancelled'&&credit&&i.vat_scheme==='standard')entries.push({type:'Credit note',date:credit.credit_date,reference:credit.credit_number,net:-Number(credit.net_total),output:-Number(credit.vat_total),input:0,scheme:i.vat_scheme});
+            }
+            for(const p of appState.vatPurchases||[]){const e=(appState.transactions||[]).find(t=>t.id===p.expense_id&&t.type==='expense');entries.push({type:'Purchase',date:p.scheme==='cash'?p.paid_on:p.tax_point,reference:e?.vendor||'Recorded expense',net:e?moneyRound(Number(e.grossAmount??e.amount)-Number(p.claim_amount)):0,output:0,input:Number(p.claim_amount),scheme:p.scheme});}
+            return entries.sort((a,b)=>a.date.localeCompare(b.date));
+        }
+        function selectedVatEntries(){const start=document.getElementById('vat-range-from').value,end=document.getElementById('vat-range-to').value;if(!start||!end||end<start)throw new Error('Choose a valid VAT date range.');return getVatEntries().filter(e=>e.date>=start&&e.date<=end);}
+        function renderVatRecords(){try{const entries=selectedVatEntries(),output=moneyRound(entries.reduce((a,e)=>a+e.output,0)),input=moneyRound(entries.reduce((a,e)=>a+e.input,0)),balance=moneyRound(output-input);document.getElementById('vat-record-totals').textContent='Output £'+output.toFixed(2)+' · Input £'+input.toFixed(2)+' · '+(balance>=0?'Recorded VAT due £':'Recorded VAT credit £')+Math.abs(balance).toFixed(2);document.getElementById('vat-record-list').innerHTML=entries.map(e=>'<div class="border-t border-slate-700 pt-2"><b>'+escapeHtml(e.type+' · '+e.reference)+'</b><p>'+formatUkDate(e.date)+' · '+escapeHtml(e.scheme)+' · Output £'+e.output.toFixed(2)+' · Input £'+e.input.toFixed(2)+'</p></div>').join('')||'<p>No VAT entries in this range.</p>';}catch(e){document.getElementById('vat-record-totals').textContent=e.message;document.getElementById('vat-record-list').innerHTML='';}}
+        function downloadVatRecords(){try{const entries=selectedVatEntries(),rows=[['Recorded VAT only — review missing income and expenses; not an HMRC return'],['Type','Tax date','Reference','Accounting method','Net amount GBP','Output VAT GBP','Input VAT GBP'],...entries.map(e=>[e.type,e.date,e.reference,e.scheme,e.net.toFixed(2),e.output.toFixed(2),e.input.toFixed(2)])];downloadBlob(new Blob([rows.map(r=>r.map(v=>'"'+csvSafeCell(v).replaceAll('"','""')+'"').join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),'DriverTax-VAT-records.csv');}catch(e){showToast(e.message);}}
+        function renderVatPurchaseOptions(){const select=document.getElementById('vat-purchase-expense');select.innerHTML='<option value="">Choose an expense</option>'+(appState.transactions||[]).filter(t=>t.type==='expense').map(t=>'<option value="'+t.id+'">'+escapeHtml(t.vendor||t.category||'Expense')+' · '+formatUkDate(t.date)+' · £'+Number(t.grossAmount??t.amount).toFixed(2)+((appState.vatPurchases||[]).some(p=>p.expense_id===t.id)?' · VAT recorded':'')+'</option>').join('');select.value='';prefillVatPurchase();}
+        function prefillVatPurchase(){const id=document.getElementById('vat-purchase-expense').value,p=(appState.vatPurchases||[]).find(p=>p.expense_id===id),e=(appState.transactions||[]).find(t=>t.id===id);document.getElementById('vat-purchase-supplier').value=p?.supplier_vat_number||'';document.getElementById('vat-purchase-tax-point').value=p?.tax_point||e?.date||driverToday();document.getElementById('vat-purchase-amount').value=p?.vat_on_document||'';document.getElementById('vat-purchase-percent').value=p?.business_percent||100;document.getElementById('vat-purchase-evidence').checked=!!p?.evidence_confirmed;}
+        async function saveVatPurchase(event){
+            event.preventDefault();if(appState.vatPurchaseSaving)return;const error=document.getElementById('vat-purchase-error');error.classList.add('hidden');
+            try{const p=appState.vatProfile,e=(appState.transactions||[]).find(t=>t.type==='expense'&&t.id===document.getElementById('vat-purchase-expense').value),supplier=normalizeVatNumber(document.getElementById('vat-purchase-supplier').value),taxpoint=document.getElementById('vat-purchase-tax-point').value,vat=Number(document.getElementById('vat-purchase-amount').value),percent=Number(document.getElementById('vat-purchase-percent').value);
+                if(!p?.registered)throw new Error('Save your VAT registration first.');if(!e||!/^\d{9}(\d{3})?$/.test(supplier)||!taxpoint||taxpoint<p.registration_date||taxpoint>driverToday()||e.date>driverToday())throw new Error('Choose an expense, supplier VAT number and valid tax point on or after registration.');if(!Number.isFinite(vat)||vat<=0||vat>moneyRound(Number(e.grossAmount??e.amount)/6)||!Number.isFinite(percent)||percent<=0||percent>100||!document.getElementById('vat-purchase-evidence').checked)throw new Error('Check the VAT amount and eligible share, and confirm valid VAT evidence.');
+                appState.vatPurchaseSaving=true;const {error:saveError}=await supabaseClient.from('vat_purchases').upsert({expense_id:e.id,user_id:appState.currentUser.id,tax_point:taxpoint,paid_on:e.date,scheme:p.scheme,supplier_vat_number:supplier,vat_on_document:moneyRound(vat),business_percent:moneyRound(percent),claim_amount:moneyRound(vat*percent/100),evidence_confirmed:true,updated_at:new Date().toISOString()},{onConflict:'expense_id'});if(saveError)throw saveError;await fetchUserData(appState.currentUser.id);renderVatPurchaseOptions();renderVatRecords();showToast('Purchase VAT recorded separately');
+            }catch(e){error.textContent=e.message;error.classList.remove('hidden');}finally{appState.vatPurchaseSaving=false;}
+        }
+        async function deleteVatPurchase(){const id=document.getElementById('vat-purchase-expense').value;if(!id||appState.vatPurchaseSaving||!confirm('Remove this purchase VAT claim? The original expense will remain.'))return;appState.vatPurchaseSaving=true;try{const {error}=await supabaseClient.from('vat_purchases').delete().eq('expense_id',id).eq('user_id',appState.currentUser.id);if(error)throw error;await fetchUserData(appState.currentUser.id);renderVatPurchaseOptions();renderVatRecords();showToast('Purchase VAT removed; expense retained');}catch(e){showToast(e.message);}finally{appState.vatPurchaseSaving=false;}}
+        async function toggleInvoiceArchive(){const inv=invoiceById();if(!inv||appState.invoiceArchiving)return;appState.invoiceArchiving=true;try{const {error}=await supabaseClient.rpc('set_driver_invoice_archived',{p_id:inv.id,p_archived:!inv.archived});if(error)throw error;await fetchUserData(appState.currentUser.id);openInvoiceDetail(inv.id);showToast(inv.archived?'Invoice restored':'Invoice archived; payments still count');}catch(e){const box=document.getElementById('invoice-action-error');box.textContent=e.message;box.classList.remove('hidden');}finally{appState.invoiceArchiving=false;}}
+        function downloadInvoiceCredit(){const inv=invoiceById(),credit=(appState.invoiceCredits||[]).find(c=>c.invoice_id===inv?.id);if(!credit||inv.status!=='cancelled')return;const reversal={...inv,invoice_number:credit.credit_number,invoice_date:credit.credit_date,document_type:'credit',tax_point:credit.credit_date,original_invoice_number:inv.invoice_number,credit_date:credit.credit_date};downloadBlob(buildInvoicePdfBlob(reversal),credit.credit_number+'.pdf');}
+
         function invoiceById(id=appState.selectedInvoiceId){return (appState.invoices||[]).find(i=>i.id===id);}
-        function closeInvoiceScreens(){['invoice-list-modal','invoice-create-modal','invoice-detail-modal','invoice-payment-modal','invoice-calendar-modal'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));appState.selectedInvoiceId=null;}
+        function closeInvoiceScreens(){['invoice-list-modal','invoice-create-modal','invoice-detail-modal','invoice-payment-modal','vat-centre-modal','invoice-calendar-modal'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));appState.selectedInvoiceId=null;}
         function openInvoices(){closeInvoiceScreens();document.getElementById('invoice-list-modal').classList.remove('hidden');renderInvoices();}
         function closeInvoiceCreate(){if(!appState.invoiceSaving)document.getElementById('invoice-create-modal').classList.add('hidden');}
         function closeInvoiceDetail(){document.getElementById('invoice-detail-modal').classList.add('hidden');closeInvoicePayment();}
         function closeInvoicePayment(){if(!appState.invoicePaying)document.getElementById('invoice-payment-modal').classList.add('hidden');}
         function renderInvoices(){
-            const invoices=appState.invoices||[],unpaid=invoices.filter(i=>i.status==='unpaid'),outstanding=unpaid.reduce((sum,i)=>sum+Number(i.total),0);
-            document.getElementById('dash-invoice-outstanding').textContent=unpaid.length?unpaid.length+' unpaid · £'+outstanding.toFixed(2):'Manage your invoices';
-            document.getElementById('invoice-list-summary').textContent=unpaid.length+' unpaid · £'+outstanding.toFixed(2)+' outstanding. Unpaid invoices are not added to income.';
+            const invoices=appState.invoices||[],unpaid=invoices.filter(i=>i.status==='unpaid'),outstanding=unpaid.reduce((sum,i)=>sum+Number(i.total),0),today=driverToday();
+            document.getElementById('dash-invoice-outstanding').textContent=unpaid.length?unpaid.length+' unpaid · £'+outstanding.toFixed(2)+' outstanding':'Create, save and track your invoices';
+            const due=unpaid.filter(i=>i.due_date===today).length,late=unpaid.filter(i=>i.due_date<today).length;
+            document.getElementById('dash-invoice-alert').textContent=[due?due+' due today':'',late?late+' overdue':'',(appState.invoiceDrafts||[]).length?appState.invoiceDrafts.length+' drafts saved':''].filter(Boolean).join(' · ');
+            const coverage=document.getElementById('dash-vat-coverage');coverage.classList.toggle('hidden',!appState.vatProfile?.registered);coverage.textContent='Profit excludes VAT linked to recorded invoice payments and eligible purchases. Check VAT records for unclassified earnings and costs.';
+            document.getElementById('invoice-list-summary').textContent=unpaid.length+' unpaid · £'+outstanding.toFixed(2)+' outstanding, including archived invoices. Unpaid invoices are not income.';
             const filter=document.getElementById('invoice-list-filter').value||'all';
-            document.getElementById('invoice-list').innerHTML=invoices.filter(i=>filter==='all'||i.status===filter).map(i=>{
-                const overdue=i.status==='unpaid'&&i.due_date<driverToday();
-                return '<button type="button" onclick="openInvoiceDetail(\''+i.id+'\')" class="w-full text-left bg-slate-900 border border-slate-700 rounded-xl p-3"><div class="flex justify-between gap-2"><b class="text-white">'+escapeHtml(i.invoice_number)+'</b><b class="text-emerald-300">£'+Number(i.total).toFixed(2)+'</b></div><p class="text-xs text-slate-300 mt-1">'+escapeHtml(i.customer_name)+'</p><p class="text-[10px] '+(overdue?'text-amber-200':'text-slate-400')+' mt-1">'+(overdue?'Overdue':i.status==='paid'?'Paid':i.status==='cancelled'?'Cancelled':'Unpaid')+' · Due '+formatUkDate(i.due_date)+'</p></button>';
+            if(filter==='drafts'){document.getElementById('invoice-list').innerHTML=(appState.invoiceDrafts||[]).map(d=>'<div class="bg-slate-900 border border-slate-700 rounded-xl p-3"><button type="button" onclick="openInvoiceDraft(\''+d.id+'\')" class="w-full text-left"><b class="text-white">Draft · '+escapeHtml(d.data.customer_name||'Unnamed customer')+'</b><p class="text-xs text-slate-300">Intended date '+(d.data.invoice_date?formatUkDate(d.data.invoice_date):'Not set')+' · No invoice number yet</p></button><button type="button" onclick="deleteInvoiceDraft(\''+d.id+'\')" class="text-xs text-rose-200 mt-2">Delete draft</button></div>').join('')||'<p class="text-xs text-slate-300">No saved drafts.</p>';return;}
+            document.getElementById('invoice-list').innerHTML=invoices.filter(i=>filter==='archived'?i.archived:!i.archived&&(filter==='all'||i.status===filter)).map(i=>{
+                const overdue=i.status==='unpaid'&&i.due_date<today;
+                return '<button type="button" onclick="openInvoiceDetail(\''+i.id+'\')" class="w-full text-left bg-slate-900 border border-slate-700 rounded-xl p-3"><div class="flex justify-between gap-2"><b class="text-white">'+escapeHtml(i.invoice_number)+'</b><b class="text-emerald-300">£'+Number(i.total).toFixed(2)+'</b></div><p class="text-xs text-slate-300 mt-1">'+escapeHtml(i.customer_name)+'</p><p class="text-[10px] '+(overdue?'text-amber-200':'text-slate-400')+' mt-1">'+(i.archived?'Archived · ':'')+(overdue?'Overdue':i.status==='paid'?'Paid':i.status==='cancelled'?'Cancelled':'Unpaid')+' · Due '+formatUkDate(i.due_date)+'</p></button>';
             }).join('')||'<p class="text-xs text-slate-300 py-4">No invoices here yet.</p>';
         }
         function openInvoiceCreate(){
             if(!appState.currentUser)return;
-            document.getElementById('invoice-create-form').reset();appState.invoiceRequestId=crypto.randomUUID();
+            document.getElementById('invoice-create-form').reset();appState.invoiceRequestId=crypto.randomUUID();appState.invoiceDraftId=null;appState.invoiceDraftRevision=0;document.getElementById('invoice-delete-draft-btn').classList.add('hidden');
+            document.getElementById('invoice-vat-enabled').checked=!!appState.vatProfile?.registered;document.getElementById('invoice-price-basis').value='exclusive';updateInvoiceVatFields();
             const previous=(appState.invoices||[])[0],p=appState.profile||{};
             document.getElementById('invoice-seller-name').value=previous?.seller_name||p.full_name||'';
             document.getElementById('invoice-trading-name').value=previous?.trading_name||'';
@@ -1786,7 +1857,7 @@
             const value=id=>document.getElementById('invoice-'+id).value.trim(),method=value('payment-method'),extra=value('payment-details');let lines=[];
             if(method==='bank'){
                 const bank=value('bank-name'),holder=value('account-holder'),sort=value('sort-code').replace(/[ -]/g,''),account=value('account-number');
-                if(!bank||!holder||!/^\d{6}$/.test(sort)||!/^\d{8}$/.test(account))throw new Error('Enter a bank, account holder, 6-digit sort code and 8-digit account number.');
+                if(!bank)throw new Error('Enter your bank name, or choose Other bank.');if(!holder)throw new Error('Enter the account holder’s name.');if(!/^\d{6}$/.test(sort))throw new Error('Sort code must contain exactly 6 digits (for example 12-34-56).');if(!/^\d{8}$/.test(account))throw new Error('Account number must contain exactly 8 digits. Keep any leading zeros.');
                 lines=['Payment method: Bank transfer','Bank: '+bank,'Account holder: '+holder,'Sort code: '+sort.match(/.{2}/g).join('-'),'Account number: '+account];
             }else if(method==='link'){
                 let url;try{url=new URL(value('payment-link'));}catch{throw new Error('Enter a valid HTTPS payment link.');}
@@ -1805,7 +1876,7 @@
         }
         function closeInvoiceCalendar(){document.getElementById('invoice-calendar-modal').classList.add('hidden');}
         function changeInvoiceCalendarMonth(delta){const d=new Date(appState.invoiceCalendarDate);d.setDate(1);d.setMonth(d.getMonth()+delta);appState.invoiceCalendarDate=d;renderCalendar('invoice');}
-        function invoiceDateDisabled(date){const field=appState.invoiceCalendarField;return (['invoice-date','invoice-paid-date'].includes(field)&&date>driverToday())||(field==='invoice-due-date'&&date<document.getElementById('invoice-date').value);}
+        function invoiceDateDisabled(date){const field=appState.invoiceCalendarField;return (field==='invoice-paid-date'&&date>driverToday())||(field==='invoice-due-date'&&date<document.getElementById('invoice-date').value);}
         function handleInvoiceCalendarDateClick(date){
             if(invoiceDateDisabled(date))return;const field=appState.invoiceCalendarField;document.getElementById(field).value=date;
             if(field==='invoice-date'&&document.getElementById('invoice-due-date').value<date)document.getElementById('invoice-due-date').value=date;
@@ -1816,10 +1887,11 @@
             const id='invoice-item-'+((appState.invoiceItemCounter||0)+1);appState.invoiceItemCounter=(appState.invoiceItemCounter||0)+1;
             const row=document.createElement('div');row.id=id;row.className='invoice-item bg-slate-900 border border-slate-700 rounded-xl p-3 space-y-2';
             row.innerHTML='<label class="block text-[10px] text-slate-300">Description<input data-invoice-field="description" type="text" required maxlength="200" placeholder="e.g. Airport transfer Birmingham to Heathrow" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"></label><div class="grid grid-cols-2 gap-2"><label class="text-[10px] text-slate-300">Quantity<input data-invoice-field="quantity" type="number" min="0.01" max="100000" step="0.01" required value="1" oninput="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"></label><label class="text-[10px] text-slate-300">Unit price (£)<input data-invoice-field="unit_price" type="number" min="0" max="10000000" step="0.01" required placeholder="0.00" oninput="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"></label></div><button type="button" onclick="removeInvoiceItem(\''+id+'\')" class="text-[10px] text-slate-300">Remove item</button>';
-            box.appendChild(row);updateInvoiceTotal();
+            const vatLabel=document.createElement('label');vatLabel.className='invoice-item-vat block text-[10px] text-slate-300';vatLabel.innerHTML='VAT rate<select data-invoice-field="vat_rate" onchange="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"><option value="20">20% standard</option><option value="5">5% reduced</option><option value="0">0% zero rated</option></select>';row.appendChild(vatLabel);
+            box.appendChild(row);updateInvoiceVatFields();
         }
         function removeInvoiceItem(id){const box=document.getElementById('invoice-items');if(box.children.length===1){showToast('Keep at least one invoice item');return;}document.getElementById(id)?.remove();updateInvoiceTotal();}
-        function readInvoiceItems(){return [...document.querySelectorAll('#invoice-items .invoice-item')].map(row=>({description:row.querySelector('[data-invoice-field="description"]').value.trim(),quantity:Number(row.querySelector('[data-invoice-field="quantity"]').value),unit_price:Number(row.querySelector('[data-invoice-field="unit_price"]').value)}));}
+        function readInvoiceItems(){return [...document.querySelectorAll('#invoice-items .invoice-item')].map(row=>({description:row.querySelector('[data-invoice-field="description"]').value.trim(),quantity:Number(row.querySelector('[data-invoice-field="quantity"]').value),unit_price:Number(row.querySelector('[data-invoice-field="unit_price"]').value),vat_rate:Number(row.querySelector('[data-invoice-field="vat_rate"]').value)}));}
         function calculateInvoiceTotal(items){
             if(!items.length||items.length>20)throw new Error('Add between 1 and 20 items.');
             let pennies=0;items.forEach(item=>{
@@ -1827,31 +1899,69 @@
                 pennies+=Math.round(Math.round(item.quantity*100)*Math.round(item.unit_price*100)/100);
             });return pennies/100;
         }
-        function updateInvoiceTotal(){try{document.getElementById('invoice-total-preview').textContent='Total £'+calculateInvoiceTotal(readInvoiceItems()).toFixed(2)+' · No VAT charged';}catch{document.getElementById('invoice-total-preview').textContent='Add a quantity and price to see your total.';}}
+        function moneyRound(n){return Math.round((Number(n)+Number.EPSILON)*100)/100;}
+        function calculateVatTotals(items,enabled,basis){
+            calculateInvoiceTotal(items);let net=0,vat=0;
+            items.forEach(i=>{const raw=calculateInvoiceTotal([i]),rate=enabled?Number(i.vat_rate):0;if(![0,5,20].includes(rate))throw new Error('Choose 0%, 5% or 20% VAT.');const n=enabled&&basis==='inclusive'?moneyRound(raw/(1+rate/100)):raw;const v=enabled&&basis==='inclusive'?moneyRound(raw-n):moneyRound(n*rate/100);net=moneyRound(net+n);vat=moneyRound(vat+v);});
+            return {net,vat,total:moneyRound(net+vat)};
+        }
+        function updateInvoiceVatFields(){
+            const enabled=document.getElementById('invoice-vat-enabled').checked;
+            document.getElementById('invoice-price-basis-label').classList.toggle('hidden',!enabled);document.getElementById('invoice-non-vat-label').classList.toggle('hidden',enabled);document.getElementById('invoice-non-vat').required=!enabled;
+            document.querySelectorAll('.invoice-item-vat').forEach(el=>el.classList.toggle('hidden',!enabled));
+            const p=appState.vatProfile;document.getElementById('invoice-vat-profile-note').textContent=enabled?(p?.registered?'VAT '+p.vat_number+' · '+(p.scheme==='cash'?'Cash accounting':'Standard accounting'):'Save your VAT registration first.'):'No VAT charged. Confirm non-VAT status before issuing.';updateInvoiceTotal();
+        }
+        function updateInvoiceTotal(){try{const enabled=document.getElementById('invoice-vat-enabled').checked,t=calculateVatTotals(readInvoiceItems(),enabled,document.getElementById('invoice-price-basis').value);document.getElementById('invoice-total-preview').textContent=enabled?'Net £'+t.net.toFixed(2)+' + VAT £'+t.vat.toFixed(2)+' = £'+t.total.toFixed(2):'Total £'+t.total.toFixed(2)+' · No VAT charged';}catch{document.getElementById('invoice-total-preview').textContent='Add a quantity and price to see your total.';}}
+        function readInvoicePayload(draft=false){
+            const fields=['seller-name','trading-name','seller-address','seller-contact','customer-name','customer-address','customer-email','date','supply-date','due-date','notes'],payload={};fields.forEach(field=>payload[field==='date'?'invoice_date':field.replaceAll('-','_')]=document.getElementById('invoice-'+field).value.trim());
+            // Drafts may contain incomplete bank details. Keep raw values separately until issuance validates them.
+            const paymentFields=['payment-method','bank-name','account-holder','sort-code','account-number','payment-link','payment-details'];
+            payload.payment_form=Object.fromEntries(paymentFields.map(f=>[f,document.getElementById('invoice-'+f).value]));
+            payload.payment_details=draft?'':readInvoicePaymentDetails();payload.items=readInvoiceItems();payload.non_vat_confirmed=!!document.getElementById('invoice-non-vat').checked;payload.vat_enabled=!!document.getElementById('invoice-vat-enabled').checked;payload.price_basis=document.getElementById('invoice-price-basis').value||'exclusive';return payload;
+        }
+        function enterOtherInvoiceBank(){const input=document.getElementById('invoice-bank-name');input.value='';input.placeholder='Type your bank name';input.focus();}
+        async function saveInvoiceDraft(){
+            if(!appState.currentUser||appState.invoiceSaving)return;const error=document.getElementById('invoice-create-error');error.classList.add('hidden');appState.invoiceSaving=true;
+            try{const payload=readInvoicePayload(true),id=appState.invoiceDraftId||appState.invoiceRequestId;const {data,error:e}=await supabaseClient.rpc('save_driver_invoice_draft',{p_id:id,p_data:payload,p_revision:appState.invoiceDraftRevision||0});if(e)throw e;appState.invoiceDraftId=id;appState.invoiceDraftRevision=data;document.getElementById('invoice-delete-draft-btn').classList.remove('hidden');await fetchUserData(appState.currentUser.id);showToast('Draft saved. No invoice issued.');}
+            catch(e){error.textContent=e.message;error.classList.remove('hidden');}finally{appState.invoiceSaving=false;}
+        }
+        function openInvoiceDraft(id){
+            const d=(appState.invoiceDrafts||[]).find(d=>d.id===id);if(!d)return;openInvoiceCreate();appState.invoiceDraftId=id;appState.invoiceRequestId=id;appState.invoiceDraftRevision=d.revision;
+            for(const [key,value] of Object.entries(d.data)){const field=key==='invoice_date'?'date':key.replaceAll('_','-');const input=document.getElementById('invoice-'+field);if(input&&typeof value==='string')input.value=value;}
+            if(d.data.payment_form)for(const [f,v] of Object.entries(d.data.payment_form))document.getElementById('invoice-'+f).value=v;else restoreInvoicePaymentFields(d.data.payment_details||'');
+            document.getElementById('invoice-vat-enabled').checked=!!d.data.vat_enabled;document.getElementById('invoice-non-vat').checked=!!d.data.non_vat_confirmed;document.getElementById('invoice-price-basis').value=d.data.price_basis||'exclusive';
+            document.getElementById('invoice-items').innerHTML='';for(const item of (d.data.items?.length?d.data.items:[{}])){addInvoiceItem();const row=document.getElementById('invoice-items').lastElementChild;for(const f of ['description','quantity','unit_price','vat_rate'])if(item[f]!==undefined)row.querySelector('[data-invoice-field="'+f+'"]').value=item[f];}
+            document.getElementById('invoice-delete-draft-btn').classList.remove('hidden');updateInvoicePaymentFields();updateInvoiceDateLabels();updateInvoiceVatFields();
+        }
+        async function deleteInvoiceDraft(id=appState.invoiceDraftId){
+            if(!id||appState.invoiceSaving||!confirm('Permanently delete this draft? It has not been issued and has no payment record.'))return;
+            appState.invoiceSaving=true;try{const {error}=await supabaseClient.from('invoice_drafts').delete().eq('id',id).eq('user_id',appState.currentUser.id);if(error)throw error;document.getElementById('invoice-create-modal').classList.add('hidden');appState.invoiceDraftId=null;await fetchUserData(appState.currentUser.id);showToast('Draft deleted');}catch(e){showToast(e.message||'Could not delete draft');}finally{appState.invoiceSaving=false;}
+        }
         async function issueDriverInvoice(event){
             event.preventDefault();if(!appState.currentUser||appState.invoiceSaving)return;
             const error=document.getElementById('invoice-create-error'),button=document.getElementById('invoice-issue-btn');error.classList.add('hidden');
             try{
-                const fields=['seller-name','trading-name','seller-address','seller-contact','customer-name','customer-address','customer-email','date','supply-date','due-date','payment-details','notes'];
-                const payload={};fields.forEach(field=>payload[field==='date'?'invoice_date':field.replaceAll('-','_')]=document.getElementById('invoice-'+field).value.trim());
-                payload.payment_details=readInvoicePaymentDetails();payload.items=readInvoiceItems();payload.non_vat_confirmed=document.getElementById('invoice-non-vat').checked;
-                if(!payload.non_vat_confirmed)throw new Error('This version supports non-VAT invoices only.');
+                const payload=readInvoicePayload();
+                if(payload.vat_enabled){if(!appState.vatProfile?.registered)throw new Error('Save your VAT registration first.');}else if(!payload.non_vat_confirmed)throw new Error('Confirm that this business is not VAT registered.');
                 if(['seller_name','seller_address','seller_contact','customer_name','customer_address'].some(key=>!payload[key]))throw new Error('Complete your details and the customer name and address.');
-                if(!payload.invoice_date||!payload.supply_date||!payload.due_date||payload.due_date<payload.invoice_date||payload.invoice_date>driverToday())throw new Error('Check invoice, service and due dates.');
-                if(payload.items.some(i=>!i.description)||calculateInvoiceTotal(payload.items)<=0)throw new Error('Add a description and positive invoice total.');
-                appState.invoiceSaving=true;button.disabled=true;button.textContent='Issuing…';
-                const {data,error:saveError}=await supabaseClient.rpc('create_driver_invoice',{p_invoice:payload,p_request_id:appState.invoiceRequestId});
-                if(saveError)throw saveError;if(!data)throw new Error('Save could not be confirmed. Retry to recover the same invoice.');
-                document.getElementById('invoice-create-modal').classList.add('hidden');await fetchUserData(appState.currentUser.id);openInvoiceDetail(data);showToast('Invoice issued. Choose how to share it.');
+                if(payload.invoice_date!==driverToday())throw new Error('Save future dates as a draft. To issue now, set the intended issue date to today.');
+                if(!payload.supply_date||!payload.due_date||payload.due_date<payload.invoice_date)throw new Error('Check service and due dates.');
+                if(payload.items.some(i=>!i.description)||calculateVatTotals(payload.items,payload.vat_enabled,payload.price_basis).total<=0)throw new Error('Add a description and positive invoice total.');
+                appState.invoiceSaving=true;button.disabled=true;button.textContent='Issuing…';let result;
+                if(appState.invoiceDraftId){result=await supabaseClient.rpc('issue_driver_invoice_draft',{p_id:appState.invoiceDraftId,p_revision:appState.invoiceDraftRevision,p_data:payload});}
+                else result=await supabaseClient.rpc('create_driver_invoice',{p_invoice:payload,p_request_id:appState.invoiceRequestId});
+                if(result.error)throw result.error;if(!result.data)throw new Error('Save could not be confirmed. Retry to recover the same invoice.');
+                document.getElementById('invoice-create-modal').classList.add('hidden');await fetchUserData(appState.currentUser.id);openInvoiceDetail(result.data);showToast('Invoice issued. Choose how to share it.');
             }catch(err){error.textContent=err.message||'Could not issue invoice. Retry to recover the same invoice before creating another.';error.classList.remove('hidden');}
             finally{appState.invoiceSaving=false;button.disabled=false;button.textContent='Issue invoice';}
         }
         function openInvoiceDetail(id){
             const inv=invoiceById(id);if(!inv){showToast('Refresh to load your invoice');return;}appState.selectedInvoiceId=id;
             document.getElementById('invoice-detail-title').textContent=inv.invoice_number;
-            const lines=(inv.items||[]).map(i=>'<div class="flex justify-between gap-3 border-b border-slate-700 py-2"><div><b>'+escapeHtml(i.description)+'</b><p class="text-[10px] text-slate-400">'+i.quantity+' × £'+Number(i.unit_price).toFixed(2)+'</p></div><span>£'+Number(i.line_total).toFixed(2)+'</span></div>').join('');
+            const lines=(inv.items||[]).map(i=>'<div class="flex justify-between gap-3 border-b border-slate-700 py-2"><div><b>'+escapeHtml(i.description)+'</b><p class="text-[10px] text-slate-400">'+i.quantity+' × £'+Number(i.unit_price).toFixed(2)+(inv.vat_enabled?' · VAT '+i.vat_rate+'% · net £'+Number(i.net_total).toFixed(2):'')+'</p></div><span>£'+Number(i.line_total).toFixed(2)+'</span></div>').join('');
             const escapedLines=value=>escapeHtml(value||'').replaceAll('\n','<br>');
-            document.getElementById('invoice-detail-content').innerHTML='<div class="bg-slate-900 rounded-xl p-3 space-y-2"><p class="font-bold text-white">'+escapeHtml(inv.status.toUpperCase())+' · £'+Number(inv.total).toFixed(2)+'</p><p>Invoice '+formatUkDate(inv.invoice_date)+' · Service '+formatUkDate(inv.supply_date)+' · Due '+formatUkDate(inv.due_date)+'</p>'+(inv.status==='paid'?'<p>Paid '+formatUkDate(inv.paid_on)+' · '+(inv.payment_mode==='existing'?'Linked to existing income':'Income added')+'</p>':'')+'</div><div class="bg-slate-900 rounded-xl p-3"><p class="text-[10px] text-slate-400">FROM</p><b>'+escapeHtml(inv.seller_name)+'</b><p>'+escapedLines(inv.trading_name)+'</p><p>'+escapedLines(inv.seller_address)+'</p><p>'+escapeHtml(inv.seller_contact)+'</p></div><div class="bg-slate-900 rounded-xl p-3"><p class="text-[10px] text-slate-400">BILL TO</p><b>'+escapeHtml(inv.customer_name)+'</b><p>'+escapedLines(inv.customer_address)+'</p></div><div>'+lines+'</div><p class="text-lg text-emerald-300 font-bold">Total £'+Number(inv.total).toFixed(2)+'</p><p>No VAT charged.</p><p>'+escapedLines(inv.payment_details)+'</p><p>'+escapedLines(inv.notes)+'</p>';
+            document.getElementById('invoice-detail-content').innerHTML='<div class="bg-slate-900 rounded-xl p-3 space-y-2"><p class="font-bold text-white">'+escapeHtml(inv.status.toUpperCase())+' · £'+Number(inv.total).toFixed(2)+'</p><p>Invoice '+formatUkDate(inv.invoice_date)+' · Service '+formatUkDate(inv.supply_date)+' · Due '+formatUkDate(inv.due_date)+'</p>'+(inv.status==='paid'?'<p>Paid '+formatUkDate(inv.paid_on)+' · '+(inv.payment_mode==='existing'?'Linked to existing income':'Income added')+'</p>':'')+'</div><div class="bg-slate-900 rounded-xl p-3"><p class="text-[10px] text-slate-400">FROM</p><b>'+escapeHtml(inv.seller_name)+'</b><p>'+escapedLines(inv.trading_name)+'</p><p>'+escapedLines(inv.seller_address)+'</p><p>'+escapeHtml(inv.seller_contact)+'</p></div><div class="bg-slate-900 rounded-xl p-3"><p class="text-[10px] text-slate-400">BILL TO</p><b>'+escapeHtml(inv.customer_name)+'</b><p>'+escapedLines(inv.customer_address)+'</p></div><div>'+lines+'</div><p class="text-lg text-emerald-300 font-bold">Total £'+Number(inv.total).toFixed(2)+'</p><p>'+ (inv.vat_enabled?'VAT number '+escapeHtml(inv.vat_number)+' · Net £'+Number(inv.subtotal).toFixed(2)+' · VAT £'+Number(inv.vat_total).toFixed(2)+' · Tax point '+formatUkDate(inv.tax_point):'No VAT charged.') +'</p><p>'+escapedLines(inv.payment_details)+'</p><p>'+escapedLines(inv.notes)+'</p>';
+            document.getElementById('invoice-archive-btn').textContent=inv.archived?'Restore from archive':'Archive invoice';document.getElementById('invoice-credit-pdf-btn').classList.toggle('hidden',!(inv.vat_enabled&&inv.status==='cancelled'));
             document.getElementById('invoice-send-email').value=inv.customer_email||'';
             document.getElementById('invoice-email-status').textContent='Email requires the sending service to be configured.';
             ['invoice-mark-paid-btn','invoice-cancel-btn'].forEach(id=>document.getElementById(id).classList.toggle('hidden',inv.status!=='unpaid'));
@@ -1871,31 +1981,33 @@
             const heading=wrap(inv.trading_name||inv.seller_name,166,21,true),bannerHeight=14+heading.length*9;
             doc.setFillColor(235,242,255);doc.roundedRect(18,14,174,bannerHeight,2,2,'F');y=25;
             heading.forEach(t=>{line(t,22,y,21,true);y+=9;});y=14+bannerHeight+14;
-            line(inv.status==='cancelled'?'CANCELLED INVOICE':'INVOICE',18,y,19,true);line(inv.invoice_number,192,y,12,true,'right');y+=10;
-            block('Invoice date: '+formatUkDate(inv.invoice_date)+'     Service date: '+formatUkDate(inv.supply_date),9);
-            block('Payment due: '+formatUkDate(inv.due_date),9);
+            line(inv.document_type==='credit'?'CREDIT NOTE':inv.status==='cancelled'?'CANCELLED INVOICE':inv.vat_enabled?'VAT INVOICE':'INVOICE',18,y,19,true);line(inv.invoice_number,192,y,12,true,'right');y+=10;
+            block((inv.document_type==='credit'?'Credit date: ':'Invoice date: ')+formatUkDate(inv.invoice_date)+'     Service date: '+formatUkDate(inv.supply_date),9);
+            if(inv.document_type==='credit')block('Full reversal of invoice: '+inv.original_invoice_number,10,true);else block('Payment due: '+formatUkDate(inv.due_date),9);
+            if(inv.vat_enabled){block('VAT number: GB'+inv.vat_number+'     Tax point: '+formatUkDate(inv.tax_point),9);block('Prices '+(inv.price_basis==='inclusive'?'including':'excluding')+' VAT'+(inv.document_type==='credit'?' — amounts below are fully credited.':''),9);}
             if(inv.status==='paid')block('PAID - received '+formatUkDate(inv.paid_on),10,true);y+=6;
             // Address columns wrap independently, with more space for long addresses.
             const from=[inv.seller_name,inv.trading_name,inv.seller_address,inv.seller_contact].filter(Boolean).flatMap(t=>wrap(t,80,10));
             const to=[inv.customer_name,inv.customer_address,inv.customer_email].filter(Boolean).flatMap(t=>wrap(t,80,10));
             ensure(12);line('BILL TO',18,y,9,true);line('FROM',110,y,9,true);y+=7;
             for(let n=0;n<Math.max(from.length,to.length);n++){ensure(6);if(to[n])line(to[n],18,y,10);if(from[n])line(from[n],110,y,10);y+=6;}y+=10;
-            const tableHeader=()=>{ensure(12);doc.setFillColor(235,242,255);doc.rect(18,y-5,174,10,'F');line('Description',21,y,9,true);line('Qty',137,y,9,true,'right');line('Unit price',162,y,9,true,'right');line('Total GBP',189,y,9,true,'right');y+=10;};
+            const tableHeader=()=>{ensure(12);doc.setFillColor(235,242,255);doc.rect(18,y-5,174,10,'F');line('Description',21,y,9,true);line('Qty',137,y,9,true,'right');line(inv.vat_enabled?'Unit ex VAT':'Unit price',162,y,9,true,'right');line('Total GBP',189,y,9,true,'right');y+=10;};
             tableHeader();
             inv.items.forEach((item,index)=>{
-                const lines=wrap(item.description,101,10);let printed=false;
+                const description=item.description+(inv.vat_enabled?'\nVAT '+item.vat_rate+'% | net GBP '+Number(item.net_total).toFixed(2)+' | VAT GBP '+Number(item.vat_total).toFixed(2):'');const lines=wrap(description,101,10);let printed=false;
                 for(let n=0;n<lines.length;n++){
                     if(y+8>275){newPage();tableHeader();}
                     if(index%2===0){doc.setFillColor(248,250,252);doc.rect(18,y-4.5,174,6,'F');}
                     line(lines[n],21,y,10);
-                    if(!printed){line(item.quantity,137,y,9,false,'right');line('£'+Number(item.unit_price).toFixed(2),162,y,9,false,'right');line('£'+Number(item.line_total).toFixed(2),189,y,9,false,'right');printed=true;}
+                    if(!printed){line(item.quantity,137,y,9,false,'right');line('£'+(inv.vat_enabled&&inv.price_basis==='inclusive'?(Number(item.unit_price)/(1+Number(item.vat_rate)/100)).toFixed(4):Number(item.unit_price).toFixed(2)),162,y,9,false,'right');line('£'+Number(item.line_total).toFixed(2),189,y,9,false,'right');printed=true;}
                     y+=6;
                 }
                 y+=3;doc.setDrawColor(226,232,240);doc.line(18,y-2,192,y-2);
             });
-            ensure(26);y+=8;line('TOTAL GBP',132,y,12,true,'right');line('£'+Number(inv.total).toFixed(2),189,y,16,true,'right');y+=8;line('No VAT charged. Non-VAT invoice.',189,y,9,false,'right');y+=14;
-            if(inv.payment_details){ensure(18);block('PAYMENT DETAILS',10,true);block(inv.payment_details,10);y+=3;}
-            block('Payment reference: '+inv.invoice_number,10,true);y+=4;
+            if(inv.vat_enabled){ensure(42);y+=6;line('Net GBP '+Number(inv.subtotal).toFixed(2),189,y,10,false,'right');y+=7;line('VAT GBP '+Number(inv.vat_total).toFixed(2),189,y,10,false,'right');y+=2;}
+            ensure(26);y+=8;line(inv.document_type==='credit'?'CREDIT GBP':'TOTAL GBP',132,y,12,true,'right');line('£'+Number(inv.total).toFixed(2),189,y,16,true,'right');y+=8;if(!inv.vat_enabled)line('No VAT charged. Non-VAT invoice.',189,y,9,false,'right');y+=14;
+            if(inv.payment_details&&inv.document_type!=='credit'){ensure(18);block('PAYMENT DETAILS',10,true);block(inv.payment_details,10);y+=3;}
+            block((inv.document_type==='credit'?'Original invoice: '+inv.original_invoice_number:'Payment reference: '+inv.invoice_number),10,true);y+=4;
             if(inv.notes){ensure(12);block('NOTES',10,true);block(inv.notes,10);}
             const pages=doc.getNumberOfPages();for(let n=1;n<=pages;n++){doc.setPage(n);doc.setDrawColor(226,232,240);doc.line(18,282,192,282);line(inv.invoice_number,18,288,8);line('Page '+n+' of '+pages,192,288,8,false,'right');}
             return doc.output('blob');
@@ -1935,12 +2047,12 @@
         }
         function renderInvoicePaymentOptions(){
             const inv=invoiceById();if(!inv)return;const date=document.getElementById('invoice-paid-date').value;
-            const matches=(appState.transactions||[]).filter(t=>t.type==='income'&&t.date===date&&Math.abs(Number(t.amount)-Number(inv.total))<.005);
+            const matches=(appState.transactions||[]).filter(t=>t.type==='income'&&t.date===date&&Math.abs(Number(t.grossAmount??t.amount)-Number(inv.total))<.005);
             const used=new Set((appState.invoices||[]).filter(i=>i.id!==inv.id&&i.income_id).map(i=>i.income_id));
             const available=matches.filter(t=>!used.has(t.id));
             const period=(appState.periodEntries||[]).some(p=>p.period_start<=date&&p.period_end>=date);
             let options='<option value="">Choose how to record this payment</option>';
-            available.forEach(t=>options+='<option value="'+t.id+'">Link existing '+escapeHtml(t.source||'income')+' · £'+Number(t.amount).toFixed(2)+' · '+formatUkDate(t.date)+'</option>');
+            available.forEach(t=>options+='<option value="'+t.id+'">Link existing '+escapeHtml(t.source||'income')+' · £'+Number(t.grossAmount??t.amount).toFixed(2)+' · '+formatUkDate(t.date)+'</option>');
             if(!matches.length&&!period)options+='<option value="new">Add a new income record for this payment</option>';
             document.getElementById('invoice-payment-income').innerHTML=options;
             document.getElementById('invoice-payment-income').value=!matches.length&&!period?'new':'';
@@ -2158,6 +2270,7 @@
             document.getElementById('tax-reserve-saved').textContent = `£${ts.saved.toFixed(2)}`;
             document.getElementById('tax-reserve-remaining').textContent = `£${Math.max(0,ts.total-ts.saved).toFixed(2)}`;
             const q=taxProfileQuality(), qEl=document.getElementById('tax-estimate-quality');
+            if(appState.vatProfile?.registered||appState.invoices.some(i=>i.vat_enabled)){q.detail+=' Known invoice VAT and eligible input VAT are separated. Unclassified income, regular costs and catch-up totals need VAT review.';}
             if(qEl) qEl.innerHTML='<div class="flex justify-between"><span class="font-bold text-white">Estimate quality</span><span class="font-bold text-emerald-300">'+q.label+'</span></div><p class="text-slate-500 mt-1">'+q.detail+'</p>';
 
             const recentHtml = appState.transactions.slice(0, 4).map(item => {
@@ -2591,7 +2704,7 @@ function openAccountModal() {
             Object.entries(expenseTotals).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>rows.push([k,Number(v).toFixed(2)]));
 
             rows.push([],['MILEAGE SUMMARY','Total Miles'],['Business Mileage',totalMileage.toFixed(1)]);
-            rows.push([],['DETAILED RECORDS'],['Type','Date','Source / Category','Description','Amount (£)','Mileage']);
+            rows.push([],['VAT COVERAGE','Accounting amounts exclude known invoice VAT and eligible purchase VAT. Unclassified records need VAT review.'],['DETAILED RECORDS'],['Type','Date','Source / Category','Description','Accounting amount (£)','Mileage','Original cash amount (£)','VAT excluded (£)']);
 
             tx.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).forEach(x=>{
                 rows.push([
@@ -2600,7 +2713,7 @@ function openAccountModal() {
                     x.type==='income'?(x.source||'Income'):(x.category||'Expense'),
                     x.notes||x.merchant||'',
                     Number(x.amount||0).toFixed(2),
-                    ''
+                    '',Number(x.grossAmount??x.amount??0).toFixed(2),Number(x.vatAmount||0).toFixed(2)
                 ]);
             });
 
@@ -3044,8 +3157,8 @@ function renderRegularCostLists() {
         function recordedPeriodTotals(start,end){
             const tx=appState.transactions.filter(t=>t.date>=start&&t.date<=end);
             const trips=appState.mileageTrips.filter(t=>t.trip_date>=start&&t.trip_date<=end);
-            return {income:tx.filter(t=>t.type==='income').reduce((a,t)=>a+Number(t.amount||0),0),
-                expenses:tx.filter(t=>t.type==='expense').reduce((a,t)=>a+Number(t.amount||0),0),
+            return {income:tx.filter(t=>t.type==='income').reduce((a,t)=>a+Number(t.grossAmount??t.amount??0),0),
+                expenses:tx.filter(t=>t.type==='expense').reduce((a,t)=>a+Number(t.grossAmount??t.amount??0),0),
                 mileage:trips.reduce((a,t)=>a+Number(t.business_miles||0),0),count:tx.length+trips.length};
         }
         function periodUnrecordedTotals(p){
@@ -3787,7 +3900,7 @@ function renderRegularCostLists() {
             const sourceSelect = document.getElementById('income-source');
             if (![...sourceSelect.options].some(o => o.value === t.source)) sourceSelect.add(new Option(t.source,t.source));
             sourceSelect.value = t.source || 'Other';
-            document.getElementById('income-amount').value = Number(t.amount).toFixed(2);
+            document.getElementById('income-amount').value = Number(t.grossAmount??t.amount).toFixed(2);
             setDateField('income-date','income-date-label',t.date);
             document.getElementById('income-notes').value = t.notes || '';
             document.getElementById('income-modal-title').textContent = 'Edit Income';
@@ -3806,7 +3919,7 @@ function renderRegularCostLists() {
             const categorySelect = document.getElementById('expense-category');
             if (![...categorySelect.options].some(o => o.value === t.category)) categorySelect.add(new Option(t.category,t.category));
             categorySelect.value = t.category || 'Other';
-            document.getElementById('expense-amount').value = Number(t.amount).toFixed(2);
+            document.getElementById('expense-amount').value = Number(t.grossAmount??t.amount).toFixed(2);
             const merchantInput=document.getElementById('expense-merchant'); if(merchantInput) merchantInput.value=t.merchant||t.vendor||'';
             setDateField('expense-date','expense-date-label',t.date);
             document.getElementById('expense-notes').value = t.notes || '';
