@@ -231,6 +231,15 @@
                     </div>
                     <p id="dash-tax-year-note" class="text-[10px] text-slate-300"></p><p class="text-[9px] text-slate-400">Period reserve estimates the tax added by the profit shown above. No annual earnings forecast is assumed. Take-home is after this reserve.</p>
                 </div>
+                <div id="dashboard-week-chart" class="bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between gap-2"><h3 class="text-sm font-bold text-white">Your week</h3><div class="flex gap-2"><button type="button" onclick="changeDashboardChartWeek(-1)" aria-label="Previous week" class="bg-slate-800 rounded-lg px-3 py-2">‹</button><button type="button" onclick="changeDashboardChartWeek(1)" aria-label="Next week" class="bg-slate-800 rounded-lg px-3 py-2">›</button></div></div>
+                    <p id="dashboard-chart-dates" class="text-xs text-slate-300"></p>
+                    <p class="text-[10px] text-slate-300"><span class="text-emerald-300">● Income</span> · <span class="text-orange-300">● Expenses incl. regular costs</span></p>
+                    <div id="dashboard-chart-bars" class="grid grid-cols-7 gap-1"></div>
+                    <div id="dashboard-chart-totals" class="grid grid-cols-3 gap-2 text-[10px]"></div>
+                    <p id="dashboard-chart-note" class="text-[10px] text-slate-400"></p>
+                    <p class="text-[10px] text-blue-200">Tap a day to view. Double-tap to edit, or use its Edit button.</p>
+                </div>
                 <div id="dash-invoice-centre" class="border border-blue-400/40 bg-gradient-to-br from-blue-500/20 to-slate-900 rounded-2xl p-4 space-y-3">
                     <h3 class="text-sm font-bold text-white">📄 Invoice Centre</h3><p id="dash-invoice-outstanding" class="text-xs text-blue-100"></p><p id="dash-invoice-alert" class="text-[11px] text-amber-200" aria-live="polite"></p>
                     <div class="grid grid-cols-2 gap-2"><button id="dash-create-invoice" type="button" onclick="openInvoiceCreate()" class="bg-blue-400 text-slate-950 rounded-xl p-3 text-xs font-bold">+ Create invoice</button><button type="button" onclick="openInvoices()" class="bg-slate-800 border border-slate-600 text-white rounded-xl p-3 text-xs font-bold">View invoices</button></div>
@@ -2035,9 +2044,21 @@
             const box=document.getElementById('invoice-items');if(box.children.length>=20){showToast('Up to 20 items per invoice');return;}
             const id='invoice-item-'+((appState.invoiceItemCounter||0)+1);appState.invoiceItemCounter=(appState.invoiceItemCounter||0)+1;
             const row=document.createElement('div');row.id=id;row.className='invoice-item bg-slate-900 border border-slate-700 rounded-xl p-3 space-y-2';
-            row.innerHTML='<label class="block text-[10px] text-slate-300">Description<input data-invoice-field="description" type="text" required maxlength="200" placeholder="e.g. Airport transfer Birmingham to Heathrow" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"></label><div class="grid grid-cols-2 gap-2"><label class="text-[10px] text-slate-300">Quantity<input data-invoice-field="quantity" type="number" min="0.01" max="100000" step="0.01" required value="1" oninput="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"></label><label class="text-[10px] text-slate-300">Unit price (£)<input data-invoice-field="unit_price" type="number" min="0" max="10000000" step="0.01" required placeholder="0.00" oninput="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"></label></div><button type="button" onclick="removeInvoiceItem(\''+id+'\')" class="text-[10px] text-slate-300">Remove item</button>';
+            row.innerHTML='<label class="block text-[10px] text-slate-300">Description<input data-invoice-field="description" type="text" required maxlength="200" placeholder="e.g. Airport transfer Birmingham to Heathrow" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"></label><label class="flex items-center gap-2 text-[10px] text-blue-200"><input data-invoice-quantity-toggle type="checkbox" onchange="toggleInvoiceQuantity(this)">Charge by quantity or hours</label><div class="grid grid-cols-2 gap-2"><label data-invoice-quantity-label class="hidden text-[10px] text-slate-300">Quantity / hours<input data-invoice-field="quantity" type="number" min="0.01" max="100000" step="any" required value="1" oninput="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"><span class="flex gap-2 mt-1"><button type="button" data-quantity-change="-1" onclick="changeInvoiceQuantity(this,-1)" aria-label="Decrease quantity by one" class="bg-slate-800 rounded px-3 py-1">−</button><button type="button" data-quantity-change="1" onclick="changeInvoiceQuantity(this,1)" aria-label="Increase quantity by one" class="bg-slate-800 rounded px-3 py-1">+</button></span><span class="text-[9px] text-slate-400">You can type hours such as 1.5.</span></label><label class="text-[10px] text-slate-300"><span data-invoice-price-label>Job price (£)</span><input data-invoice-field="unit_price" type="number" min="0" max="10000000" step="0.01" required placeholder="0.00" oninput="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"></label></div><button type="button" onclick="removeInvoiceItem(\''+id+'\')" class="text-[10px] text-slate-300">Remove item</button>';
             const vatLabel=document.createElement('label');vatLabel.className='invoice-item-vat block text-[10px] text-slate-300';vatLabel.innerHTML='VAT rate<select data-invoice-field="vat_rate" onchange="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"><option value="20">20% standard</option><option value="5">5% reduced</option><option value="0">0% zero rated</option></select>';row.appendChild(vatLabel);
             box.appendChild(row);updateInvoiceVatFields();
+        }
+        function toggleInvoiceQuantity(toggle){
+            const row=toggle.closest('.invoice-item'),enabled=toggle.checked;
+            row.querySelector('[data-invoice-quantity-label]').classList.toggle('hidden',!enabled);
+            row.querySelector('[data-invoice-price-label]').textContent=enabled?'Unit price (£)':'Job price (£)';
+            if(!enabled)row.querySelector('[data-invoice-field="quantity"]').value='1';
+            updateInvoiceTotal();
+        }
+        function changeInvoiceQuantity(button,delta){
+            const input=button.closest('.invoice-item').querySelector('[data-invoice-field="quantity"]'),value=Number(input.value);
+            input.value=String(Math.min(100000,Math.max(1,(Number.isFinite(value)?value:1)+delta)));
+            updateInvoiceTotal();
         }
         function removeInvoiceItem(id){const box=document.getElementById('invoice-items');if(box.children.length===1){showToast('Keep at least one invoice item');return;}document.getElementById(id)?.remove();updateInvoiceTotal();}
         function readInvoiceItems(){return [...document.querySelectorAll('#invoice-items .invoice-item')].map(row=>({description:row.querySelector('[data-invoice-field="description"]').value.trim(),quantity:Number(row.querySelector('[data-invoice-field="quantity"]').value),unit_price:Number(row.querySelector('[data-invoice-field="unit_price"]').value),vat_rate:Number(row.querySelector('[data-invoice-field="vat_rate"]').value)}));}
@@ -2079,7 +2100,7 @@
             for(const [key,value] of Object.entries(d.data)){const field=key==='invoice_date'?'date':key.replaceAll('_','-');const input=document.getElementById('invoice-'+field);if(input&&typeof value==='string')input.value=value;}
             if(d.data.payment_form)for(const [f,v] of Object.entries(d.data.payment_form))document.getElementById('invoice-'+f).value=v;else restoreInvoicePaymentFields(d.data.payment_details||'');
             document.getElementById('invoice-capital-sale').checked=!!d.data.capital_sale;document.getElementById('invoice-vat-enabled').checked=!!d.data.vat_enabled;document.getElementById('invoice-non-vat').checked=!!d.data.non_vat_confirmed;document.getElementById('invoice-price-basis').value=d.data.price_basis||'exclusive';
-            document.getElementById('invoice-items').innerHTML='';for(const item of (d.data.items?.length?d.data.items:[{}])){addInvoiceItem();const row=document.getElementById('invoice-items').lastElementChild;for(const f of ['description','quantity','unit_price','vat_rate'])if(item[f]!==undefined)row.querySelector('[data-invoice-field="'+f+'"]').value=item[f];}
+            document.getElementById('invoice-items').innerHTML='';for(const item of (d.data.items?.length?d.data.items:[{}])){addInvoiceItem();const row=document.getElementById('invoice-items').lastElementChild;for(const f of ['description','quantity','unit_price','vat_rate'])if(item[f]!==undefined)row.querySelector('[data-invoice-field="'+f+'"]').value=item[f];const toggle=row.querySelector('[data-invoice-quantity-toggle]');toggle.checked=Number(item.quantity||1)!==1;toggleInvoiceQuantity(toggle);}
             document.getElementById('invoice-delete-draft-btn').classList.remove('hidden');updateInvoicePaymentFields();updateInvoiceDateLabels();updateInvoiceVatFields();
         }
         async function deleteInvoiceDraft(id=appState.invoiceDraftId){
@@ -2332,7 +2353,42 @@
             const review=weeklyReviewState(weekly);let completed=0;
             ['income','expenses','mileage'].forEach(item=>{const checked=review[item]===true;document.getElementById('weekly-review-'+item).checked=checked;if(checked)completed++;});
             document.getElementById('weekly-review-status').textContent=completed===3?'Your records are reviewed through '+formatUkDate(weekly.end)+'. Nice work.':completed+' of 3 checked. New records or a new day reset the review.';
+            renderDashboardWeekChart();
             checkShiftReminder();
+        }
+        function dashboardChartWeekData() {
+            const anchor=parseIsoDate(driverToday());anchor.setDate(anchor.getDate()+7*(appState.dashboardChartWeekOffset||0));
+            const bounds=getWeekBounds(anchor),days=[];
+            for(let i=0;i<7;i++){
+                const d=parseIsoDate(bounds.start);d.setDate(d.getDate()+i);const date=isoDate(d),a=getDayActivity(date),regular=getRecurringCostShare(date,date).total;
+                days.push({date,label:d.toLocaleDateString('en-GB',{weekday:'short'}),income:a.income,expenses:a.expenses+regular,recorded:a.tx.length>0});
+            }
+            const a=getRangeActivity(bounds.start,bounds.end),regular=getRecurringCostShare(bounds.start,bounds.end).total;
+            return {...bounds,days,income:a.income,expenses:a.expenses+regular,profit:a.income-a.expenses-regular,hasSummary:(appState.periodEntries||[]).some(p=>p.period_start<=bounds.end&&p.period_end>=bounds.start)};
+        }
+        function renderDashboardWeekChart(){
+            const box=document.getElementById('dashboard-chart-bars');if(!box)return;
+            const w=dashboardChartWeekData(),max=Math.max(1,...w.days.flatMap(d=>[Math.abs(d.income),Math.abs(d.expenses)]));
+            document.getElementById('dashboard-chart-dates').textContent=formatUkDate(w.start)+' – '+formatUkDate(w.end);
+            box.innerHTML=w.days.map(d=>`<div class="min-w-0 text-center"><button type="button" onclick="tapDashboardChartDay('${d.date}',event)" aria-label="${d.label} ${formatUkDate(d.date)}, income £${d.income.toFixed(2)}, expenses £${d.expenses.toFixed(2)}${d.recorded?'':', no dated income or expense records'}" class="w-full rounded-lg hover:bg-slate-800 focus-visible:outline focus-visible:outline-blue-400"><div class="h-28 flex items-end justify-center gap-1 px-1"><span class="bg-emerald-400 rounded-t w-3" style="height:${d.income?Math.max(2,Math.abs(d.income)/max*100):0}%"></span><span class="bg-orange-400 rounded-t w-3" style="height:${d.expenses?Math.max(2,Math.abs(d.expenses)/max*100):0}%"></span></div><span class="block text-[10px] text-white mt-2">${d.label}</span><span class="block text-[9px] text-slate-400">${Number(d.date.slice(-2))}</span><span class="block text-[8px] text-slate-400 min-h-[24px]">${d.recorded?'':'No records'}</span></button><button type="button" onclick="openDashboardChartDay('${d.date}',true)" class="text-[9px] text-blue-200 py-2" aria-label="Edit records for ${formatUkDate(d.date)}">Edit</button></div>`).join('');
+            document.getElementById('dashboard-chart-totals').innerHTML=[['Income',w.income],['Expenses',w.expenses],['Profit',w.profit]].map(([label,value])=>'<div class="bg-slate-950 rounded-lg p-2"><span class="block text-slate-400">'+label+'</span><strong class="text-white">£'+value.toFixed(2)+'</strong></div>').join('');
+            document.getElementById('dashboard-chart-note').textContent='Full Monday–Sunday week. No records means no dated income or expense entries; regular costs can still apply.'+(w.hasSummary?' Catch-up totals are included only where the whole period fits this week; they are not spread across the bars. Review Calendar for whole-period totals.':'');
+        }
+        function changeDashboardChartWeek(delta){
+            clearTimeout(appState.dashboardChartTapTimer);appState.dashboardChartTapDate=null;
+            appState.dashboardChartWeekOffset=(appState.dashboardChartWeekOffset||0)+delta;renderDashboardWeekChart();
+        }
+        function tapDashboardChartDay(date,event){
+            if(event?.detail===0)return openDashboardChartDay(date);
+            if(appState.dashboardChartTapDate===date){clearTimeout(appState.dashboardChartTapTimer);appState.dashboardChartTapDate=null;return openDashboardChartDay(date,true);}
+            clearTimeout(appState.dashboardChartTapTimer);appState.dashboardChartTapDate=date;
+            appState.dashboardChartTapTimer=setTimeout(()=>{appState.dashboardChartTapDate=null;openDashboardChartDay(date);},320);
+        }
+        function openDashboardChartDay(date,edit=false){
+            clearTimeout(appState.dashboardChartTapTimer);appState.dashboardChartTapDate=null;
+            appState.calendarReturnTab='dashboard';appState.calendarSelectionMode='single';appState.calendarDate=parseIsoDate(date);appState.selectedCalendarDate=date;
+            openCalendarModal();showCalendarDay(date);
+            if(edit){document.getElementById('calendar-help-text').textContent='Choose an income or expense record to edit';document.getElementById('calendar-day-items').scrollIntoView?.({block:'nearest',behavior:'smooth'});}
         }
         function openWeeklyReview(){appState.dashboardPeriod='week';renderDriverDashboard();openTodayDetails();}
         function openDashboardSettings(){
@@ -4054,7 +4110,7 @@ function renderRegularCostLists() {
             setDateField('income-date','income-date-label',t.date);
             document.getElementById('income-notes').value = t.notes || '';
             document.getElementById('income-modal-title').textContent = 'Edit Income';
-            document.getElementById('income-submit-btn').textContent = 'Update Income';
+            document.getElementById('income-submit-btn').textContent = 'Update & continue to expenses';
             document.getElementById('income-skip-btn').style.display = 'none';
         }
 
@@ -4151,7 +4207,7 @@ function renderRegularCostLists() {
             if (et) et.textContent = appState.editingExpenseId ? 'Edit Expense' : (appState.dailyEntryMode ? 'Step 2 of 3 · Expense' : 'Add Expense');
             if (mt) mt.textContent = appState.editingMileageId ? 'Edit Mileage' : (appState.dailyEntryMode ? 'Step 3 of 3 · Mileage' : 'Add Mileage');
 
-            if (ib) ib.textContent = appState.editingIncomeId ? 'Update Income' : 'Save Income';
+            if (ib) ib.textContent = appState.editingIncomeId ? 'Update & continue to expenses' : 'Save & continue to expenses';
             if (eb) eb.textContent = appState.editingExpenseId ? 'Update Expense' : 'Save Expense';
             if (mb) mb.textContent = appState.editingMileageId ? 'Update Mileage' : 'Save Mileage';
         }
@@ -4166,8 +4222,9 @@ function renderRegularCostLists() {
             const expenseAmount = document.getElementById('expense-amount');
             const expenseNotes = document.getElementById('expense-notes');
 
-            if (expenseDate) expenseDate.value = date;
-            if (expenseAmount) expenseAmount.value = '';
+            setDateField('expense-date','expense-date-label',date);
+            if (expenseAmount) expenseAmount.value = '0';
+            const merchant=document.getElementById('expense-merchant');if(merchant)merchant.value='';
             if (expenseNotes) expenseNotes.value = '';
             setTimeout(() => expenseAmount?.focus(), 50);
         }
@@ -4427,11 +4484,10 @@ function renderRegularCostLists() {
                 setDateField('income-date','income-date-label',isoDate(new Date()));
                 await fetchUserData(appState.currentUser.id);
 
-                if (editId) {
-                    showCalendarDay(earned_on);
-                } else if (appState.dailyEntryMode) {
-                    openDailyExpenseStep();
-                }
+                resetEditState();
+                appState.dailyEntryMode = true;
+                appState.dailyEntryDate = earned_on;
+                openDailyExpenseStep();
             } catch (err) {
                 console.error("Save income error:", err);
                 showToast(editId ? 'Failed to update income' : 'Failed to save. Click retry.');
