@@ -1,0 +1,32 @@
+const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict'),{parseHTML}=require('linkedom');
+const {webcrypto}=require('node:crypto');
+const html=fs.readFileSync(__dirname+'/../index.html','utf8'),{window}=parseHTML(html),doc=window.document;
+let writes=[],fail=false,timers=new Map(),timerId=0;
+window.localStorage={getItem:()=>null,setItem:()=>{}};
+window.supabase={createClient:()=>({from:table=>({update:values=>({eq:()=>({eq:async()=>{writes.push({table,values});return {error:fail?Error('save failed'):null};}})}),insert:async rows=>{writes.push({table,values:rows[0]});return {error:fail?Error('save failed'):null};}})})};
+class FixedDate extends Date{constructor(...args){super(...(args.length?args:['2026-10-10T12:00:00Z']));}}
+const ctx=vm.createContext({window,document:doc,console,Date:FixedDate,Intl,crypto:webcrypto,setTimeout:fn=>{timers.set(++timerId,fn);return timerId;},clearTimeout:id=>timers.delete(id)});
+const script=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x=>x[1]).find(x=>x.includes('let appState'));
+vm.runInContext(script,ctx);const run=s=>vm.runInContext(s,ctx);
+run("appState.currentUser={id:'driver'};showToast=()=>{};fetchUserData=async()=>{};appState.transactions=[{id:'income',type:'income',date:'2026-10-05',amount:100,source:'Other'},{id:'expense',type:'expense',date:'2026-10-05',amount:30,category:'Fuel'}];appState.recurringExpenses=[{id:'regular',category:'Phone',amount:365.2425,frequency:'yearly',start_date:'2026-10-05',is_active:true}];renderDashboardWeekChart()");
+assert.equal(doc.getElementById('dashboard-chart-bars').children.length,7);
+let w=run('dashboardChartWeekData()');assert.equal(w.start,'2026-10-05');assert.equal(w.end,'2026-10-11');assert.equal(w.income,100);assert.ok(Math.abs(w.expenses-37)<.001);assert.equal(w.days[0].recorded,true);assert.equal(w.days[1].recorded,false);
+run("appState.transactions.push({type:'income',date:'2026-10-06',amount:0})");assert.equal(run('dashboardChartWeekData().days[1].recorded'),true);
+run('changeDashboardChartWeek(-1)');assert.equal(run('dashboardChartWeekData().start'),'2026-09-28');run('changeDashboardChartWeek(1)');
+run("tapDashboardChartDay('2026-10-05',{detail:1});tapDashboardChartDay('2026-10-05',{detail:1})");assert.equal(run('appState.selectedCalendarDate'),'2026-10-05');assert.ok(doc.getElementById('calendar-help-text').textContent.includes('Choose'));assert.ok(doc.getElementById('calendar-day-items').innerHTML.includes('editIncomeRecord'));assert.ok(doc.getElementById('calendar-day-items').innerHTML.includes('editExpenseRecord'));assert.equal(timers.size,0);
+run("tapDashboardChartDay('2026-10-06',{detail:1})");const pending=[...timers.values()][0];timers.clear();pending();assert.equal(run('appState.selectedCalendarDate'),'2026-10-06');
+run("openDashboardChartDay('2026-10-05',true)");
+doc.getElementById('income-form').reset=()=>{};doc.getElementById('invoice-create-form').reset=()=>{};
+(async()=>{
+ run("editIncomeRecord('income')");doc.getElementById('income-amount').value='0';
+ await run('handleSaveIncome({preventDefault(){}})');assert.equal(writes.length,1);assert.equal(writes[0].table,'income');assert.equal(writes[0].values.amount,0);assert.equal(run("appState.transactions.find(t=>t.id==='expense').amount"),30);
+ assert.equal(doc.getElementById('expense-modal').classList.contains('hidden'),false);assert.equal(doc.getElementById('expense-amount').value,'0');assert.equal(doc.getElementById('expense-date').value,'2026-10-05');assert.ok(doc.getElementById('expense-date-label').textContent.includes('5 Oct'));assert.equal(run('appState.editingExpenseId'),null);
+ run('skipDailyExpense();skipDailyMileage()');assert.equal(run('appState.dailyEntryMode'),false);
+ fail=true;run("editIncomeRecord('income')");doc.getElementById('expense-modal').classList.add('hidden');await run('handleSaveIncome({preventDefault(){}})');assert.equal(doc.getElementById('expense-modal').classList.contains('hidden'),true);assert.equal(doc.getElementById('income-submit-btn').disabled,false);
+ run('openInvoiceCreate()');const row=doc.querySelector('.invoice-item'),toggle=row.querySelector('[data-invoice-quantity-toggle]'),quantity=row.querySelector('[data-invoice-field="quantity"]');
+ assert.equal(quantity.value,'1');assert.ok(row.querySelector('[data-invoice-quantity-label]').classList.contains('hidden'));toggle.checked=true;ctx.toggle=toggle;run('toggleInvoiceQuantity(toggle)');assert.equal(row.querySelector('[data-invoice-price-label]').textContent,'Unit price (£)');
+ ctx.plus=row.querySelector('[data-quantity-change="1"]');run('changeInvoiceQuantity(plus,1)');assert.equal(quantity.value,'2');quantity.value='1.5';row.querySelector('[data-invoice-field="description"]').value='Driving hours';row.querySelector('[data-invoice-field="unit_price"]').value='20';run('updateInvoiceTotal()');assert.ok(doc.getElementById('invoice-total-preview').textContent.includes('£30.00'));assert.equal(quantity.getAttribute('step'),'any');
+ toggle.checked=false;run('toggleInvoiceQuantity(toggle)');assert.equal(quantity.value,'1');assert.ok(doc.getElementById('invoice-total-preview').textContent.includes('£20.00'));
+ run("appState.invoiceDrafts=[{id:'draft',data:{items:[{description:'Hours',quantity:1.5,unit_price:20,vat_rate:20}]}}];openInvoiceDraft('draft')");assert.equal(doc.querySelector('.invoice-item [data-invoice-field="quantity"]').value,'1.5');assert.equal(doc.querySelector('[data-invoice-quantity-toggle]').checked,true);
+ console.log('PASS weekly bars/totals, regular costs, zero versus missing, navigation, tap/double-tap editing, income edit continuation and failure, preserved expenses, fixed-price and fractional quantities, draft restoration.');
+})().catch(e=>{console.error(e);process.exit(1)});
