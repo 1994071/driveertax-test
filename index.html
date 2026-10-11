@@ -2133,13 +2133,63 @@
             label.append(select);row.prepend(label);
             row.querySelector('[data-invoice-field="description"]').placeholder='e.g. '+descriptions[0];
         }
+        function buildInvoiceDescription(service,details) {
+            const clean=value=>String(value||'').replace(/\s+/g,' ').trim();
+            const job=clean(service),notes=clean(details);
+            if(!notes)throw new Error('Add a few details about the work first.');
+            const alreadyNamed=job&&notes.toLowerCase().startsWith(job.toLowerCase())&&(!notes[job.length]||/[\s:;,.!—-]/.test(notes[job.length]));
+            let result=job&&!alreadyNamed?job+' — '+notes:notes;
+            result=result.charAt(0).toUpperCase()+result.slice(1);
+            if(!/[.!?]$/.test(result))result+='.';
+            if(result.length>200)throw new Error('Please shorten the details so the description fits within 200 characters.');
+            return result;
+        }
+        function addInvoiceDescriptionHelper(row) {
+            const input=row.querySelector('[data-invoice-field="description"]');
+            const wrapper=document.createElement('div');wrapper.className='space-y-2';
+            const toggle=document.createElement('button');toggle.type='button';toggle.className='text-xs font-bold text-emerald-300 py-2';toggle.textContent='✨ Suggest a description';toggle.setAttribute('data-description-helper-toggle','');toggle.setAttribute('aria-expanded','false');
+            const panel=document.createElement('div');panel.id=row.id+'-description-helper';panel.className='hidden bg-slate-950 border border-slate-700 rounded-xl p-3 space-y-3';toggle.setAttribute('aria-controls',panel.id);
+            panel.innerHTML=`<p class="text-[11px] text-slate-400">Choose a service and add job details. Review the wording before using it.</p>
+                <label class="block text-xs text-slate-300">Service (optional)<select data-description-service class="block w-full bg-slate-900 border border-slate-700 rounded-lg p-2 mt-1 text-xs text-white"></select></label>
+                <label class="block text-xs text-slate-300">Brief job details<textarea data-description-details rows="2" maxlength="200" placeholder="e.g. 3-bedroom house, front and rear windows" class="block w-full bg-slate-900 border border-slate-700 rounded-lg p-2 mt-1 text-xs text-white"></textarea></label>
+                <button data-description-generate type="button" class="bg-emerald-500 text-slate-950 rounded-lg px-3 py-2 text-xs font-bold">Create suggestion</button>
+                <p data-description-message role="status" class="text-[11px] text-amber-200"></p>
+                <div data-description-preview-wrap class="hidden space-y-2"><label class="block text-xs text-slate-300">Preview — edit if needed<textarea data-description-preview rows="3" maxlength="200" class="block w-full bg-slate-900 border border-emerald-500 rounded-lg p-2 mt-1 text-xs text-white"></textarea></label>
+                <button data-description-use type="button" class="bg-emerald-500 text-slate-950 rounded-lg px-3 py-2 text-xs font-bold">Use suggestion</button></div>
+                <button data-description-cancel type="button" class="text-xs text-slate-300 py-1">Close without applying</button>`;
+            const select=panel.querySelector('[data-description-service]'),notes=panel.querySelector('[data-description-details]'),preview=panel.querySelector('[data-description-preview]'),previewWrap=panel.querySelector('[data-description-preview-wrap]'),message=panel.querySelector('[data-description-message]'),use=panel.querySelector('[data-description-use]');
+            [['','Use my wording only'],...professionInvoiceDescriptions().map(d=>[d,d])].forEach(([value,text])=>{const option=document.createElement('option');option.value=value;option.textContent=text;select.appendChild(option);});
+            // Examples are hints only; they are never inserted into the invoice.
+            const roles=profileProfessions(appState.profile||{});
+            const example=roles.some(r=>r.label==='Window cleaner')?'e.g. 3-bedroom house, front and rear windows':roles.some(r=>r.category==='driving')?'e.g. Birmingham to Heathrow, 12 October':'Briefly describe the work or goods you supplied';
+            notes.placeholder=example;
+            let sourceDescription='',sourceNotes='',sourceService='';
+            const close=()=>{panel.classList.add('hidden');toggle.setAttribute('aria-expanded','false');toggle.focus();};
+            toggle.addEventListener('click',()=>{
+                if(!panel.classList.contains('hidden')){close();return;}
+                panel.classList.remove('hidden');toggle.setAttribute('aria-expanded','true');
+                if(!notes.value){notes.value=input.value;if(!input.value&&select.options.length>1)select.selectedIndex=1;}
+                notes.focus();
+            });
+            panel.querySelector('[data-description-generate]').addEventListener('click',()=>{
+                try {preview.value=buildInvoiceDescription(select.value,notes.value);sourceDescription=input.value;sourceNotes=notes.value;sourceService=select.value;message.textContent='';previewWrap.classList.remove('hidden');use.textContent=sourceDescription.trim()?'Replace description':'Use suggestion';preview.focus();}
+                catch(error){message.textContent=error.message;previewWrap.classList.add('hidden');}
+            });
+            use.addEventListener('click',()=>{
+                if(input.value!==sourceDescription||notes.value!==sourceNotes||select.value!==sourceService){message.textContent='The details changed. Create a new suggestion before applying it.';return;}
+                const value=preview.value.trim();if(!value||value.length>200){message.textContent='Enter a description between 1 and 200 characters.';return;}
+                input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));close();input.focus();
+            });
+            panel.querySelector('[data-description-cancel]').addEventListener('click',close);
+            wrapper.append(toggle,panel);input.parentElement.after(wrapper);
+        }
         function addInvoiceItem(){
             const box=document.getElementById('invoice-items');if(box.children.length>=20){showToast('Up to 20 items per invoice');return;}
             const id='invoice-item-'+((appState.invoiceItemCounter||0)+1);appState.invoiceItemCounter=(appState.invoiceItemCounter||0)+1;
             const row=document.createElement('div');row.id=id;row.className='invoice-item bg-slate-900 border border-slate-700 rounded-xl p-3 space-y-2';
             row.innerHTML='<label class="block text-[10px] text-slate-300">Description<input data-invoice-field="description" type="text" required maxlength="200" placeholder="Describe the work or goods supplied" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"></label><label class="flex items-center gap-2 text-[10px] text-blue-200"><input data-invoice-quantity-toggle type="checkbox" onchange="toggleInvoiceQuantity(this)">Charge by quantity or hours</label><div class="grid grid-cols-2 gap-2"><label data-invoice-quantity-label class="hidden text-[10px] text-slate-300">Quantity / hours<input data-invoice-field="quantity" type="number" min="0.01" max="100000" step="any" required value="1" oninput="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"><span class="flex gap-2 mt-1"><button type="button" data-quantity-change="-1" onclick="changeInvoiceQuantity(this,-1)" aria-label="Decrease quantity by one" class="bg-slate-800 rounded px-3 py-1">−</button><button type="button" data-quantity-change="1" onclick="changeInvoiceQuantity(this,1)" aria-label="Increase quantity by one" class="bg-slate-800 rounded px-3 py-1">+</button></span><span class="text-[9px] text-slate-400">You can type hours such as 1.5.</span></label><label class="text-[10px] text-slate-300"><span data-invoice-price-label>Job price (£)</span><input data-invoice-field="unit_price" type="number" min="0" max="10000000" step="0.01" required placeholder="0.00" oninput="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"></label></div><button type="button" onclick="removeInvoiceItem(\''+id+'\')" class="text-[10px] text-slate-300">Remove item</button>';
             const vatLabel=document.createElement('label');vatLabel.className='invoice-item-vat block text-[10px] text-slate-300';vatLabel.innerHTML='VAT rate<select data-invoice-field="vat_rate" onchange="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"><option value="20">20% standard</option><option value="5">5% reduced</option><option value="0">0% zero rated</option></select>';row.appendChild(vatLabel);
-            addProfessionInvoiceSuggestions(row);box.appendChild(row);updateInvoiceVatFields();
+            addProfessionInvoiceSuggestions(row);addInvoiceDescriptionHelper(row);box.appendChild(row);updateInvoiceVatFields();
         }
         function toggleInvoiceQuantity(toggle){
             const row=toggle.closest('.invoice-item'),enabled=toggle.checked;
