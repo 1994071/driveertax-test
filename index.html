@@ -55,7 +55,7 @@
                     <i class="fa-solid fa-taxi"></i>
                 </div>
                 <h1 class="text-2xl font-black text-white">CabTax UK</h1>
-                <p class="text-xs text-slate-400 max-w-[260px] mx-auto">Simple income, expenses, mileage & tax estimates for UK self-employed drivers.</p>
+                <p class="text-xs text-slate-400 max-w-[260px] mx-auto">Simple income, expenses, invoices & tax estimates for UK sole traders.</p>
             </div>
 
             <!-- Auth Form Container -->
@@ -115,32 +115,27 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-[10px] uppercase tracking-widest text-emerald-400 font-bold">Quick setup</p>
-                        <h2 id="onboarding-title" class="text-xl font-black text-white mt-1">What type of driving work do you do?</h2>
+                        <h2 id="onboarding-title" class="text-xl font-black text-white mt-1">What work do you do?</h2>
                     </div>
-                    <span id="onboarding-step-label" class="text-[10px] text-slate-500">1 of 3</span>
+                    <span id="onboarding-step-label" class="text-[10px] text-slate-500">1 of 4</span>
                 </div>
 
                 <div class="h-1.5 bg-slate-900 rounded-full overflow-hidden">
-                    <div id="onboarding-progress" class="h-full bg-emerald-500 rounded-full transition-all" style="width:33%"></div>
+                    <div id="onboarding-progress" class="h-full bg-emerald-500 rounded-full transition-all" style="width:25%"></div>
                 </div>
 
                 <div id="onboarding-step-1" class="space-y-2">
-                    <button type="button" onclick="selectWorkType(this,'Taxi / Private Hire')" class="work-option w-full text-left bg-slate-900 border border-slate-800 rounded-2xl p-4 text-sm font-bold text-white">🚕 Taxi / Private Hire</button>
-                    <button type="button" onclick="selectWorkType(this,'Food Delivery')" class="work-option w-full text-left bg-slate-900 border border-slate-800 rounded-2xl p-4 text-sm font-bold text-white">🍔 Food Delivery</button>
-                    <button type="button" onclick="selectWorkType(this,'Parcel / Courier')" class="work-option w-full text-left bg-slate-900 border border-slate-800 rounded-2xl p-4 text-sm font-bold text-white">📦 Parcel / Courier</button>
-                    <button type="button" onclick="selectWorkType(this,'Vehicle / Business Driving')" class="work-option w-full text-left bg-slate-900 border border-slate-800 rounded-2xl p-4 text-sm font-bold text-white">🚗 Vehicle / Business Driving</button>
-                    <button type="button" onclick="selectWorkType(this,'Multiple Platforms')" class="work-option w-full text-left bg-slate-900 border border-slate-800 rounded-2xl p-4 text-sm font-bold text-white">🔁 Multiple Platforms</button>
-                    <button type="button" onclick="selectWorkType(this,'Other')" class="work-option w-full text-left bg-slate-900 border border-slate-800 rounded-2xl p-4 text-sm font-bold text-white">➕ Other</button>
+                    <div id="onboarding-profession-picker"></div>
                     <button type="button" id="onboarding-next-1" onclick="showOnboardingStep(2)" disabled class="w-full bg-emerald-500 disabled:opacity-40 text-slate-950 font-bold py-3 rounded-xl text-xs mt-3">Continue</button>
                 </div>
 
                 <div id="onboarding-step-2" class="hidden space-y-3">
-                    <p class="text-xs text-slate-400">Choose the apps or types of work you use. You can select more than one.</p>
+                    <p class="text-xs text-slate-400">Optional: save the customers, companies or platforms that pay you. You can add these later.</p>
                     <div id="platform-options" class="grid grid-cols-2 gap-2"></div>
                     <div id="custom-platform-wrap" class="hidden">
-                        <label class="text-[11px] font-semibold text-slate-400 block mb-1">Other platform/company</label>
+                        <label class="text-[11px] font-semibold text-slate-400 block mb-1">Customer, company or platform</label>
                         <div class="flex gap-2">
-                            <input id="custom-platform-input" type="text" placeholder="Type once, save forever" class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white">
+                            <input id="custom-platform-input" type="text" placeholder="Enter a name (optional)" class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white">
                             <button type="button" onclick="addCustomPlatform()" class="px-4 rounded-xl bg-slate-800 text-white text-xs font-bold">Add</button>
                         </div>
                     </div>
@@ -153,6 +148,7 @@
                 <div id="onboarding-step-3" class="hidden space-y-3">
                     <p class="text-xs text-slate-400">Which expenses do you normally have? Select the ones you want quick access to.</p>
                     <div id="expense-preference-options" class="grid grid-cols-2 gap-2"></div>
+                    <label for="onboarding-custom-expense" class="block text-xs text-slate-300">Add an expense category</label><div class="flex gap-2"><input id="onboarding-custom-expense" maxlength="80" class="min-w-0 flex-1 bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white" placeholder="Your own category"><button type="button" onclick="addOnboardingExpense()" class="bg-slate-800 text-emerald-300 rounded-xl px-4 text-xs font-bold">Add</button></div>
                     <div class="flex gap-2 pt-2">
                         <button type="button" onclick="showOnboardingStep(2)" class="w-1/3 bg-slate-900 border border-slate-800 text-white font-bold py-3 rounded-xl text-xs">Back</button>
                         <button type="button" onclick="showOnboardingStep(4)" class="flex-1 bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs">Continue</button>
@@ -985,11 +981,11 @@
                         <div class="flex items-center justify-between"><h3 class="text-xs font-bold text-white">Personal & Work Details</h3><span id="account-tax-year" class="text-[9px] text-emerald-300 font-bold">2026/27</span></div>
                         <div><label class="text-[10px] text-slate-500 font-bold">Name</label><input id="profile-name" type="text" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
                         <div><label class="text-[10px] text-slate-500 font-bold">Email</label><input id="profile-email" type="email" disabled class="mt-1 w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-400"></div>
-                        <div><label class="text-[10px] text-slate-500 font-bold">Work type</label><select id="profile-work-type" onchange="renderProfilePreferenceChips()" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option>Taxi / Private Hire</option><option>Food Delivery</option><option>Parcel / Courier</option><option>Multi-platform Driver</option><option>Other</option></select></div>
+                        <div id="profile-profession-picker"></div>
                         <div>
-                            <label class="text-[10px] text-slate-500 font-bold">Platforms</label>
+                            <label class="text-[10px] text-slate-500 font-bold">Customers, companies & platforms (optional)</label>
                             <div id="profile-platform-chips" class="flex flex-wrap gap-2 mt-2"></div>
-                            <div class="flex gap-2 mt-2"><input id="profile-custom-platform" type="text" placeholder="Other platform" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><button type="button" onclick="addProfileCustomPlatform()" class="bg-slate-800 text-emerald-300 px-3 rounded-xl text-[10px] font-bold">+ Add</button></div>
+                            <div class="flex gap-2 mt-2"><input id="profile-custom-platform" type="text" placeholder="Customer or company name" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><button type="button" onclick="addProfileCustomPlatform()" class="bg-slate-800 text-emerald-300 px-3 rounded-xl text-[10px] font-bold">+ Add</button></div>
                         </div>
                         <div>
                             <label class="text-[10px] text-slate-500 font-bold">Usual expenses</label>
@@ -1419,6 +1415,104 @@
                 : 'Apple sign-in is not enabled yet. We will connect it in Supabase next.');
         }
 
+
+        // Profession choices personalise bookkeeping; they never determine tax eligibility.
+        const professionGroups = [{"id": "driving", "emoji": "🚗", "label": "Driving & delivery", "expenses": ["Fuel", "Insurance", "Maintenance", "Phone", "Cleaning / Car Wash", "Parking & Tolls", "Licensing"], "specialist": false, "roles": [{"id": "driving-0", "label": "Taxi / Private Hire", "aliases": "taxi driver cabbie minicab private hire driver uber bolt", "specialist": false}, {"id": "driving-1", "label": "Food Delivery", "aliases": "food delivery rider driver deliveroo uber eats just eat", "specialist": false}, {"id": "driving-2", "label": "Parcel / Courier", "aliases": "parcel delivery courier van driver amazon flex evri dpd", "specialist": false}, {"id": "driving-3", "label": "Removals", "aliases": "man and van moving mover", "specialist": false}, {"id": "driving-4", "label": "Vehicle / Business Driving", "aliases": "", "specialist": false}, {"id": "driving-5", "label": "Chauffeur", "aliases": "", "specialist": false}, {"id": "driving-6", "label": "Bicycle courier", "aliases": "", "specialist": false}]}, {"id": "trades", "emoji": "🔧", "label": "Building & trades", "expenses": ["Materials", "Tools & equipment", "Protective clothing", "Insurance", "Equipment hire", "Waste disposal"], "specialist": false, "roles": [{"id": "trades-0", "label": "Builder", "aliases": "", "specialist": false}, {"id": "trades-1", "label": "Plumber", "aliases": "plumbing", "specialist": false}, {"id": "trades-2", "label": "Electrician", "aliases": "electrical", "specialist": false}, {"id": "trades-3", "label": "Carpenter", "aliases": "carpentry", "specialist": false}, {"id": "trades-4", "label": "Joiner", "aliases": "", "specialist": false}, {"id": "trades-5", "label": "Painter & decorator", "aliases": "", "specialist": false}, {"id": "trades-6", "label": "Plasterer", "aliases": "", "specialist": false}, {"id": "trades-7", "label": "Tiler", "aliases": "", "specialist": false}, {"id": "trades-8", "label": "Roofer", "aliases": "", "specialist": false}, {"id": "trades-9", "label": "Bricklayer", "aliases": "", "specialist": false}, {"id": "trades-10", "label": "Scaffolder", "aliases": "", "specialist": false}, {"id": "trades-11", "label": "Welder", "aliases": "", "specialist": false}, {"id": "trades-12", "label": "Glazier", "aliases": "", "specialist": false}, {"id": "trades-13", "label": "Flooring fitter", "aliases": "", "specialist": false}, {"id": "trades-14", "label": "Kitchen fitter", "aliases": "", "specialist": false}, {"id": "trades-15", "label": "Bathroom fitter", "aliases": "", "specialist": false}, {"id": "trades-16", "label": "Locksmith", "aliases": "", "specialist": false}, {"id": "trades-17", "label": "Gas engineer", "aliases": "", "specialist": false}, {"id": "trades-18", "label": "Construction subcontractor", "aliases": "cis subcontractor construction industry scheme", "specialist": true}]}, {"id": "property", "emoji": "🧹", "label": "Cleaning & property services", "expenses": ["Cleaning supplies", "Tools & equipment", "Protective clothing", "Insurance", "Waste disposal"], "specialist": false, "roles": [{"id": "property-0", "label": "Window cleaner", "aliases": "window cleaning windows glass cleaning", "specialist": false}, {"id": "property-1", "label": "Domestic cleaner", "aliases": "house cleaner cleaning houses", "specialist": false}, {"id": "property-2", "label": "Commercial cleaner", "aliases": "", "specialist": false}, {"id": "property-3", "label": "Carpet cleaner", "aliases": "", "specialist": false}, {"id": "property-4", "label": "Oven cleaner", "aliases": "", "specialist": false}, {"id": "property-5", "label": "Gutter cleaner", "aliases": "", "specialist": false}, {"id": "property-6", "label": "Pressure washing", "aliases": "pressure washer jet washing jet washer", "specialist": false}, {"id": "property-7", "label": "End of tenancy cleaner", "aliases": "", "specialist": false}, {"id": "property-8", "label": "Gardener", "aliases": "gardening garden maintenance", "specialist": false}, {"id": "property-9", "label": "Landscaper", "aliases": "landscaping", "specialist": false}, {"id": "property-10", "label": "Tree surgeon", "aliases": "", "specialist": false}, {"id": "property-11", "label": "Grounds maintenance", "aliases": "", "specialist": false}, {"id": "property-12", "label": "Handyman", "aliases": "", "specialist": false}, {"id": "property-13", "label": "Pest controller", "aliases": "", "specialist": false}, {"id": "property-14", "label": "Property maintenance", "aliases": "", "specialist": false}]}, {"id": "beauty", "emoji": "✂️", "label": "Hair & beauty", "expenses": ["Products & supplies", "Tools & equipment", "Salon / chair rent", "Laundry", "Insurance"], "specialist": false, "roles": [{"id": "beauty-0", "label": "Hairdresser", "aliases": "hair stylist hairdressing hairstylist", "specialist": false}, {"id": "beauty-1", "label": "Barber", "aliases": "", "specialist": false}, {"id": "beauty-2", "label": "Nail technician", "aliases": "", "specialist": false}, {"id": "beauty-3", "label": "Beautician", "aliases": "", "specialist": false}, {"id": "beauty-4", "label": "Makeup artist", "aliases": "", "specialist": false}, {"id": "beauty-5", "label": "Lash technician", "aliases": "", "specialist": false}, {"id": "beauty-6", "label": "Brow technician", "aliases": "", "specialist": false}, {"id": "beauty-7", "label": "Mobile beauty therapist", "aliases": "", "specialist": false}, {"id": "beauty-8", "label": "Tattoo artist", "aliases": "", "specialist": false}, {"id": "beauty-9", "label": "Body piercer", "aliases": "", "specialist": false}]}, {"id": "professional", "emoji": "💻", "label": "Freelance & professional services", "expenses": ["Software & subscriptions", "Office supplies", "Phone", "Professional fees", "Insurance"], "specialist": false, "roles": [{"id": "professional-0", "label": "Software developer", "aliases": "programmer coder software engineer", "specialist": false}, {"id": "professional-1", "label": "Web developer", "aliases": "", "specialist": false}, {"id": "professional-2", "label": "Web designer", "aliases": "", "specialist": false}, {"id": "professional-3", "label": "IT consultant", "aliases": "", "specialist": false}, {"id": "professional-4", "label": "IT support", "aliases": "", "specialist": false}, {"id": "professional-5", "label": "Cybersecurity consultant", "aliases": "", "specialist": false}, {"id": "professional-6", "label": "Business consultant", "aliases": "", "specialist": false}, {"id": "professional-7", "label": "Bookkeeper", "aliases": "", "specialist": false}, {"id": "professional-8", "label": "Accountant", "aliases": "", "specialist": false}, {"id": "professional-9", "label": "Virtual assistant", "aliases": "", "specialist": false}, {"id": "professional-10", "label": "Administrator", "aliases": "", "specialist": false}, {"id": "professional-11", "label": "Translator", "aliases": "", "specialist": false}, {"id": "professional-12", "label": "Interpreter", "aliases": "", "specialist": false}, {"id": "professional-13", "label": "Recruitment consultant", "aliases": "", "specialist": false}, {"id": "professional-14", "label": "Marketing consultant", "aliases": "", "specialist": false}, {"id": "professional-15", "label": "Surveyor", "aliases": "", "specialist": false}, {"id": "professional-16", "label": "Architect", "aliases": "", "specialist": false}]}, {"id": "creative", "emoji": "🎨", "label": "Creative & media", "expenses": ["Tools & equipment", "Software & subscriptions", "Studio hire", "Materials", "Advertising"], "specialist": false, "roles": [{"id": "creative-0", "label": "Photographer", "aliases": "", "specialist": false}, {"id": "creative-1", "label": "Videographer", "aliases": "", "specialist": false}, {"id": "creative-2", "label": "Graphic designer", "aliases": "", "specialist": false}, {"id": "creative-3", "label": "Illustrator", "aliases": "", "specialist": false}, {"id": "creative-4", "label": "Artist", "aliases": "", "specialist": false}, {"id": "creative-5", "label": "Writer", "aliases": "", "specialist": false}, {"id": "creative-6", "label": "Copywriter", "aliases": "", "specialist": false}, {"id": "creative-7", "label": "Journalist", "aliases": "", "specialist": false}, {"id": "creative-8", "label": "Musician", "aliases": "", "specialist": false}, {"id": "creative-9", "label": "Content creator", "aliases": "youtuber influencer blogger tiktoker", "specialist": false}, {"id": "creative-10", "label": "Social media manager", "aliases": "", "specialist": false}, {"id": "creative-11", "label": "Animator", "aliases": "", "specialist": false}, {"id": "creative-12", "label": "Audio engineer", "aliases": "", "specialist": false}, {"id": "creative-13", "label": "Podcast producer", "aliases": "", "specialist": false}]}, {"id": "retail", "emoji": "🛍️", "label": "Retail, selling & crafts", "expenses": ["Stock purchases", "Materials", "Packaging", "Postage & delivery", "Selling fees", "Stall / shop rent"], "specialist": false, "roles": [{"id": "retail-0", "label": "Online seller", "aliases": "", "specialist": false}, {"id": "retail-1", "label": "Market trader", "aliases": "", "specialist": false}, {"id": "retail-2", "label": "Shopkeeper", "aliases": "", "specialist": false}, {"id": "retail-3", "label": "Etsy seller", "aliases": "", "specialist": false}, {"id": "retail-4", "label": "Craft maker", "aliases": "", "specialist": false}, {"id": "retail-5", "label": "Jewellery maker", "aliases": "", "specialist": false}, {"id": "retail-6", "label": "Dressmaker", "aliases": "", "specialist": false}, {"id": "retail-7", "label": "Tailor", "aliases": "", "specialist": false}, {"id": "retail-8", "label": "Fashion designer", "aliases": "", "specialist": false}, {"id": "retail-9", "label": "Florist", "aliases": "", "specialist": false}, {"id": "retail-10", "label": "Furniture maker", "aliases": "", "specialist": false}, {"id": "retail-11", "label": "Potter", "aliases": "", "specialist": false}, {"id": "retail-12", "label": "Candle maker", "aliases": "", "specialist": false}]}, {"id": "food", "emoji": "🍽️", "label": "Food, catering & events", "expenses": ["Ingredients", "Packaging", "Tools & equipment", "Venue / kitchen hire", "Insurance", "Advertising"], "specialist": false, "roles": [{"id": "food-0", "label": "Caterer", "aliases": "", "specialist": false}, {"id": "food-1", "label": "Private chef", "aliases": "", "specialist": false}, {"id": "food-2", "label": "Baker", "aliases": "", "specialist": false}, {"id": "food-3", "label": "Cake maker", "aliases": "", "specialist": false}, {"id": "food-4", "label": "Food stall owner", "aliases": "", "specialist": false}, {"id": "food-5", "label": "Food truck operator", "aliases": "", "specialist": false}, {"id": "food-6", "label": "Restaurant owner", "aliases": "", "specialist": false}, {"id": "food-7", "label": "Event organiser", "aliases": "", "specialist": false}, {"id": "food-8", "label": "Wedding planner", "aliases": "", "specialist": false}, {"id": "food-9", "label": "Party hire", "aliases": "", "specialist": false}, {"id": "food-10", "label": "DJ", "aliases": "", "specialist": false}, {"id": "food-11", "label": "Entertainer", "aliases": "", "specialist": false}, {"id": "food-12", "label": "Wedding celebrant", "aliases": "", "specialist": false}]}, {"id": "fitness", "emoji": "💪", "label": "Fitness & wellbeing", "expenses": ["Tools & equipment", "Venue hire", "Insurance", "Professional fees", "Advertising"], "specialist": false, "roles": [{"id": "fitness-0", "label": "Personal trainer", "aliases": "", "specialist": false}, {"id": "fitness-1", "label": "Fitness instructor", "aliases": "", "specialist": false}, {"id": "fitness-2", "label": "Yoga instructor", "aliases": "", "specialist": false}, {"id": "fitness-3", "label": "Pilates instructor", "aliases": "", "specialist": false}, {"id": "fitness-4", "label": "Sports coach", "aliases": "", "specialist": false}, {"id": "fitness-5", "label": "Swimming instructor", "aliases": "", "specialist": false}, {"id": "fitness-6", "label": "Dance instructor", "aliases": "", "specialist": false}, {"id": "fitness-7", "label": "Referee", "aliases": "", "specialist": false}, {"id": "fitness-8", "label": "Wellbeing coach", "aliases": "", "specialist": false}]}, {"id": "education", "emoji": "📚", "label": "Education & tutoring", "expenses": ["Teaching materials", "Software & subscriptions", "Venue hire", "Insurance", "Professional fees"], "specialist": false, "roles": [{"id": "education-0", "label": "Private tutor", "aliases": "", "specialist": false}, {"id": "education-1", "label": "Driving instructor", "aliases": "", "specialist": false}, {"id": "education-2", "label": "Language teacher", "aliases": "", "specialist": false}, {"id": "education-3", "label": "Music teacher", "aliases": "", "specialist": false}, {"id": "education-4", "label": "Exam tutor", "aliases": "", "specialist": false}, {"id": "education-5", "label": "Training provider", "aliases": "", "specialist": false}]}, {"id": "health", "emoji": "🩺", "label": "Health & care", "expenses": ["Products & supplies", "Tools & equipment", "Room rent", "Insurance", "Professional fees"], "specialist": false, "roles": [{"id": "health-0", "label": "Independent carer", "aliases": "", "specialist": false}, {"id": "health-1", "label": "Physiotherapist", "aliases": "", "specialist": false}, {"id": "health-2", "label": "Massage therapist", "aliases": "", "specialist": false}, {"id": "health-3", "label": "Sports therapist", "aliases": "", "specialist": false}, {"id": "health-4", "label": "Counsellor", "aliases": "", "specialist": false}, {"id": "health-5", "label": "Psychotherapist", "aliases": "", "specialist": false}, {"id": "health-6", "label": "Podiatrist", "aliases": "", "specialist": false}, {"id": "health-7", "label": "Occupational therapist", "aliases": "", "specialist": false}]}, {"id": "childcare", "emoji": "🧒", "label": "Childcare", "expenses": ["Products & supplies", "Tools & equipment", "Insurance"], "specialist": true, "roles": [{"id": "childcare-0", "label": "Childminder", "aliases": "childminding", "specialist": false}, {"id": "childcare-1", "label": "Self-employed childcare provider", "aliases": "", "specialist": false}]}, {"id": "pets", "emoji": "🐾", "label": "Pet services", "expenses": ["Products & supplies", "Tools & equipment", "Insurance", "Advertising"], "specialist": false, "roles": [{"id": "pets-0", "label": "Dog walker", "aliases": "", "specialist": false}, {"id": "pets-1", "label": "Pet sitter", "aliases": "", "specialist": false}, {"id": "pets-2", "label": "Pet groomer", "aliases": "", "specialist": false}, {"id": "pets-3", "label": "Dog trainer", "aliases": "", "specialist": false}, {"id": "pets-4", "label": "Pet boarding", "aliases": "", "specialist": false}, {"id": "pets-5", "label": "Horse care", "aliases": "", "specialist": false}]}, {"id": "repairs", "emoji": "🛠️", "label": "Vehicle & equipment repairs", "expenses": ["Parts & materials", "Tools & equipment", "Workshop rent", "Protective clothing", "Insurance"], "specialist": false, "roles": [{"id": "repairs-0", "label": "Mechanic", "aliases": "", "specialist": false}, {"id": "repairs-1", "label": "Mobile mechanic", "aliases": "", "specialist": false}, {"id": "repairs-2", "label": "Vehicle detailer", "aliases": "", "specialist": false}, {"id": "repairs-3", "label": "Car valeter", "aliases": "", "specialist": false}, {"id": "repairs-4", "label": "Tyre fitter", "aliases": "", "specialist": false}, {"id": "repairs-5", "label": "Bodywork repairer", "aliases": "", "specialist": false}, {"id": "repairs-6", "label": "Appliance repairer", "aliases": "", "specialist": false}, {"id": "repairs-7", "label": "Computer repairer", "aliases": "", "specialist": false}, {"id": "repairs-8", "label": "Bicycle repairer", "aliases": "", "specialist": false}]}, {"id": "farming", "emoji": "🌾", "label": "Farming & agriculture", "expenses": ["Materials", "Tools & equipment", "Insurance"], "specialist": true, "roles": [{"id": "farming-0", "label": "Farmer", "aliases": "", "specialist": false}, {"id": "farming-1", "label": "Agricultural contractor", "aliases": "farm worker farming", "specialist": false}, {"id": "farming-2", "label": "Market gardener", "aliases": "", "specialist": false}]}, {"id": "letting", "emoji": "🏠", "label": "Property letting", "expenses": ["Repairs & maintenance", "Insurance", "Professional fees"], "specialist": true, "roles": [{"id": "letting-0", "label": "Residential landlord", "aliases": "", "specialist": false}, {"id": "letting-1", "label": "Commercial landlord", "aliases": "", "specialist": false}]}, {"id": "other", "emoji": "➕", "label": "Other — type your profession", "expenses": ["Materials", "Tools & equipment", "Software & subscriptions", "Phone", "Insurance"], "specialist": false, "roles": []}];
+        const commonBusinessExpenses = ['Phone','Software & subscriptions','Office supplies','Advertising','Insurance','Other'];
+        function normaliseProfession(value) { return String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
+        function findProfession(label) {
+            const term=normaliseProfession(label);
+            for(const g of professionGroups) for(const r of g.roles) if(normaliseProfession(r.label)===term) return {...r,category:g.id};
+            return null;
+        }
+        function profileProfessions(profile={}) {
+            if(Array.isArray(profile.profession_roles) && profile.profession_roles.length) return profile.profession_roles.map(r=>({...r}));
+            const labels=profile.work_types?.length?profile.work_types:[profile.primary_work_type].filter(Boolean);
+            return labels.map(label=>findProfession(label)||{id:'legacy-'+label,label,category:['Multiple Platforms','Multi-platform Driver'].includes(label)?'driving':'other',custom:true});
+        }
+        function suggestedProfessionExpenses(roles=appState.selectedProfessions||[]) {
+            const extras={'Window cleaner':['Cleaning supplies','Window cleaning equipment','Water purification supplies','Protective clothing','Insurance'],
+                'Gardener':['Plants & seeds','Gardening equipment','Waste disposal'], 'Landscaper':['Plants & seeds','Materials','Equipment hire','Waste disposal'],
+                'Driving instructor':['Fuel','Insurance','Maintenance','Licensing'], 'Bicycle courier':['Bicycle maintenance','Protective clothing']};
+            return [...new Set([...roles.flatMap(r=>extras[r.label]||(professionGroups.find(g=>g.id===r.category)?.expenses||[])),...commonBusinessExpenses])];
+        }
+        function matchingProfessions(query='',category='') {
+            const terms=normaliseProfession(query).split(' ').filter(Boolean);
+            return professionGroups.filter(g=>!category||g.id===category).flatMap(g=>g.roles.map(r=>({...r,category:g.id,groupLabel:g.label,specialist:g.specialist||r.specialist})))
+                .filter(r=>terms.every(t=>normaliseProfession(r.label+' '+r.aliases+' '+r.groupLabel).includes(t)));
+        }
+        function professionButton(label,handler,active=false,disabled=false) {
+            const b=document.createElement('button'); b.type='button'; b.textContent=label; b.disabled=disabled;
+            b.className='w-full text-left rounded-xl border p-3 text-xs font-bold '+(active?'border-emerald-500 bg-emerald-500/10 text-emerald-300':'border-slate-700 bg-slate-900 text-slate-200')+(disabled?' opacity-50':'');
+            b.setAttribute('aria-pressed',String(active)); b.addEventListener('click',handler); return b;
+        }
+        function mountProfessionPicker(context) {
+            const box=document.getElementById(context+'-profession-picker'); if(!box)return;
+            box.innerHTML=`<p class="text-xs text-slate-400 mb-3">Search your job or browse a category. You can choose more than one.</p>
+                <label class="text-xs text-slate-300" for="${context}-profession-search">Search professions</label>
+                <input id="${context}-profession-search" type="search" maxlength="80" placeholder="Try window cleaner, plumber or hairdresser" class="w-full mt-1 mb-3 bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white">
+                <label class="text-xs text-slate-300" for="${context}-profession-group">Browse categories</label>
+                <select id="${context}-profession-group" class="w-full mt-1 mb-3 bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white"></select>
+                <div id="${context}-profession-selected" class="space-y-2 mb-3" aria-label="Selected professions"></div>
+                <p id="${context}-profession-count" class="text-xs text-slate-400 mb-2" role="status"></p>
+                <div id="${context}-profession-results" class="space-y-2 max-h-64 overflow-y-auto"></div>
+                <details class="mt-3 rounded-xl border border-slate-700 p-3"><summary class="text-xs font-bold text-emerald-300 cursor-pointer">Can’t find your job? Add your own</summary>
+                <label class="block text-xs text-slate-300 mt-3" for="${context}-profession-custom">Your profession</label>
+                <input id="${context}-profession-custom" maxlength="80" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white mt-1" placeholder="Type your job title">
+                <label class="block text-xs text-slate-300 mt-3" for="${context}-profession-custom-group">Closest category</label>
+                <select id="${context}-profession-custom-group" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white mt-1"></select>
+                <button id="${context}-profession-add" type="button" class="mt-3 rounded-xl bg-emerald-500 text-slate-950 font-bold p-3 text-xs">Add profession</button></details>
+                <p class="text-[11px] text-slate-400 mt-3">For self-employed sole traders. Property letting, childcare, farming and CIS-specific calculations are coming later. Suggested expenses still need a business-use and tax eligibility check.</p>`;
+            const select=document.getElementById(context+'-profession-group'); select.add(new Option('All categories',''));
+            const custom=document.getElementById(context+'-profession-custom-group');
+            professionGroups.forEach(g=>{select.add(new Option(g.emoji+' '+g.label+(g.specialist?' — coming later':''),g.id)); if(!g.specialist)custom.add(new Option(g.label,g.id));}); custom.value='other';
+            document.getElementById(context+'-profession-search').addEventListener('input',()=>{select.value='';renderProfessionPicker(context);});
+            select.addEventListener('change',()=>{document.getElementById(context+'-profession-search').value='';renderProfessionPicker(context);});
+            document.getElementById(context+'-profession-add').addEventListener('click',()=>addCustomProfession(context));
+            renderProfessionPicker(context);
+        }
+        function renderProfessionPicker(context) {
+            const query=document.getElementById(context+'-profession-search').value;
+            const category=document.getElementById(context+'-profession-group').value;
+            const roles=appState.selectedProfessions||[];
+            const selected=document.getElementById(context+'-profession-selected'); selected.replaceChildren();
+            roles.forEach(r=>selected.append(professionButton('✓ '+r.label+' · Remove',()=>toggleProfession(r,context),true)));
+            const matches=matchingProfessions(query,category), results=document.getElementById(context+'-profession-results'); results.replaceChildren();
+            const visible=(query||category)?matches:[];
+            document.getElementById(context+'-profession-count').textContent=query||category?(matches.length?matches.length+' matching roles':'No matching jobs. Add your own below.'):'Choose a category or search to find your role.';
+            if(!query&&!category) professionGroups.forEach(g=>results.append(professionButton(g.emoji+' '+g.label+(g.specialist?' · Coming later':''),()=>{document.getElementById(context+'-profession-group').value=g.id;renderProfessionPicker(context);})));
+            visible.forEach(r=>results.append(professionButton(r.label+(r.specialist?' · Coming later':''),()=>toggleProfession(r,context),roles.some(x=>normaliseProfession(x.label)===normaliseProfession(r.label)),r.specialist)));
+            const next=document.getElementById('onboarding-next-1'); if(next)next.disabled=!roles.length;
+        }
+        function toggleProfession(role,context) {
+            const group=professionGroups.find(g=>g.id===role.category); if(group?.specialist||role.specialist)return;
+            const roles=appState.selectedProfessions||[];
+            const exists=roles.some(r=>normaliseProfession(r.label)===normaliseProfession(role.label));
+            if(!exists&&roles.length>=10){showToast('Choose up to 10 professions.');return;}
+            appState.selectedProfessions=exists?roles.filter(r=>normaliseProfession(r.label)!==normaliseProfession(role.label)):[...roles,{id:role.id,label:role.label,category:role.category,custom:!!role.custom}];
+            appState.selectedWorkType=appState.selectedProfessions[0]?.label||'';
+            if(!exists)appState.selectedExpenses=[...new Set([...(appState.selectedExpenses||[]),...suggestedProfessionExpenses([role])])];
+            renderProfessionPicker(context); if(context==='profile')renderProfilePreferenceChips();
+        }
+        function addCustomProfession(context) {
+            const input=document.getElementById(context+'-profession-custom'); const label=input.value.trim().replace(/\s+/g,' ');
+            if(!label||label.length>80){showToast('Enter a profession of up to 80 characters.');return;}
+            if((appState.selectedProfessions||[]).some(r=>normaliseProfession(r.label)===normaliseProfession(label))){showToast('That profession is already selected.');return;}
+            const known=findProfession(label);
+            if(known&&(known.specialist||professionGroups.find(g=>g.id===known.category)?.specialist)){showToast('Specialist support for this role is coming later.');return;}
+            const role=known||{id:'custom-'+normaliseProfession(label),label,category:document.getElementById(context+'-profession-custom-group').value,custom:true};
+            toggleProfession(role,context); input.value='';
+        }
+        function professionProfileFields() {
+            const roles=appState.selectedProfessions||[];
+            return {profession_roles:roles.map(r=>({id:r.id,label:r.label,category:r.category,custom:!!r.custom})),primary_work_type:roles[0]?.label||appState.selectedWorkType||'Other',work_types:roles.map(r=>r.label)};
+        }
+        function addOnboardingExpense() {
+            const input=document.getElementById('onboarding-custom-expense'), value=input.value.trim();
+            if(!value)return; if(!appState.selectedExpenses.some(v=>v.toLowerCase()===value.toLowerCase()))appState.selectedExpenses.push(value);
+            input.value='';renderExpensePreferenceOptions();
+        }
+
         const platformMap = {
             'Taxi / Private Hire': ['Uber','Bolt','FREENOW','Private Customers','Other'],
             'Food Delivery': ['Uber Eats','Deliveroo','Just Eat','Other'],
@@ -1436,6 +1530,7 @@
             appState.profile = data;
             if (!data?.onboarding_completed) {
                 appState.selectedWorkType = data?.primary_work_type || '';
+                appState.selectedProfessions = profileProfessions(data || {});
                 appState.selectedPlatforms = data?.platforms || [];
                 appState.selectedExpenses = data?.usual_expenses || [];
                 document.getElementById('onboarding-screen').classList.remove('hidden');
@@ -1468,25 +1563,22 @@
             document.getElementById('onboarding-step-label').textContent = step + ' of 4';
             document.getElementById('onboarding-progress').style.width = (step * 25) + '%';
             const titles = {
-                1:'What type of driving work do you do?',
-                2:'Which platforms do you use?',
+                1:'What work do you do?',
+                2:'Who pays you? (optional)',
                 3:'Which expenses do you usually have?',
                 4:'Do you have regular monthly or yearly costs?'
             };
             document.getElementById('onboarding-title').textContent = titles[step];
+            if (step === 1) mountProfessionPicker('onboarding');
             if (step === 2) renderPlatformOptions();
             if (step === 3) renderExpensePreferenceOptions();
             if (step === 4) renderRegularCostLists();
         }
 
         function renderPlatformOptions() {
-            const options = platformMap[appState.selectedWorkType] || ['Other'];
-            const box = document.getElementById('platform-options');
-            box.innerHTML = options.map(p => {
-                const active = appState.selectedPlatforms.includes(p);
-                return `<button type="button" onclick="togglePlatform('${p.replace(/'/g,"\\'")}', this)" class="platform-option rounded-xl border p-3 text-xs font-bold text-left ${active ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300' : 'border-slate-800 bg-slate-900 text-white'}">${p}</button>`;
-            }).join('');
-            document.getElementById('custom-platform-wrap').classList.toggle('hidden', !appState.selectedPlatforms.includes('Other'));
+            const box=document.getElementById('platform-options');
+            box.innerHTML=appState.selectedPlatforms.map(p=>chipButton(p,true,'togglePlatform')).join('');
+            document.getElementById('custom-platform-wrap').classList.remove('hidden');
         }
 
         function togglePlatform(platform, btn) {
@@ -1509,11 +1601,8 @@
         }
 
         function renderExpensePreferenceOptions() {
-            const box = document.getElementById('expense-preference-options');
-            box.innerHTML = defaultExpenses.map(e => {
-                const active = appState.selectedExpenses.includes(e);
-                return `<button type="button" onclick="toggleExpensePreference('${e.replace(/'/g,"\\'")}', this)" class="rounded-xl border p-3 text-xs font-bold text-left ${active ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300' : 'border-slate-800 bg-slate-900 text-white'}">${e}</button>`;
-            }).join('');
+            const options=[...new Set([...suggestedProfessionExpenses(),...appState.selectedExpenses])];
+            document.getElementById('expense-preference-options').innerHTML=options.map(e=>chipButton(e,appState.selectedExpenses.includes(e),'toggleExpensePreference')).join('');
         }
 
         function toggleExpensePreference(expense) {
@@ -1526,49 +1615,32 @@
         }
 
         async function finishOnboarding() {
-            if (!appState.currentUser || !appState.selectedWorkType) return;
-            const btn = document.getElementById('finish-onboarding-btn');
-            btn.disabled = true;
-            btn.textContent = 'Saving...';
-
-            if (!appState.selectedPlatforms.length) appState.selectedPlatforms = ['Other'];
-            if (!appState.selectedExpenses.length) appState.selectedExpenses = [...defaultExpenses];
-
-            const { error } = await supabaseClient.from('profiles').update({
-                primary_work_type: appState.selectedWorkType,
-                work_types: [appState.selectedWorkType],
-                platforms: appState.selectedPlatforms,
-                usual_expenses: appState.selectedExpenses,
-                onboarding_completed: true
-            }).eq('id', appState.currentUser.id);
-
-            if (error) {
-                showToast('Could not save setup. Please retry.');
-                btn.disabled = false;
-                btn.textContent = 'Finish Setup';
-                return;
-            }
-            document.getElementById('onboarding-screen').classList.add('hidden');
-            await fetchUserData(appState.currentUser.id);
-            appState.homeCalendarOpened = false;
-            maybeOpenHomeCalendar();
-            showToast('Setup complete');
-            btn.disabled = false;
-            btn.textContent = 'Finish Setup';
+            if (!appState.currentUser || !appState.selectedProfessions?.length || appState.savingOnboarding) return;
+            appState.savingOnboarding=true;
+            const btn=document.getElementById('finish-onboarding-btn'); btn.disabled=true;btn.textContent='Saving...';
+            try {
+                const fields={...professionProfileFields(),platforms:[...appState.selectedPlatforms],usual_expenses:appState.selectedExpenses.length?[...appState.selectedExpenses]:['Other'],onboarding_completed:true};
+                const {data,error}=await supabaseClient.from('profiles').update(fields).eq('id',appState.currentUser.id).select('id').single();
+                if(error||!data)throw error||new Error('Profile was not saved');
+                appState.profile={...appState.profile,...fields};
+                document.getElementById('onboarding-screen').classList.add('hidden');
+                await fetchUserData(appState.currentUser.id);appState.homeCalendarOpened=false;maybeOpenHomeCalendar();showToast('Setup complete');
+            } catch(error) { showToast('Could not save setup. Your choices are still here; please retry.'); }
+            finally {appState.savingOnboarding=false;btn.disabled=false;btn.textContent='Finish Setup';}
         }
 
         function populateIncomeSources() {
             const select = document.getElementById('income-source');
             if (!select) return;
             const sources = [...new Set([...(appState.selectedPlatforms || []), 'Other'])];
-            select.innerHTML = sources.map(v => `<option value="${v.replace(/"/g,'&quot;')}">${v}</option>`).join('');
+            select.replaceChildren(...sources.map(v=>new Option(v,v)));
         }
 
         function populateExpenseCategories() {
             const select = document.getElementById('expense-category');
             if (!select) return;
             const cats = [...new Set([...(appState.selectedExpenses || []), 'Other'])];
-            select.innerHTML = cats.map(v => `<option value="${v.replace(/"/g,'&quot;')}">${v}</option>`).join('');
+            select.replaceChildren(...cats.map(v=>new Option(v,v)));
         }
 
         async function signOutUser() {
@@ -1679,6 +1751,7 @@
                 appState.profile = profileRes.data || null;
                 appState.taxProfile = taxProfileRes.data || null;
                 appState.selectedWorkType = profileRes.data?.primary_work_type || '';
+                appState.selectedProfessions = profileProfessions(profileRes.data || {});
                 appState.selectedPlatforms = profileRes.data?.platforms || [];
                 appState.selectedExpenses = profileRes.data?.usual_expenses || [];
                 const displayName=profileRes.data?.full_name || appState.currentUser?.user_metadata?.full_name || appState.currentUser?.email?.split('@')[0] || 'Driver';
@@ -2042,13 +2115,31 @@
             if(field==='invoice-date'&&document.getElementById('invoice-due-date').value<date)document.getElementById('invoice-due-date').value=date;
             if(field==='invoice-paid-date'){document.getElementById('invoice-paid-date-display').textContent='📅 '+formatUkDate(date);renderInvoicePaymentOptions();}else updateInvoiceDateLabels();closeInvoiceCalendar();
         }
+        function professionInvoiceDescriptions(roles=profileProfessions(appState.profile||{})) {
+            const byGroup={"driving": ["Passenger journey", "Delivery service", "Vehicle transport"], "trades": ["Labour for agreed work", "Installation work", "Materials supplied"], "property": ["Cleaning service", "Property maintenance", "Garden maintenance"], "beauty": ["Haircut & styling", "Beauty treatment", "Nail appointment"], "professional": ["Professional services", "Project work", "Consultation"], "creative": ["Creative project", "Photography session", "Content production"], "retail": ["Goods supplied", "Handmade item", "Delivery charge"], "food": ["Catering service", "Food order", "Event services"], "fitness": ["Personal training session", "Fitness class", "Coaching session"], "education": ["Tuition session", "Lesson", "Training session"], "health": ["Care visit", "Therapy session", "Consultation"], "pets": ["Dog walking", "Pet sitting", "Pet grooming"], "repairs": ["Repair labour", "Service & maintenance", "Parts supplied"], "other": ["Services provided", "Project work", "Goods supplied"]};
+            const byRole={"Window cleaner": ["Window cleaning", "Conservatory window cleaning", "Gutter cleaning"], "Gardener": ["Garden maintenance", "Lawn mowing", "Hedge trimming"], "Hairdresser": ["Haircut & styling", "Hair colouring", "Blow-dry"], "Barber": ["Haircut", "Beard trim", "Haircut & beard trim"], "Taxi / Private Hire": ["Passenger journey", "Airport transfer", "Private hire booking"], "Food Delivery": ["Food delivery service"], "Parcel / Courier": ["Parcel delivery", "Courier service"], "Removals": ["Removal service", "Man-and-van service"], "Driving instructor": ["Driving lesson", "Driving lesson package"], "Software developer": ["Software development", "Development support"], "Plumber": ["Plumbing labour", "Plumbing repair", "Parts supplied"], "Electrician": ["Electrical installation", "Electrical repair", "Materials supplied"], "Photographer": ["Photography session", "Event photography", "Photo editing"], "Nail technician": ["Manicure", "Pedicure", "Nail extensions"]};
+            return [...new Set(roles.flatMap(r=>byRole[r.label]||byGroup[r.category]||byGroup.other))];
+        }
+        function addProfessionInvoiceSuggestions(row) {
+            const descriptions=professionInvoiceDescriptions(); if(!descriptions.length)return;
+            const label=document.createElement('label');label.className='block text-[10px] text-slate-300';label.textContent='Suggested descriptions (optional)';
+            const select=document.createElement('select');select.className='block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white';select.setAttribute('data-invoice-suggestions','');
+            select.add(new Option('Choose a suggestion…',''));descriptions.forEach(d=>select.add(new Option(d,d)));
+            select.addEventListener('change',()=>{if(!select.value)return;const input=row.querySelector('[data-invoice-field="description"]');const text=select.value;
+                // Preserve anything already typed. A suggestion fills an empty row or appends to it.
+                const next=input.value.trim()?input.value.trim()+'; '+text:text;
+                if(next.length>200){showToast('Description is full. Edit it before adding a suggestion.');select.value='';return;}
+                input.value=next;select.value='';input.focus();});
+            label.append(select);row.prepend(label);
+            row.querySelector('[data-invoice-field="description"]').placeholder='e.g. '+descriptions[0];
+        }
         function addInvoiceItem(){
             const box=document.getElementById('invoice-items');if(box.children.length>=20){showToast('Up to 20 items per invoice');return;}
             const id='invoice-item-'+((appState.invoiceItemCounter||0)+1);appState.invoiceItemCounter=(appState.invoiceItemCounter||0)+1;
             const row=document.createElement('div');row.id=id;row.className='invoice-item bg-slate-900 border border-slate-700 rounded-xl p-3 space-y-2';
-            row.innerHTML='<label class="block text-[10px] text-slate-300">Description<input data-invoice-field="description" type="text" required maxlength="200" placeholder="e.g. Airport transfer Birmingham to Heathrow" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"></label><label class="flex items-center gap-2 text-[10px] text-blue-200"><input data-invoice-quantity-toggle type="checkbox" onchange="toggleInvoiceQuantity(this)">Charge by quantity or hours</label><div class="grid grid-cols-2 gap-2"><label data-invoice-quantity-label class="hidden text-[10px] text-slate-300">Quantity / hours<input data-invoice-field="quantity" type="number" min="0.01" max="100000" step="any" required value="1" oninput="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"><span class="flex gap-2 mt-1"><button type="button" data-quantity-change="-1" onclick="changeInvoiceQuantity(this,-1)" aria-label="Decrease quantity by one" class="bg-slate-800 rounded px-3 py-1">−</button><button type="button" data-quantity-change="1" onclick="changeInvoiceQuantity(this,1)" aria-label="Increase quantity by one" class="bg-slate-800 rounded px-3 py-1">+</button></span><span class="text-[9px] text-slate-400">You can type hours such as 1.5.</span></label><label class="text-[10px] text-slate-300"><span data-invoice-price-label>Job price (£)</span><input data-invoice-field="unit_price" type="number" min="0" max="10000000" step="0.01" required placeholder="0.00" oninput="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"></label></div><button type="button" onclick="removeInvoiceItem(\''+id+'\')" class="text-[10px] text-slate-300">Remove item</button>';
+            row.innerHTML='<label class="block text-[10px] text-slate-300">Description<input data-invoice-field="description" type="text" required maxlength="200" placeholder="Describe the work or goods supplied" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"></label><label class="flex items-center gap-2 text-[10px] text-blue-200"><input data-invoice-quantity-toggle type="checkbox" onchange="toggleInvoiceQuantity(this)">Charge by quantity or hours</label><div class="grid grid-cols-2 gap-2"><label data-invoice-quantity-label class="hidden text-[10px] text-slate-300">Quantity / hours<input data-invoice-field="quantity" type="number" min="0.01" max="100000" step="any" required value="1" oninput="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"><span class="flex gap-2 mt-1"><button type="button" data-quantity-change="-1" onclick="changeInvoiceQuantity(this,-1)" aria-label="Decrease quantity by one" class="bg-slate-800 rounded px-3 py-1">−</button><button type="button" data-quantity-change="1" onclick="changeInvoiceQuantity(this,1)" aria-label="Increase quantity by one" class="bg-slate-800 rounded px-3 py-1">+</button></span><span class="text-[9px] text-slate-400">You can type hours such as 1.5.</span></label><label class="text-[10px] text-slate-300"><span data-invoice-price-label>Job price (£)</span><input data-invoice-field="unit_price" type="number" min="0" max="10000000" step="0.01" required placeholder="0.00" oninput="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"></label></div><button type="button" onclick="removeInvoiceItem(\''+id+'\')" class="text-[10px] text-slate-300">Remove item</button>';
             const vatLabel=document.createElement('label');vatLabel.className='invoice-item-vat block text-[10px] text-slate-300';vatLabel.innerHTML='VAT rate<select data-invoice-field="vat_rate" onchange="updateInvoiceTotal()" class="block w-full bg-slate-950 rounded-lg p-2 mt-1 text-xs text-white"><option value="20">20% standard</option><option value="5">5% reduced</option><option value="0">0% zero rated</option></select>';row.appendChild(vatLabel);
-            box.appendChild(row);updateInvoiceVatFields();
+            addProfessionInvoiceSuggestions(row);box.appendChild(row);updateInvoiceVatFields();
         }
         function toggleInvoiceQuantity(toggle){
             const row=toggle.closest('.invoice-item'),enabled=toggle.checked;
@@ -2709,9 +2800,9 @@
             return '<button type="button" onclick="'+handler+"("+safe+")"+'" class="px-3 py-2 rounded-xl border text-[10px] font-bold '+(selected?'border-'+color+'-500 bg-'+color+'-500/10 text-'+color+'-300':'border-slate-800 bg-slate-950 text-slate-400')+'">'+escapeHtml(value)+'</button>';
         }
         function renderProfilePreferenceChips(){
-            const platformDefaults=platformMap[document.getElementById('profile-work-type')?.value||appState.selectedWorkType]||['Uber','Bolt','FREENOW','Deliveroo','Just Eat','Amazon Flex','Other'];
+            const platformDefaults=[];
             const platforms=[...new Set([...platformDefaults,...(appState.selectedPlatforms||[])])];
-            const expenses=[...new Set([...defaultExpenses,...(appState.selectedExpenses||[])])];
+            const expenses=[...new Set([...suggestedProfessionExpenses(),...(appState.selectedExpenses||[])])];
             const pb=document.getElementById('profile-platform-chips'); if(pb) pb.innerHTML=platforms.map(v=>chipButton(v,(appState.selectedPlatforms||[]).includes(v),'toggleProfilePlatform','emerald')).join('');
             const eb=document.getElementById('profile-expense-chips'); if(eb) eb.innerHTML=expenses.map(v=>chipButton(v,(appState.selectedExpenses||[]).includes(v),'toggleProfileExpense','rose')).join('');
         }
@@ -2731,7 +2822,8 @@ function openAccountModal() {
             document.getElementById('account-tax-year').textContent=currentTaxYearBounds().label;
             document.getElementById('profile-name').value=name;
             document.getElementById('profile-email').value=email;
-            document.getElementById('profile-work-type').value=p.primary_work_type || appState.selectedWorkType || 'Other';
+            appState.selectedProfessions=profileProfessions(p);
+            mountProfessionPicker('profile');
             renderProfilePreferenceChips();
             renderRegularCostLists();
             refreshAvatarPreview();
@@ -2739,20 +2831,26 @@ function openAccountModal() {
         }
 
         function closeAccountModal() {
+            appState.selectedProfessions=profileProfessions(appState.profile||{});
+            appState.selectedWorkType=appState.profile?.primary_work_type||'';
             appState.selectedPlatforms=[...(appState.profile?.platforms||[])];
             appState.selectedExpenses=[...(appState.profile?.usual_expenses||[])];
             document.getElementById('account-modal')?.classList.add('hidden');
         }
 
         async function saveProfileDetails(e){
-            e.preventDefault(); if(!appState.currentUser) return;
-            const full_name=document.getElementById('profile-name').value.trim();
-            const primary_work_type=document.getElementById('profile-work-type').value;
-            const platforms=[...(appState.selectedPlatforms||[])];
-            const usual_expenses=[...(appState.selectedExpenses||[])];
-            const {error}=await supabaseClient.from('profiles').update({full_name,primary_work_type,work_types:[primary_work_type],platforms,usual_expenses,updated_at:new Date().toISOString()}).eq('id',appState.currentUser.id);
-            if(error){showToast('Could not save profile');return;}
-            await fetchUserData(appState.currentUser.id); openAccountModal(); showToast('Profile updated');
+            e.preventDefault(); if(!appState.currentUser||appState.savingProfile)return;
+            if(!appState.selectedProfessions?.length){showToast('Select at least one profession.');return;}
+            appState.savingProfile=true;
+            const btn=e.target.querySelector('button[type="submit"]'); if(btn)btn.disabled=true;
+            const fields={full_name:document.getElementById('profile-name').value.trim(),...professionProfileFields(),platforms:[...appState.selectedPlatforms],usual_expenses:[...appState.selectedExpenses],updated_at:new Date().toISOString()};
+            try {
+                const {data,error}=await supabaseClient.from('profiles').update(fields).eq('id',appState.currentUser.id).select('id').single();
+                if(error||!data)throw error||new Error('Profile was not saved');
+                appState.profile={...appState.profile,...fields};
+                await fetchUserData(appState.currentUser.id);openAccountModal();showToast('Profile updated');
+            } catch(error){showToast('Could not save profile. Your changes are still here; please retry.');}
+            finally {appState.savingProfile=false;if(btn)btn.disabled=false;}
         }
 
         async function uploadProfileAvatar(input){
@@ -3149,7 +3247,7 @@ function openAccountModal() {
                 document.getElementById('receipt-preview').src=URL.createObjectURL(file);
                 setDateField('receipt-date','receipt-date-label',isoDate(new Date()));
 
-                const cats=[...new Set([...(appState.selectedExpenses||[]),'Fuel','Parking','Tolls','Vehicle Repairs','Vehicle Cleaning','Phone','Insurance','Licensing','Other'])];
+                const cats=[...new Set([...(appState.selectedExpenses||[]),...suggestedProfessionExpenses(profileProfessions(appState.profile||{})),'Other'])];
                 document.getElementById('receipt-category').innerHTML=cats.map(x=>'<option>'+escapeHtml(x)+'</option>').join('');
 
                 document.getElementById('receipt-merchant').value='';
@@ -4823,7 +4921,10 @@ function renderRegularCostLists() {
 
             document.getElementById('recurring-amount').value = '';
             document.getElementById('recurring-notes').value = '';
-            if (!preserveFrequency) document.getElementById('recurring-category').selectedIndex = 0;
+            const categorySelect=document.getElementById('recurring-category');
+            const previousCategory=categorySelect.value;
+            categorySelect.replaceChildren(...[...new Set([...(appState.selectedExpenses||[]),...suggestedProfessionExpenses(),'Other'])].map(v=>new Option(v,v)));
+            if(preserveFrequency && [...categorySelect.options].some(o=>o.value===previousCategory))categorySelect.value=previousCategory;
             document.getElementById('recurring-frequency').value = frequency || 'monthly';
             setRecurringStartDate(startDate);
             document.getElementById('recurring-save-btn').textContent = 'Save Regular Cost';
