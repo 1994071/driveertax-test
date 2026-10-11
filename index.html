@@ -875,11 +875,12 @@
                         <div><label class="text-[10px] font-bold text-slate-500">Student loan</label><select id="taxp-student-plan" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option value="none">None</option><option value="1">Plan 1</option><option value="2">Plan 2</option><option value="4">Plan 4</option><option value="5">Plan 5</option></select></div>
                         <label class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-xs text-slate-200">Postgraduate loan<input id="taxp-postgrad" type="checkbox" class="accent-emerald-500"></label>
                         <div class="grid grid-cols-2 gap-2">
-                            <div><label class="text-[10px] font-bold text-slate-500">Pension contributions (£)</label><input id="taxp-pension-contrib" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
-                            <div><label class="text-[10px] font-bold text-slate-500">Gift Aid (£)</label><input id="taxp-gift-aid" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+                            <div><label class="text-[10px] font-bold text-slate-500">Personal pension payments (£)</label><input id="taxp-pension-contrib" aria-describedby="taxp-relief-help" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+                            <div><label class="text-[10px] font-bold text-slate-500">Gift Aid donations paid (£)</label><input id="taxp-gift-aid" aria-describedby="taxp-relief-help" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
                             <div><label class="text-[10px] font-bold text-slate-500">Tax already deducted (£)</label><input id="taxp-tax-deducted" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
                             <div><label class="text-[10px] font-bold text-slate-500">Marriage Allowance</label><select id="taxp-marriage" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"><option value="none">None</option><option value="receiving">I receive it</option><option value="transferring">I transfer it</option></select></div>
                         </div>
+                        <p id="taxp-relief-help" class="text-[11px] leading-relaxed text-slate-400">Enter amounts you actually paid this tax year, before any top-up. Pension payments must qualify for the provider’s 20% tax top-up (relief at source). Exclude employer payments, salary sacrifice and payments taken from salary before tax. Enter only eligible amounts within your pension limits. We add the top-up for the calculation and apply relief using your selected tax residence.</p>
                         <label class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-xs text-slate-200">Blind Person’s Allowance<input id="taxp-blind" type="checkbox" class="accent-emerald-500"></label>
                     </div>
                     <button type="submit" class="w-full bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs">Save Tax Profile</button>
@@ -1720,7 +1721,8 @@
         function calculateBandTax(taxable,residence,bandExtension=0){
             let x=Math.max(0,taxable), tax=0;
             if(residence==='Scotland'){
-                const bands=[[3967,0.19],[12989,0.20],[14136,0.21],[31338,0.42],[62710,0.45],[Infinity,0.48]];
+                // Gross relief-at-source payments extend the Scottish basic and higher limits.
+                const bands=[[3967,0.19],[12989+bandExtension,0.20],[14136,0.21],[31338,0.42],[62710,0.45],[Infinity,0.48]];
                 for(const [width,rate] of bands){const take=Math.min(x,width); tax+=take*rate; x-=take;if(x<=0)break;}
                 return tax;
             }
