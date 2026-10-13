@@ -225,7 +225,7 @@
                         <div class="bg-slate-950/40 p-2.5 rounded-xl"><span id="dash-tax-label" class="text-[10px] text-slate-400 block">Tax reserve for this week</span><span id="dash-today-tax" class="text-sm font-bold text-amber-300">£0.00</span></div>
                         <div class="bg-slate-950/40 p-2.5 rounded-xl"><span class="text-[10px] text-slate-400 block">Estimated take-home</span><span id="dash-today-net" class="text-sm font-bold text-emerald-300">£0.00</span></div>
                     </div>
-                    <p id="dash-tax-year-note" class="text-[10px] text-slate-300"></p><p class="text-[9px] text-slate-400">Period reserve estimates the tax added by the profit shown above. No annual earnings forecast is assumed. Take-home is after this reserve.</p>
+                    <p id="dash-tax-year-note" class="text-[10px] text-slate-300"></p><p class="text-[9px] text-slate-400">Tax reserve uses estimated allowable costs, which can differ from recorded spending. Review expense treatment in Tax. No annual earnings forecast is assumed.</p>
                 </div>
                 <div id="dashboard-week-chart" class="bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3">
                     <div class="flex items-center justify-between gap-2"><h3 class="text-sm font-bold text-white">Your week</h3><div class="flex gap-2"><button type="button" onclick="changeDashboardChartWeek(-1)" aria-label="Previous week" class="bg-slate-800 rounded-lg px-3 py-2">‹</button><button type="button" onclick="changeDashboardChartWeek(1)" aria-label="Next week" class="bg-slate-800 rounded-lg px-3 py-2">›</button></div></div>
@@ -357,7 +357,7 @@
                     <img id="receipt-preview" class="w-full max-h-44 object-contain rounded-xl bg-slate-950 border border-slate-800" alt="Receipt preview">
                     <div class="grid grid-cols-2 gap-2">
                         <div><label class="text-[10px] text-slate-500 font-bold">Merchant</label><input id="receipt-merchant" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
-                        <div><label class="text-[10px] text-slate-500 font-bold">Amount (£)</label><input id="receipt-amount" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+                        <div><label class="text-[10px] text-slate-500 font-bold">Amount (£)</label><input oninput="updateExpenseTaxPreview('receipt')" id="receipt-amount" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
                         <div><label class="text-[10px] text-slate-500 font-bold">VAT shown (£)</label><input id="receipt-vat" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
                         <div>
 <label class="text-[10px] text-slate-500 font-bold">Date</label>
@@ -368,6 +368,11 @@
 </div>
                     </div>
                     <div><label class="text-[10px] text-slate-500 font-bold">Category</label><select id="receipt-category" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></select></div>
+<div class="bg-slate-950 border border-slate-700 rounded-xl p-3 space-y-2">
+<label class="block text-xs text-slate-300">Income Tax treatment<select id="receipt-tax-treatment" onchange="updateExpenseTaxPreview('receipt')" class="block w-full bg-slate-900 rounded-lg p-2 mt-1"><option value="review">Not sure / needs review</option><option value="allowable">Allowable business cost</option><option value="excluded">Personal / not deductible</option><option value="legacy" hidden>Previous estimate — not reviewed</option></select></label>
+<label class="block text-xs text-slate-300">Business use (%)<input id="receipt-business-percent" type="number" min="0" max="100" step="0.01" value="100" oninput="updateExpenseTaxPreview('receipt')" class="block w-full bg-slate-900 rounded-lg p-2 mt-1"></label>
+<p id="receipt-tax-preview" role="status" class="text-[11px] text-amber-200"></p><p class="text-[10px] text-slate-400">A suggested category does not confirm tax relief. Review cars, loan repayments, equipment and private use. VAT is reviewed separately.</p>
+</div>
                     <p id="receipt-validation-msg" class="hidden text-[10px] font-semibold text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-xl p-2"></p>
                     <div id="receipt-duplicate-warning" role="alert" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 space-y-2">
                         <p id="receipt-duplicate-title" class="text-xs font-bold text-amber-300">Possible duplicate receipt</p>
@@ -427,7 +432,7 @@
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-lg">
                     <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Business Income</span><span class="font-bold text-white" id="tax-earnings">£0.00</span></div>
                     <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Allowable Expenses (Est.)</span><span class="font-bold text-rose-400" id="tax-expenses">-£0.00</span></div>
-                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Business Profit</span><span class="font-bold text-emerald-400" id="tax-profit">£0.00</span></div>
+                    <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Profit for tax (est.)</span><span class="font-bold text-emerald-400" id="tax-profit">£0.00</span></div>
                     <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Personal Allowance</span><span class="font-bold text-slate-300" id="tax-personal-allowance">£12,570.00</span></div>
                     <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Taxable Profit</span><span class="font-bold text-white" id="tax-taxable-profit">£0.00</span></div>
                     <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-800"><span class="text-slate-400">Estimated Income Tax</span><span class="font-bold text-amber-300" id="tax-income-tax">£0.00</span></div>
@@ -439,7 +444,7 @@
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4"><p class="text-[10px] uppercase font-bold text-slate-500">Tax Reserve Saved</p><p id="tax-reserve-saved" class="text-lg font-extrabold text-emerald-400 mt-1">£0.00</p></div>
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4"><p class="text-[10px] uppercase font-bold text-slate-500">Remaining Reserve</p><p id="tax-reserve-remaining" class="text-lg font-extrabold text-amber-400 mt-1">£0.00</p></div>
                 </div>
-                <div id="tax-estimate-quality" class="bg-slate-900 border border-slate-800 rounded-2xl p-3 text-[10px] text-slate-300"></div>
+                <div id="tax-estimate-quality" class="bg-slate-900 border border-slate-800 rounded-2xl p-3 text-[10px] text-slate-300"></div><button type="button" onclick="switchTab('records');setRecordsFilter('expense')" class="w-full bg-amber-500/10 border border-amber-500/30 text-amber-200 rounded-xl p-3 text-xs font-bold">Review expense tax treatment</button>
                 <button onclick="openTaxProfileModal()" class="w-full bg-slate-900 border border-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-sliders mr-1"></i> Tax Profile</button>
                 <button onclick="openTaxShareModal()" class="w-full bg-slate-900 border border-slate-800 text-slate-200 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-share-nodes mr-1"></i> Share Tax Summary</button>
                 <button onclick="openReserveModal()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-piggy-bank mr-1"></i> Add Tax Reserve Saving</button>
@@ -524,7 +529,7 @@
 
         <!-- Period Entry Modal -->
         <div id="period-entry-modal" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-[75] flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex justify-between items-center">
                     <div>
                         <h3 class="font-bold text-sm text-white">Catch Up Records</h3>
@@ -566,7 +571,7 @@
 
         <!-- Expense Continuation Modal -->
         <div id="expense-next-modal" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-[76] flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="text-center space-y-2">
                     <div class="w-11 h-11 mx-auto rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center">
                         <i class="fa-solid fa-receipt"></i>
@@ -583,7 +588,7 @@
 
         <!-- Add Mileage Modal -->
         <div id="mileage-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-sm text-white flex items-center gap-2">
                         <i class="fa-solid fa-road text-emerald-400"></i> <span id="mileage-modal-title">Add Mileage</span>
@@ -634,7 +639,7 @@
 
         <!-- Add Tax Reserve Modal -->
         <div id="reserve-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-sm text-white flex items-center gap-2">
                         <i class="fa-solid fa-piggy-bank text-emerald-400"></i> Add Tax Savings
@@ -669,7 +674,7 @@
 
         <!-- Add Income Modal -->
         <div id="income-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-sm text-white flex items-center gap-2">
                         <i class="fa-solid fa-plus-circle text-emerald-400"></i> <span id="income-modal-title">Add Income</span>
@@ -720,7 +725,7 @@
 
         <!-- Add Expense Modal -->
         <div id="expense-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-sm text-white flex items-center gap-2">
                         <i class="fa-solid fa-minus-circle text-rose-400"></i> <span id="expense-modal-title">Add Expense</span>
@@ -744,9 +749,14 @@
                         </div>
                         <div>
                             <label class="text-[11px] font-semibold text-slate-400 block mb-1">Amount (£)</label>
-                            <input type="number" step="0.01" id="expense-amount" required placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                            <input type="number" step="0.01" oninput="updateExpenseTaxPreview('expense')" id="expense-amount" required placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
                         </div>
                     </div>
+<div class="bg-slate-950 border border-slate-700 rounded-xl p-3 space-y-2">
+<label class="block text-xs text-slate-300">Income Tax treatment<select id="expense-tax-treatment" onchange="updateExpenseTaxPreview('expense')" class="block w-full bg-slate-900 rounded-lg p-2 mt-1"><option value="review">Not sure / needs review</option><option value="allowable">Allowable business cost</option><option value="excluded">Personal / not deductible</option><option value="legacy" hidden>Previous estimate — not reviewed</option></select></label>
+<label class="block text-xs text-slate-300">Business use (%)<input id="expense-business-percent" type="number" min="0" max="100" step="0.01" value="100" oninput="updateExpenseTaxPreview('expense')" class="block w-full bg-slate-900 rounded-lg p-2 mt-1"></label>
+<p id="expense-tax-preview" role="status" class="text-[11px] text-amber-200"></p><p class="text-[10px] text-slate-400">A suggested category does not confirm tax relief. Review cars, loan repayments, equipment and private use. VAT is reviewed separately.</p>
+</div>
                     <div>
                         <label class="text-[11px] font-semibold text-slate-400 block mb-1">Merchant / Supplier <span class="text-slate-600">(optional)</span></label>
                         <input type="text" id="expense-merchant" placeholder="e.g. Shell, Tesco, Halfords" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
@@ -775,7 +785,7 @@
 
         <!-- Recurring Expense Modal -->
         <div id="recurring-expense-modal" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-[86] flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex justify-between items-center">
                     <div><h3 class="font-bold text-sm text-white">Add Regular Cost</h3><p class="text-[10px] text-slate-500 mt-1">Monthly or yearly business cost</p></div>
                     <button onclick="closeRecurringExpenseModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center"><i class="fa-solid fa-xmark text-xs"></i></button>
@@ -783,8 +793,13 @@
                 <form onsubmit="handleSaveRecurringExpense(event)" class="space-y-3">
                     <div class="grid grid-cols-2 gap-2">
                         <div><label class="text-[11px] font-semibold text-slate-400 block mb-1">Category</label><select id="recurring-category" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option>Phone</option><option>Insurance</option><option>Vehicle Finance</option><option>Car Wash Subscription</option><option>Breakdown Cover</option><option>Licensing</option><option>Other</option></select></div>
-                        <div><label class="text-[11px] font-semibold text-slate-400 block mb-1">Amount (£)</label><input id="recurring-amount" type="number" min="0.01" step="0.01" required placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
+                        <div><label class="text-[11px] font-semibold text-slate-400 block mb-1">Amount (£)</label><input oninput="updateExpenseTaxPreview('recurring')" id="recurring-amount" type="number" min="0.01" step="0.01" required placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
                     </div>
+<div class="bg-slate-950 border border-slate-700 rounded-xl p-3 space-y-2">
+<label class="block text-xs text-slate-300">Income Tax treatment<select id="recurring-tax-treatment" onchange="updateExpenseTaxPreview('recurring')" class="block w-full bg-slate-900 rounded-lg p-2 mt-1"><option value="review">Not sure / needs review</option><option value="allowable">Allowable business cost</option><option value="excluded">Personal / not deductible</option><option value="legacy" hidden>Previous estimate — not reviewed</option></select></label>
+<label class="block text-xs text-slate-300">Business use (%)<input id="recurring-business-percent" type="number" min="0" max="100" step="0.01" value="100" oninput="updateExpenseTaxPreview('recurring')" class="block w-full bg-slate-900 rounded-lg p-2 mt-1"></label>
+<p id="recurring-tax-preview" role="status" class="text-[11px] text-amber-200"></p><p class="text-[10px] text-slate-400">A suggested category does not confirm tax relief. Review cars, loan repayments, equipment and private use. VAT is reviewed separately.</p>
+</div>
                     <div class="grid grid-cols-2 gap-2">
                         <div><label class="text-[11px] font-semibold text-slate-400 block mb-1">Frequency</label><select id="recurring-frequency" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></div>
                         <div>
@@ -806,7 +821,7 @@
 
         <!-- Universal Date Picker -->
         <div id="universal-date-picker-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-[90] flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex items-center justify-between">
                     <div><h3 class="font-bold text-sm text-white">Select Date</h3><p class="text-[10px] text-slate-500">Tap the date you want — no typing needed</p></div>
                     <button type="button" onclick="closeUniversalDatePicker()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-xmark text-xs"></i></button>
@@ -1005,7 +1020,7 @@
 
         <!-- Regular Cost Date Picker --><!-- Regular Cost Date Picker -->
         <div id="recurring-date-picker-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-[88] flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="flex items-center justify-between">
                     <div>
                         <h3 class="font-bold text-sm text-white">Select Start Date</h3>
@@ -1035,7 +1050,7 @@
 
         <!-- Regular Cost Saved -->
         <div id="recurring-next-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-[87] flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
                 <div class="text-center space-y-2">
                     <div class="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
                         <i class="fa-solid fa-circle-check text-xl"></i>
@@ -1727,7 +1742,7 @@
                         vendor: exp.merchant || exp.category || 'Expense',
                         merchant: exp.merchant || '',
                         receipt_attached: !!exp.receipt_attached,
-                        amount: amt, grossAmount:Number(exp.amount), vatAmount,
+                        amount: amt, grossAmount:Number(exp.amount), vatAmount, tax_treatment:exp.tax_treatment||'legacy', business_percent:Number(exp.business_percent??100),
                         date: dateStr,
                         notes: exp.notes
                     });
@@ -1790,6 +1805,38 @@
             if(tabId==='records') renderRecords();
         }
 
+        // Keep the original cash record separate from its Income Tax deduction.
+        function expenseTaxDeduction(record, vat=Number(record.vatAmount||0)) {
+            const amount=Math.max(0,Number(record.grossAmount??record.amount??0));
+            const treatment=record.tax_treatment||'legacy';
+            if(treatment==='excluded'||treatment==='review')return 0;
+            const percent=treatment==='legacy'?100:Number(record.business_percent??100);
+            if(!Number.isFinite(percent)||percent<0||percent>100)return 0;
+            return moneyRound(Math.max(0,amount*percent/100-Math.max(0,vat)));
+        }
+        function setExpenseTaxFields(prefix,record={}) {
+            document.getElementById(prefix+'-tax-treatment').value=record.tax_treatment||'review';
+            document.getElementById(prefix+'-business-percent').value=record.business_percent??100;
+            updateExpenseTaxPreview(prefix);
+        }
+        function readExpenseTaxFields(prefix) {
+            const treatment=document.getElementById(prefix+'-tax-treatment').value;
+            const raw=document.getElementById(prefix+'-business-percent').value,percent=Number(raw);
+            if(!['allowable','excluded','review','legacy'].includes(treatment)||raw===''||!Number.isFinite(percent)||percent<0||percent>100)throw new Error('Enter a business-use percentage from 0 to 100.');
+            return {tax_treatment:treatment,business_percent:moneyRound(percent)};
+        }
+        function updateExpenseTaxPreview(prefix) {
+            const el=document.getElementById(prefix+'-tax-preview');if(!el)return;
+            try {const fields=readExpenseTaxFields(prefix),amount=Number(document.getElementById(prefix+'-amount').value||0);
+                el.textContent=fields.tax_treatment==='review'?'Saved for review; excluded from the tax deduction until reviewed.':fields.tax_treatment==='excluded'?'Spending stays recorded; no Income Tax deduction.':fields.tax_treatment==='legacy'?'Previous full deduction retained. Choose a treatment to review this record.':'Business cost before any reclaimable VAT: £'+expenseTaxDeduction({amount,...fields},0).toFixed(2);
+            }catch(error){el.textContent=error.message;}
+        }
+        function rangeTaxExpenses(range) {
+            return range.tx.filter(t=>t.type==='expense').reduce((n,t)=>n+expenseTaxDeduction(t),0)
+                +range.periodEntries.reduce((n,p)=>n+periodUnrecordedTotals(p).expenses,0)
+                +range.recurring.items.reduce((n,r)=>n+r.taxShare,0);
+        }
+
         // 2026/27 UK tax engine. Rates verified against GOV.UK before this build.
         function calculateBandTax(taxable,residence,bandExtension=0){
             let x=Math.max(0,taxable), tax=0;
@@ -1841,7 +1888,7 @@
             const range=getRangeActivity(b.start,end);
             const recurring=getRecurringCostShare(b.start,end);
             const income=range.income;
-            const expenses=range.expenses+recurring.total;
+            const expenses=rangeTaxExpenses(range);
             const profit=income-expenses;
             const tax=calculateTaxEstimate(profit);
             const saved=appState.taxReserveEntries.filter(x=>x.saved_on>=b.start&&x.saved_on<=end).reduce((s,x)=>s+Number(x.amount||0),0);
@@ -1856,7 +1903,7 @@
             if(!startStr||!endStr||startStr>endStr||endStr<b.start||startStr>b.end)return 0;
             const start=startStr<b.start?b.start:startStr,end=endStr>b.end?b.end:endStr;
             const annual=getTaxYearSummary(end),selected=getRangeActivity(start,end);
-            const periodProfit=selected.income-selected.expenses-selected.recurring.total;
+            const periodProfit=selected.income-rangeTaxExpenses(selected);
             if(periodProfit<=0)return 0;
             const withoutPeriod=calculateTaxEstimate(annual.profit-periodProfit).total;
             return Math.max(0,annual.total-withoutPeriod);
@@ -1869,7 +1916,7 @@
             if(!p) return {label:'Basic',detail:'Complete your Tax Profile to improve this estimate.'};
             const hasCore=!!p.tax_residence && p.paye_income!==null && p.pension_income!==null && p.property_income!==null && p.other_self_employed_income!==null;
             const hasLoans=!!p.student_loan_plan && p.postgraduate_loan!==null;
-            return hasCore&&hasLoans?{label:'High',detail:'Estimate uses your saved Tax Profile and current app records.'}:{label:'Medium',detail:'Some Tax Profile details are still incomplete.'};
+            return hasCore&&hasLoans?{label:'Profile complete',detail:'Estimate uses your saved Tax Profile and current app records; it is not a checked tax return.'}:{label:'Medium',detail:'Some Tax Profile details are still incomplete.'};
         }
 
         const VAT_METHODS=['standard','cash','flat_invoice','flat_cash'];
@@ -2620,6 +2667,10 @@
             const q=taxProfileQuality(), qEl=document.getElementById('tax-estimate-quality');
             if(appState.transactions.some(t=>t.provisionalVat)){q.label='Provisional';q.detail+=' Flat Rate VAT uses a provisional limited-cost rate until a valid reviewed period is saved.';}
             if(appState.vatProfile?.registered||appState.invoices.some(i=>i.vat_enabled)){q.detail+=' Known invoice VAT and eligible input VAT are separated. Unclassified income, regular costs and catch-up totals need VAT review.';}
+            const taxRange=getRangeActivity(ts.start,ts.end),unreviewed=taxRange.tx.filter(t=>t.type==='expense'&&(!t.tax_treatment||['legacy','review'].includes(t.tax_treatment))).length;
+            if(unreviewed){q.label='Needs expense review';q.detail+=' '+unreviewed+' expenses need review. Older records retain their previous deduction; new unreviewed costs are excluded.';}
+            if(taxRange.recurring.items.length||taxRange.periodEntries.length){q.label='Provisional';q.detail+=' Regular costs are spread estimates and catch-up totals assume allowable business expenses. Check actual payments and tax treatment before filing.';}
+            q.detail+=' Specialist CIS, property, childcare and farming calculations, capital allowances and trading-allowance comparisons are not included.';
             if(qEl) qEl.innerHTML='<div class="flex justify-between"><span class="font-bold text-white">Estimate quality</span><span class="font-bold text-emerald-300">'+q.label+'</span></div><p class="text-slate-500 mt-1">'+q.detail+'</p>';
 
             const recentHtml = appState.transactions.slice(0, 4).map(item => {
@@ -2946,7 +2997,7 @@ function openAccountModal() {
         function closeTaxShareModal(){document.getElementById('tax-share-modal').classList.add('hidden');}
         function getTaxSummaryText(){
             const t=getTaxYearSummary(),q=taxProfileQuality();
-            return ['DriverTax Estimated Tax Summary '+t.label,'Business income: £'+t.income.toFixed(2),'Allowable expenses (est.): £'+t.expenses.toFixed(2),'Business profit: £'+t.profit.toFixed(2),'Estimated Income Tax: £'+t.incomeTax.toFixed(2),'Estimated Class 4 NI: £'+t.class4.toFixed(2),'Student/Postgraduate Loan: £'+(t.studentLoan+t.postgraduate).toFixed(2),'Tax already deducted: £'+t.taxDeducted.toFixed(2),'Estimated amount remaining: £'+t.total.toFixed(2),'Tax reserve saved: £'+t.saved.toFixed(2),'Remaining reserve needed: £'+Math.max(0,t.total-t.saved).toFixed(2),'Estimate quality: '+q.label].join('\n');
+            return ['DriverTax Estimated Tax Summary '+t.label,'Business income: £'+t.income.toFixed(2),'Allowable expenses (est.): £'+t.expenses.toFixed(2),'Business profit: £'+t.profit.toFixed(2),'Estimated Income Tax: £'+t.incomeTax.toFixed(2),'Estimated Class 4 NI: £'+t.class4.toFixed(2),'Student/Postgraduate Loan: £'+(t.studentLoan+t.postgraduate).toFixed(2),'Tax already deducted: £'+t.taxDeducted.toFixed(2),'Estimated amount remaining: £'+t.total.toFixed(2),'Tax reserve saved: £'+t.saved.toFixed(2),'Remaining reserve needed: £'+Math.max(0,t.total-t.saved).toFixed(2),'Estimate quality: '+q.label,'Review expense treatment before filing. New unreviewed costs are excluded; older records and catch-up totals may retain unreviewed deductions. Regular costs are spread estimates. Specialist tax cases are not included.'].join('\n');
         }
 
         function buildTaxPdfBlob(){
@@ -2982,7 +3033,8 @@ function openAccountModal() {
                 if(y>270){doc.addPage();y=20;}
             });
             y+=4;doc.setFontSize(9);
-            doc.text('Estimate quality: '+q.label+' — '+q.detail,20,y,{maxWidth:170});y+=12;
+            doc.text('Estimate quality: '+q.label+' — '+q.detail,20,y,{maxWidth:170});y+=16;
+            doc.text('Review expenses before filing. New unreviewed costs are excluded; older records and catch-up totals may retain unreviewed deductions. Regular costs are spread estimates. Specialist tax cases are not included.',20,y,{maxWidth:170});y+=20;
             doc.text('Generated '+new Date().toLocaleDateString('en-GB')+'. This is an estimate, not an HMRC calculation or submission.',20,y,{maxWidth:170});
             const bounds=currentTaxYearBounds(),activity=getRangeActivity(bounds.start,t.end);
             if(activity.periodEntries.length){
@@ -3060,7 +3112,7 @@ function openAccountModal() {
             Object.entries(expenseTotals).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>rows.push([k,Number(v).toFixed(2)]));
 
             rows.push([],['MILEAGE SUMMARY','Total Miles'],['Business Mileage',totalMileage.toFixed(1)]);
-            rows.push([],['VAT COVERAGE','Accounting amounts exclude known invoice VAT and eligible purchase VAT. Unclassified records need VAT review.'],['DETAILED RECORDS'],['Type','Date','Source / Category','Description','Accounting amount (£)','Mileage','Original cash amount (£)','VAT excluded (£)']);
+            rows.push([],['VAT COVERAGE','Accounting amounts exclude known invoice VAT and eligible purchase VAT. Unclassified records need VAT review.'],['DETAILED RECORDS'],['Type','Date','Source / Category','Description','Accounting amount (£)','Mileage','Original cash amount (£)','VAT excluded (£)','Income Tax treatment','Business use (%)','Estimated deduction (£)']);
 
             tx.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).forEach(x=>{
                 rows.push([
@@ -3069,7 +3121,7 @@ function openAccountModal() {
                     x.type==='income'?(x.source||'Income'):(x.category||'Expense'),
                     x.notes||x.merchant||'',
                     Number(x.amount||0).toFixed(2),
-                    '',Number(x.grossAmount??x.amount??0).toFixed(2),Number(x.vatAmount||0).toFixed(2)
+                    '',Number(x.grossAmount??x.amount??0).toFixed(2),Number(x.vatAmount||0).toFixed(2),x.type==='expense'?(x.tax_treatment||'legacy'):'',x.type==='expense'?Number(x.business_percent??100):'',x.type==='expense'?expenseTaxDeduction(x).toFixed(2):''
                 ]);
             });
 
@@ -3302,6 +3354,7 @@ function openAccountModal() {
 
                 document.getElementById('receipt-merchant').value='';
                 document.getElementById('receipt-amount').value='';
+                setExpenseTaxFields('receipt');
                 document.getElementById('receipt-vat').value='';
                 confidenceEl.textContent='AI reading…';
                 confidenceEl.className='text-[9px] font-bold text-emerald-300';
@@ -3324,6 +3377,7 @@ function openAccountModal() {
                 const result=scanResponse.data;
                 if(result.merchant) document.getElementById('receipt-merchant').value=result.merchant;
                 if(result.amount!==null && result.amount!==undefined) document.getElementById('receipt-amount').value=Number(result.amount).toFixed(2);
+                updateExpenseTaxPreview('receipt');
                 if(result.vat!==null && result.vat!==undefined) document.getElementById('receipt-vat').value=Number(result.vat).toFixed(2);
                 if(result.date) setDateField('receipt-date','receipt-date-label',result.date);
                 if(result.category && cats.includes(result.category)) document.getElementById('receipt-category').value=result.category;
@@ -3384,7 +3438,7 @@ function openAccountModal() {
                 document.getElementById('receipt-duplicate-warning').classList.add('hidden');
                 const f=appState.pendingReceiptFile;
                 const {data:savedId,error:saveError}=await supabaseClient.rpc('save_scanned_receipt',{
-                    p_receipt:{merchant,date,category,amount,vat:vat||null,
+                    p_receipt:{merchant,date,category,amount,vat:vat||null,...readExpenseTaxFields('receipt'),
                         file_path:appState.pendingReceiptPath,content_sha256:appState.pendingReceiptHash,save_request_id:appState.pendingReceiptSaveId,
                         original_filename:f?.name||null,mime_type:f?.type||null,size_bytes:f?.size||null,
                         ai_completed:!!appState.pendingReceiptAi,duplicate_override:appState.receiptDuplicateOverride===fingerprint}
@@ -3430,6 +3484,7 @@ function renderRegularCostLists() {
             const r=(appState.recurringExpenses||[]).find(x=>x.id===id);
             if(!r || !r.is_active) return;
             appState.editingRecurringId=id;
+            setExpenseTaxFields('recurring',{...r,tax_treatment:r.tax_treatment||'legacy'});
             const select=document.getElementById('recurring-category');
             if(![...select.options].some(o=>o.value===r.category)) select.add(new Option(r.category,r.category));
             appState.recurringReturnContext=document.getElementById('account-modal')?.classList.contains('hidden') ? 'onboarding' : 'account';
@@ -3438,6 +3493,7 @@ function renderRegularCostLists() {
             document.getElementById('recurring-frequency').value=r.frequency || 'monthly';
             document.getElementById('recurring-notes').value=r.notes || '';
             setRecurringStartDate(r.start_date || isoDate(new Date()));
+            updateExpenseTaxPreview('recurring');
             document.getElementById('recurring-save-btn').textContent='Update Regular Cost';
             document.getElementById('recurring-expense-modal')?.classList.remove('hidden');
         }
@@ -3496,7 +3552,7 @@ function renderRegularCostLists() {
                     category: r.category || 'Regular cost',
                     frequency: r.frequency,
                     amount: Number(r.amount || 0),
-                    share
+                    share, taxShare:Number(r.amount)>0?share*expenseTaxDeduction(r,0)/Number(r.amount):0
                 });
             });
 
@@ -4276,6 +4332,7 @@ function renderRegularCostLists() {
             if (![...categorySelect.options].some(o => o.value === t.category)) categorySelect.add(new Option(t.category,t.category));
             categorySelect.value = t.category || 'Other';
             document.getElementById('expense-amount').value = Number(t.grossAmount??t.amount).toFixed(2);
+            setExpenseTaxFields('expense',{...t,tax_treatment:t.tax_treatment||'legacy'});
             const merchantInput=document.getElementById('expense-merchant'); if(merchantInput) merchantInput.value=t.merchant||t.vendor||'';
             setDateField('expense-date','expense-date-label',t.date);
             document.getElementById('expense-notes').value = t.notes || '';
@@ -4459,6 +4516,7 @@ function renderRegularCostLists() {
             if (cancelDailyEntry && appState.dailyEntryMode) finishDailyEntry();
         }
         function openExpenseModal() {
+            if(!appState.editingExpenseId)setExpenseTaxFields('expense');
             const date = document.getElementById('expense-date')?.value || appState.dailyEntryDate || isoDate(new Date());
             setDateField('expense-date','expense-date-label',date);
             document.getElementById('expense-modal').classList.remove('hidden');
@@ -4654,6 +4712,7 @@ function renderRegularCostLists() {
             if (!appState.currentUser) return;
 
             const submitBtn = document.getElementById('expense-submit-btn');
+            if(submitBtn.disabled)return;
             submitBtn.disabled = true;
             submitBtn.textContent = appState.editingExpenseId ? 'Updating...' : 'Saving to Cloud...';
 
@@ -4665,27 +4724,30 @@ function renderRegularCostLists() {
             const editId = appState.editingExpenseId;
 
             try {
-                let error;
+                if(!Number.isFinite(amount)||amount<0)throw new Error('Enter a valid amount.');
+                const taxFields=readExpenseTaxFields('expense');
+                let error,data;
                 if (editId) {
-                    ({ error } = await supabaseClient.from('expenses').update({
+                    ({ error,data } = await supabaseClient.from('expenses').update({
                         category,
                         amount,
                         merchant,
                         expense_date,
-                        notes
-                    }).eq('id',editId).eq('user_id',appState.currentUser.id));
+                        notes, ...taxFields
+                    }).eq('id',editId).eq('user_id',appState.currentUser.id).select('id').single());
                 } else {
-                    ({ error } = await supabaseClient.from('expenses').insert([{
+                    ({ error,data } = await supabaseClient.from('expenses').insert([{
                         user_id: appState.currentUser.id,
                         category,
                         amount,
                         merchant,
                         expense_date,
-                        notes
-                    }]));
+                        notes, ...taxFields
+                    }]).select('id').single());
                 }
 
                 if (error) throw error;
+                if(!data?.id)throw new Error('Save was not confirmed.');
 
                 showToast(editId ? 'Expense updated' : 'Expense saved');
                 appState.editingExpenseId = null;
@@ -4701,7 +4763,7 @@ function renderRegularCostLists() {
                 }
             } catch (err) {
                 console.error("Save expense error:", err);
-                showToast(editId ? 'Failed to update expense' : 'Failed to save expense. Retry?');
+                showToast(err.message || 'Could not save expense. Retry?');
                 submitBtn.disabled = false;
                 setDailyEntryButtons(appState.dailyEntryMode ? 'expense' : null);
                 return;
@@ -4719,36 +4781,17 @@ function renderRegularCostLists() {
             await fetchUserData(appState.currentUser.id);
         }
 
-        async function quickAddFuelPreset(amount) {
-            if (!appState.currentUser) return;
-            const todayIso = isoDate(new Date());
-            await supabaseClient.from('expenses').insert([{
-                user_id: appState.currentUser.id,
-                category: 'Fuel',
-                amount: amount,
-                merchant: 'Shell Petrol',
-                expense_date: todayIso,
-                notes: 'Preset Fuel'
-            }]);
-            await fetchUserData(appState.currentUser.id);
-            showToast(`Added £${amount.toFixed(2)} Fuel`);
-            switchTab('dashboard');
-        }
-
-        async function quickAddPreset(vendor, amount, category) {
-            if (!appState.currentUser) return;
-            const todayIso = isoDate(new Date());
-            await supabaseClient.from('expenses').insert([{
-                user_id: appState.currentUser.id,
-                category: category,
-                amount: amount,
-                merchant: vendor,
-                expense_date: todayIso,
-                notes: 'Preset Service'
-            }]);
-            await fetchUserData(appState.currentUser.id);
-            showToast(`Added £${amount.toFixed(2)} ${vendor}`);
-            switchTab('dashboard');
+        function quickAddFuelPreset(amount) { quickAddPreset('',amount,'Fuel'); }
+        function quickAddPreset(vendor,amount,category) {
+            if(!appState.currentUser)return;
+            resetEditState();openExpenseModal();
+            const select=document.getElementById('expense-category');
+            if(![...select.options].some(o=>o.value===category))select.add(new Option(category,category));
+            select.value=category;document.getElementById('expense-amount').value=amount;
+            document.getElementById('expense-merchant').value=vendor;
+            document.getElementById('expense-notes').value='';
+            setDateField('expense-date','expense-date-label',isoDate(new Date()));
+            updateExpenseTaxPreview('expense');
         }
 
         function setRecordsFilter(filter){
@@ -4794,7 +4837,7 @@ function renderRegularCostLists() {
                 if(!isInc){
                     const receipt=receiptForExpense(t.id);
                     const sub=(t.merchant||t.vendor)&&String(t.merchant||t.vendor)!==String(t.category)?escapeHtml(t.merchant||t.vendor):'Expense record';
-                    return `<button type="button" onclick="openExpenseDetails('${t.id}')" class="record-row w-full text-left bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex justify-between items-center gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-10 h-10 rounded-xl border ${v.tone} flex items-center justify-center shrink-0"><i class="fa-solid ${v.icon} text-sm"></i></div><div class="min-w-0"><div class="flex items-center gap-1.5"><p class="text-xs font-bold text-white truncate">${escapeHtml(label)}</p>${receipt?'<i class="fa-solid fa-paperclip text-[9px] text-emerald-400"></i>':''}</div><p class="text-[10px] text-slate-500 mt-0.5 truncate">${formatUkDate(t.date)} · ${sub}</p></div></div><div class="flex items-center gap-2 shrink-0"><span class="text-xs font-extrabold text-rose-300">-£${Number(t.amount).toFixed(2)}</span><span class="w-7 h-7 rounded-lg bg-slate-800 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-chevron-right text-[9px]"></i></span></div></button>`;
+                    return `<button type="button" onclick="openExpenseDetails('${t.id}')" class="record-row w-full text-left bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex justify-between items-center gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-10 h-10 rounded-xl border ${v.tone} flex items-center justify-center shrink-0"><i class="fa-solid ${v.icon} text-sm"></i></div><div class="min-w-0"><div class="flex items-center gap-1.5"><p class="text-xs font-bold text-white truncate">${escapeHtml(label)}</p>${receipt?'<i class="fa-solid fa-paperclip text-[9px] text-emerald-400"></i>':''}</div><p class="text-[10px] text-slate-500 mt-0.5 truncate">${formatUkDate(t.date)} · ${sub}</p><p class="text-[10px] text-amber-200 mt-1">${t.tax_treatment==='allowable'?'Tax deduction £'+expenseTaxDeduction(t).toFixed(2):t.tax_treatment==='excluded'?'No tax deduction':'Tax review needed'}</p></div></div><div class="flex items-center gap-2 shrink-0"><span class="text-xs font-extrabold text-rose-300">-£${Number(t.amount).toFixed(2)}</span><span class="w-7 h-7 rounded-lg bg-slate-800 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-chevron-right text-[9px]"></i></span></div></button>`;
                 }
                 return `<div class="record-row bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex justify-between items-center gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-10 h-10 rounded-xl border ${v.tone} flex items-center justify-center shrink-0"><i class="fa-solid ${v.icon} text-sm"></i></div><div class="min-w-0"><p class="text-xs font-bold text-white truncate">${escapeHtml(label)}</p><p class="text-[10px] text-slate-500 mt-0.5">${formatUkDate(t.date)} · Income record</p></div></div><div class="flex items-center gap-2 shrink-0"><span class="text-xs font-extrabold text-emerald-400">+£${Number(t.amount).toFixed(2)}</span><button onclick="editIncomeRecord('${t.id}')" class="w-7 h-7 rounded-lg bg-slate-800 text-slate-400"><i class="fa-solid fa-pen text-[9px]"></i></button></div></div>`;
             }).join('')||'<p class="text-center text-xs text-slate-500 py-8">No records found.</p>';
@@ -4808,7 +4851,7 @@ function renderRegularCostLists() {
             document.getElementById('expense-detail-amount').textContent='£'+Number(t.amount||0).toFixed(2);
             document.getElementById('expense-detail-date').textContent=formatUkDate(t.date);
             document.getElementById('expense-detail-merchant').textContent=t.merchant||t.vendor||'Not entered';
-            document.getElementById('expense-detail-notes').textContent=t.notes||'No notes';
+            document.getElementById('expense-detail-notes').textContent=(t.notes||'No notes')+' · Tax treatment: '+(t.tax_treatment||'legacy')+' · Business use: '+Number(t.business_percent??100)+'% · Estimated deduction: £'+expenseTaxDeduction(t).toFixed(2);
             document.getElementById('expense-detail-vat').textContent=receipt?.extracted_vat!==null&&receipt?.extracted_vat!==undefined?'£'+Number(receipt.extracted_vat).toFixed(2):'Not shown';
             const wrap=document.getElementById('expense-detail-receipt-wrap'),badge=document.getElementById('expense-detail-receipt-badge'),ai=document.getElementById('expense-detail-ai'),img=document.getElementById('expense-detail-receipt-image'),openBtn=document.getElementById('expense-detail-open-receipt');
             wrap.classList.add('hidden'); badge.classList.add('hidden'); img.removeAttribute('src'); openBtn.onclick=null;
@@ -4970,6 +5013,7 @@ function renderRegularCostLists() {
             const startDate = appState.calendarRangeStart || appState.selectedCalendarDate || isoDate(new Date());
 
             document.getElementById('recurring-amount').value = '';
+            setExpenseTaxFields('recurring');
             document.getElementById('recurring-notes').value = '';
             const categorySelect=document.getElementById('recurring-category');
             const previousCategory=categorySelect.value;
@@ -5073,6 +5117,7 @@ function renderRegularCostLists() {
             const start_date = document.getElementById('recurring-start-date').value;
             const notes = document.getElementById('recurring-notes').value.trim();
             const btn = document.getElementById('recurring-save-btn');
+            if(btn.disabled)return;
 
             if (!(amount > 0)) {
                 showToast('Enter a valid amount');
@@ -5088,7 +5133,7 @@ function renderRegularCostLists() {
 
             try {
                 let data, error;
-                const payload = { category, amount, frequency, start_date, notes, is_active:true, end_date:null, updated_at:new Date().toISOString() };
+                const payload = { category, amount, frequency, start_date, notes, ...readExpenseTaxFields('recurring'), is_active:true, end_date:null, updated_at:new Date().toISOString() };
                 if (appState.editingRecurringId) {
                     ({ data, error } = await supabaseClient.from('recurring_expenses').update(payload).eq('id',appState.editingRecurringId).eq('user_id',appState.currentUser.id).select('id, category, amount, frequency, start_date').single());
                 } else {
