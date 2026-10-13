@@ -1014,6 +1014,7 @@
                     <div class="flex items-center justify-between"><div><h3 class="text-xs font-bold text-white">Regular Costs</h3><p class="text-[9px] text-slate-500">Monthly and yearly costs</p></div><button type="button" onclick="openRecurringExpenseModal()" class="bg-violet-500/10 border border-violet-500/30 text-violet-300 px-3 py-2 rounded-xl text-[10px] font-bold">+ Add</button></div>
                     <div id="account-regular-cost-list" class="space-y-2"></div>
                 </div>
+                <button type="button" onclick="openClearRecords()" class="w-full border border-rose-500/30 bg-slate-900 text-rose-300 font-bold py-3 rounded-xl text-xs">Clear selected records / start fresh</button>
                 <button type="button" onclick="signOutUser()" class="w-full border border-rose-500/25 bg-rose-500/10 text-rose-300 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-right-from-bracket mr-1"></i> Sign Out</button>
             </div>
         </div>
@@ -1710,6 +1711,70 @@
                 populateExpenseCategories();renderQuickAddButtons();appState.categoryPickerSaving=false;chooseExpenseCategory(canonical);showToast('Category saved');
             }catch(error){message.textContent='Could not save the category. Your text is still here; please retry.';}
             finally{appState.categoryPickerSaving=false;btn.disabled=false;btn.textContent='Save and use category';}
+        }
+
+        const CLEAR_RECORD_TYPES=[['income','Income','income'],['expenses','Expenses and attached receipts','expenses'],['receipts','Receipt images only (keep expenses)','receipts'],['mileage','Mileage','mileage'],['invoices','Issued / archived invoices and credits','invoices'],['drafts','Invoice drafts','invoice_drafts'],['catchup','Catch-up period totals','period_entries'],['regular','Regular costs','recurring_expenses'],['reserve','Tax reserve records','tax_reserve']];
+        function ensureClearRecordsModal() {
+            if(document.getElementById('clear-records-modal'))return;
+            const modal=document.createElement('div');modal.id='clear-records-modal';modal.className='hidden fixed inset-0 bg-slate-950/95 z-[130] flex items-center justify-center p-4';modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.setAttribute('aria-labelledby','clear-records-title');
+            modal.innerHTML=`<div class="w-full max-w-md max-h-[90dvh] overflow-y-auto bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3"><div class="flex justify-between items-center"><h3 id="clear-records-title" class="font-bold text-white text-sm">Clear selected records</h3><button id="clear-records-close" type="button" class="text-slate-300 text-xs p-2">Close</button></div><p class="text-xs text-slate-300">Choose what to remove across all dates. Download any copies you need first. Deletion cannot be undone in the app.</p><p class="text-[11px] text-slate-400">Your login, profile, custom categories and tax/VAT settings stay. Invoice numbers will not restart. Saved other-income figures in your Tax Profile may still affect estimates.</p><div id="clear-records-options" class="space-y-2"></div><button id="clear-records-review" type="button" class="w-full bg-slate-800 border border-slate-600 rounded-xl p-3 text-xs font-bold text-white">Review selection</button><div id="clear-records-confirm-panel" class="hidden space-y-3 border border-rose-500/40 rounded-xl p-3"><div id="clear-records-summary" class="text-xs text-slate-200 space-y-2"></div><label class="block text-xs text-slate-300">Type DELETE to confirm<input id="clear-records-confirm" autocomplete="off" class="block w-full bg-slate-950 border border-slate-700 rounded-xl p-3 mt-1"></label><button id="clear-records-delete" type="button" disabled class="w-full bg-rose-600 disabled:opacity-40 text-white font-bold rounded-xl p-3 text-xs">Delete selected records permanently</button></div><p id="clear-records-message" role="status" class="text-xs text-amber-200"></p><button id="clear-records-cleanup" type="button" class="text-xs text-emerald-300 underline">Retry pending receipt file cleanup</button></div>`;
+            document.body.appendChild(modal);
+            document.getElementById('clear-records-close').onclick=closeClearRecords;document.getElementById('clear-records-review').onclick=reviewClearRecords;document.getElementById('clear-records-delete').onclick=confirmClearRecords;document.getElementById('clear-records-cleanup').onclick=retryReceiptCleanup;
+            document.getElementById('clear-records-confirm').oninput=()=>{document.getElementById('clear-records-delete').disabled=!appState.clearReviewed||document.getElementById('clear-records-confirm').value!=='DELETE';};
+            modal.addEventListener('keydown',e=>{if(e.key==='Escape')closeClearRecords();if(e.key==='Tab'){const items=[...modal.querySelectorAll('button:not([disabled]),input:not([disabled])')].filter(x=>x.offsetParent!==null),first=items[0],last=items.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
+        }
+        function clearRecordChoices(){return CLEAR_RECORD_TYPES.filter(([key])=>document.getElementById('clear-choice-'+key)?.checked).map(([key])=>key);}
+        function invalidateClearReview(){
+            appState.clearReviewed=null;document.getElementById('clear-records-confirm').value='';document.getElementById('clear-records-confirm-panel').classList.add('hidden');document.getElementById('clear-records-delete').disabled=true;document.getElementById('clear-records-message').textContent='';
+            const expenses=document.getElementById('clear-choice-expenses'),receipts=document.getElementById('clear-choice-receipts');if(expenses&&receipts){receipts.disabled=expenses.checked;if(expenses.checked)receipts.checked=true;}
+        }
+        function renderClearRecordChoices(data,selected=[]) {
+            const box=document.getElementById('clear-records-options');box.replaceChildren();
+            CLEAR_RECORD_TYPES.forEach(([key,label,table])=>{const wrap=document.createElement('label');wrap.className='flex gap-3 items-center bg-slate-950 rounded-xl p-3 text-xs text-white';const input=document.createElement('input');input.type='checkbox';input.id='clear-choice-'+key;input.checked=selected.includes(key);input.onchange=()=>{if(key==='expenses')document.getElementById('clear-choice-receipts').checked=input.checked;invalidateClearReview();};const text=document.createElement('span');text.textContent=label+' · '+Number(data.counts[table]||0);wrap.append(input,text);box.append(wrap);});
+            invalidateClearReview();
+        }
+        async function openClearRecords(){
+            if(!appState.currentUser)return;ensureClearRecordsModal();appState.clearReturn=document.activeElement;appState.clearReviewed=null;document.getElementById('clear-records-options').replaceChildren();document.getElementById('clear-records-confirm-panel').classList.add('hidden');document.getElementById('clear-records-modal').classList.remove('hidden');document.getElementById('clear-records-close').focus();
+            const message=document.getElementById('clear-records-message');message.textContent='Loading your record counts…';
+            try{const {data,error}=await supabaseClient.rpc('preview_record_clear');if(error||!data?.signature)throw error||new Error('Preview unavailable');renderClearRecordChoices(data);message.textContent='Nothing is selected yet.';}catch(error){message.textContent='Could not load records. Close and try again.';}
+        }
+        function closeClearRecords(){if(appState.clearBusy)return;document.getElementById('clear-records-modal')?.classList.add('hidden');appState.clearReturn?.focus();}
+        function clearSelectionExplanation(choices,data){
+            const lines=choices.filter(k=>!(k==='receipts'&&choices.includes('expenses'))).map(k=>{const [,label,table]=CLEAR_RECORD_TYPES.find(x=>x[0]===k);return label+': '+Number(data.counts[table]||0);});
+            if(choices.includes('expenses'))lines.push('Also removes '+Number(data.counts.receipts||0)+' receipt records/images and '+Number(data.counts.vat_purchases||0)+' purchase VAT records.');
+            if(choices.includes('invoices'))lines.push('Also removes '+Number(data.counts.invoice_credits||0)+' credit notes. Paid income stays unless Income is selected. Copies already sent to customers are not recalled.');
+            if(choices.some(k=>['income','expenses','invoices','catchup','regular'].includes(k)))lines.push('Affected VAT classifications and all '+Number(data.counts.vat_return_reviews||0)+' saved VAT return reviews will be removed. This does not withdraw anything already submitted to HMRC.');
+            if(!choices.includes('catchup')&&Number(data.counts.period_entries)>0&&choices.some(k=>['income','expenses','mileage'].includes(k)))return {lines,error:'Select Catch-up period totals too: otherwise their totals could bring deleted activity back into your dashboard.'};
+            if(choices.includes('income')&&!choices.includes('invoices')&&data.linked_income)return {lines,error:'Some income is linked to paid invoices. Select Invoices too, or keep Income.'};
+            return {lines,error:null};
+        }
+        async function reviewClearRecords(){
+            if(appState.clearBusy)return;const choices=clearRecordChoices(),message=document.getElementById('clear-records-message');invalidateClearReview();if(!choices.length){message.textContent='Choose at least one record type.';return;}
+            appState.clearBusy=true;document.getElementById('clear-records-review').disabled=true;
+            try{const {data,error}=await supabaseClient.rpc('preview_record_clear');if(error||!data?.signature)throw error||new Error('No preview');renderClearRecordChoices(data,choices);const review=clearSelectionExplanation(choices,data),box=document.getElementById('clear-records-summary');box.replaceChildren();review.lines.forEach(line=>{const p=document.createElement('p');p.textContent=line;box.appendChild(p);});if(review.error){message.textContent=review.error;return;}appState.clearReviewed={choices,signature:data.signature};document.getElementById('clear-records-confirm-panel').classList.remove('hidden');message.textContent='Check the selection above. Nothing has been deleted.';document.getElementById('clear-records-confirm').focus();}
+            catch(error){message.textContent='Could not prepare the review. No records were deleted.';}finally{appState.clearBusy=false;document.getElementById('clear-records-review').disabled=false;}
+        }
+        async function cleanupReceiptFiles(){
+            if(!appState.currentUser)throw new Error('Sign in again');const uid=appState.currentUser.id;
+            for(let batch=0;batch<100;batch++){
+                const {data,error}=await supabaseClient.from('receipt_cleanup_queue').select('file_path').eq('user_id',uid).limit(100);if(error)throw error;if(!data?.length)return;
+                const paths=data.map(x=>x.file_path);if(paths.some(path=>!path.startsWith(uid+'/')))throw new Error('Invalid file owner');
+                const {error:storageError}=await supabaseClient.storage.from('receipts').remove(paths);if(storageError)throw storageError;
+                const {error:queueError}=await supabaseClient.from('receipt_cleanup_queue').delete().eq('user_id',uid).in('file_path',paths);if(queueError)throw queueError;
+            }
+            throw new Error('More receipt files remain; retry cleanup');
+        }
+        async function retryReceiptCleanup(){
+            if(appState.clearBusy)return;appState.clearBusy=true;const message=document.getElementById('clear-records-message');message.textContent='Cleaning up pending receipt files…';try{await cleanupReceiptFiles();message.textContent='No receipt file cleanup remains pending.';}catch(error){message.textContent='Some receipt files still need cleanup. They remain privately stored. Retry when connected.';}finally{appState.clearBusy=false;}
+        }
+        async function confirmClearRecords(){
+            if(appState.clearBusy||!appState.clearReviewed||document.getElementById('clear-records-confirm').value!=='DELETE')return;
+            const reviewed=appState.clearReviewed;if(JSON.stringify(clearRecordChoices())!==JSON.stringify(reviewed.choices)){invalidateClearReview();return;}
+            appState.clearBusy=true;document.getElementById('clear-records-delete').disabled=true;const message=document.getElementById('clear-records-message');message.textContent='Deleting the selected records…';
+            document.querySelectorAll('#clear-records-options input').forEach(x=>x.disabled=true);
+            try{const {data,error}=await supabaseClient.rpc('clear_selected_records',{p_choices:reviewed.choices,p_signature:reviewed.signature,p_confirmation:'DELETE'});if(error||!data?.deleted)throw error||new Error('Deletion was not confirmed');appState.clearReviewed=null;document.getElementById('clear-records-confirm-panel').classList.add('hidden');document.getElementById('clear-records-options').replaceChildren();let filesPending=false;try{await cleanupReceiptFiles();}catch(error){filesPending=true;}await fetchUserData(appState.currentUser.id);resetEditState();message.textContent=filesPending?'Selected records deleted. Some private receipt files still need cleanup; use Retry pending receipt file cleanup.':'Selected records deleted. Your account and preferences have been kept.';}
+            catch(error){appState.clearReviewed=null;document.getElementById('clear-records-confirm-panel').classList.add('hidden');message.textContent=(error.message||'Could not confirm deletion.')+' Close and reopen this screen to check the latest counts before retrying.';}
+            finally{appState.clearBusy=false;document.querySelectorAll('#clear-records-options input').forEach(x=>x.disabled=false);}
         }
 
         async function signOutUser() {
