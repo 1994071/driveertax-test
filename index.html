@@ -801,6 +801,7 @@
                             </button>
                         </div>
                     </div>
+                    <div id="recurring-summary-note" class="text-xs text-amber-200 space-y-2"></div>
                     <div><label class="text-[11px] font-semibold text-slate-400 block mb-1">Notes <span class="text-slate-600">(optional)</span></label><input id="recurring-notes" type="text" placeholder="e.g. Business phone contract" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
                     <button id="recurring-save-btn" type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl text-xs">Save Regular Cost</button>
                 </form>
@@ -2029,11 +2030,11 @@
         }
 
         // 2026/27 UK tax engine. Rates verified against GOV.UK before this build.
-        function calculateBandTax(taxable,residence,bandExtension=0){
+        function calculateBandTax(taxable,residence,bandExtension=0,taxYear=2026){
             let x=Math.max(0,taxable), tax=0;
             if(residence==='Scotland'){
                 // Gross relief-at-source payments extend the Scottish basic and higher limits.
-                const bands=[[3967,0.19],[12989+bandExtension,0.20],[14136,0.21],[31338,0.42],[62710,0.45],[Infinity,0.48]];
+                const bands=taxYear===2025?[[2827,0.19],[12094+bandExtension,0.20],[16171,0.21],[31338,0.42],[62710,0.45],[Infinity,0.48]]:[[3967,0.19],[12989+bandExtension,0.20],[14136,0.21],[31338,0.42],[62710,0.45],[Infinity,0.48]];
                 for(const [width,rate] of bands){const take=Math.min(x,width); tax+=take*rate; x-=take;if(x<=0)break;}
                 return tax;
             }
@@ -2045,8 +2046,8 @@
             return tax;
         }
 
-        function calculateCombinedTaxEstimate(businessProfit){
-            const p=appState.taxProfile || {};
+        function calculateCombinedTaxEstimate(businessProfit,taxYear=2026,profile=appState.taxProfile){
+            const p=profile || {};
             const paye=Number(p.paye_income||0), pensionIncome=Number(p.pension_income||0), property=Number(p.property_income||0), otherSe=Number(p.other_self_employed_income||0);
             const pensionContrib=Number(p.pension_contributions||0), giftAid=Number(p.gift_aid||0);
             const taxDeducted=Number(p.tax_deducted_elsewhere||0);
@@ -2055,14 +2056,14 @@
             const grossReliefExtension=(pensionContrib+giftAid)*1.25;
             const adjustedNet=Math.max(0,totalIncome-grossReliefExtension);
             let allowance=Math.max(0,12570-Math.max(0,adjustedNet-100000)/2);
-            if(p.blind_person_allowance) allowance+=3250;
+            if(p.blind_person_allowance) allowance+=taxYear===2025?3130:3250;
             if(p.marriage_allowance==='transferring') allowance=Math.max(0,allowance-1260);
             const taxable=Math.max(0,totalIncome-allowance);
             const eligibleMarriageCredit=p.marriage_allowance==='receiving' && taxable <= (residence==='Scotland'?31092:37700)+grossReliefExtension;
-            const incomeTax=Math.max(0,calculateBandTax(taxable,residence,grossReliefExtension)-(eligibleMarriageCredit?252:0));
+            const incomeTax=Math.max(0,calculateBandTax(taxable,residence,grossReliefExtension,taxYear)-(eligibleMarriageCredit?252:0));
             const seProfit=Math.max(0,Number(businessProfit||0)+otherSe);
             const class4=Math.min(Math.max(0,seProfit-12570),37700)*0.06 + Math.max(0,seProfit-50270)*0.02;
-            const thresholds={ '1':26900,'2':29385,'4':33795,'5':25000 };
+            const thresholds=taxYear===2025?{'1':26065,'2':28470,'4':32745,'5':Infinity}:{ '1':26900,'2':29385,'4':33795,'5':25000 };
             const studentPlan=p.student_loan_plan||'none';
             const studentLoan=studentPlan==='none'?0:Math.max(0,totalIncome-(thresholds[studentPlan]||Infinity))*0.09;
             const postgraduate=p.postgraduate_loan?Math.max(0,totalIncome-21000)*0.06:0;
@@ -2072,8 +2073,8 @@
         }
 
         // Reserve attributable to this business, not salary tax already handled by PAYE.
-        function calculateTaxEstimate(businessProfit){
-            const combined=calculateCombinedTaxEstimate(businessProfit),baseline=calculateCombinedTaxEstimate(0);
+        function calculateTaxEstimate(businessProfit,taxYear=2026,profile=appState.taxProfile){
+            const combined=calculateCombinedTaxEstimate(businessProfit,taxYear,profile),baseline=calculateCombinedTaxEstimate(0,taxYear,profile);
             const incomeTax=Math.max(0,combined.incomeTax-baseline.incomeTax);
             const class4=Math.max(0,combined.class4-baseline.class4);
             const studentLoan=Math.max(0,combined.studentLoan-baseline.studentLoan);
@@ -2081,8 +2082,7 @@
             return {...combined,combinedIncomeTax:combined.incomeTax,baselineIncomeTax:baseline.incomeTax,incomeTax,class4,studentLoan,postgraduate,total:incomeTax+class4+studentLoan+postgraduate};
         }
 
-        function getTaxYearSummary(endDate=null) {
-            const b=currentTaxYearBounds();
+        function getTaxYearSummary(endDate=null,b=currentTaxYearBounds()) {
             const today=isoDate(new Date());
             const requestedEnd=endDate || today;
             const end=requestedEnd<b.end ? requestedEnd : b.end;
@@ -2091,22 +2091,31 @@
             const income=range.income;
             const expenses=rangeTaxExpenses(range);
             const profit=income-expenses;
-            const tax=calculateTaxEstimate(profit);
+            const taxYear=Number(b.start.slice(0,4));
+            // Never silently apply this year's salary/reliefs to a previous tax year.
+            const profile=taxYear===2026?appState.taxProfile:{tax_residence:appState.taxProfile?.tax_residence||'England'};
+            const tax=calculateTaxEstimate(profit,taxYear,profile);
             const saved=appState.taxReserveEntries.filter(x=>x.saved_on>=b.start&&x.saved_on<=end).reduce((s,x)=>s+Number(x.amount||0),0);
             return { ...b,end,income,expenses,profit,saved,...tax };
         }
 
+        function taxRangeSupported(start,end){
+            return !!start&&!!end&&start<=end&&['2025-04-06','2026-04-06'].includes(taxYearForDate(start).start)&&taxYearForDate(start).start===taxYearForDate(end).start;
+        }
+        function taxRangeNote(start,end){
+            if(!taxRangeSupported(start,end))return 'Estimate unavailable: choose dates within 2025/26 or 2026/27. Separate tax years are calculated separately.';
+            const bounds=taxYearForDate(start);
+            if(bounds.start==='2025-04-06')return '2025/26 provisional business-only estimate. Assumes '+(appState.taxProfile?.tax_residence||'England')+' residence, standard Personal Allowance and no other income, pension/Gift Aid relief, student loans or Marriage/Blind Person’s Allowance. Current-year salary is not reused. Excludes payments already made and payments on account.';
+            return '2026/27 cumulative estimate using your saved Tax Profile and tax-year records. Not a full-year forecast.';
+        }
         function getEstimatedTaxReserveForRange(startStr,endStr){
-            // Attribute only the selected range's recorded business profit to its reserve.
-            // A catch-up summary ending in this range can cover earlier weeks/months:
-            // subtracting dated tax-year snapshots would charge its entire tax here.
-            const b=currentTaxYearBounds();
-            if(!startStr||!endStr||startStr>endStr||endStr<b.start||startStr>b.end)return 0;
-            const start=startStr<b.start?b.start:startStr,end=endStr>b.end?b.end:endStr;
-            const annual=getTaxYearSummary(end),selected=getRangeActivity(start,end);
+            if(!taxRangeSupported(startStr,endStr))return 0;
+            const b=taxYearForDate(startStr),taxYear=Number(b.start.slice(0,4));
+            const annual=getTaxYearSummary(endStr,b),selected=getRangeActivity(startStr,endStr);
             const periodProfit=selected.income-rangeTaxExpenses(selected);
             if(periodProfit<=0)return 0;
-            const withoutPeriod=calculateTaxEstimate(annual.profit-periodProfit).total;
+            const profile=taxYear===2026?appState.taxProfile:{tax_residence:appState.taxProfile?.tax_residence||'England'};
+            const withoutPeriod=calculateTaxEstimate(annual.profit-periodProfit,taxYear,profile).total;
             return Math.max(0,annual.total-withoutPeriod);
         }
 
@@ -3088,6 +3097,7 @@
 
         function selectUniversalDate(dateStr) {
             if (appState.universalDateTarget) setDateField(appState.universalDateTarget, appState.universalDateLabelTarget, dateStr);
+            if(appState.universalDateTarget==='recurring-start-date')renderRecurringSummaryNote(dateStr);
             closeUniversalDatePicker();
         }
 
@@ -3768,6 +3778,7 @@ function renderRegularCostLists() {
                 // Calendar days, independent of daylight-saving clock changes.
                 const dayNumber = d => Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()) / 86400000;
                 let activeDays = dayNumber(activeEnd) - dayNumber(activeStart) + 1;
+                const originalActiveDays=activeDays;
                 const intervals=(appState.periodEntries||[]).filter(p=>p.id!==ignoreSummaryId&&p.regular_costs_included&&p.period_start<=endStr&&p.period_end>=startStr&&(p.reconciled||
                     (!appState.transactions.some(t=>t.date>=p.period_start&&t.date<=p.period_end)&&
                     !appState.mileageTrips.some(t=>t.trip_date>=p.period_start&&t.trip_date<=p.period_end))))
@@ -3786,6 +3797,7 @@ function renderRegularCostLists() {
                     category: r.category || 'Regular cost',
                     frequency: r.frequency,
                     amount: Number(r.amount || 0),
+                    includedDays:originalActiveDays-activeDays,
                     share, taxShare:Number(r.amount)>0?share*expenseTaxDeduction(r,0)/Number(r.amount):0
                 });
             });
@@ -4185,12 +4197,12 @@ function renderRegularCostLists() {
                     </div>
                     <div class="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3">
                         <p class="text-[9px] uppercase font-bold text-amber-300">Estimated Tax Reserve</p>
-                        <p class="text-lg font-extrabold text-amber-400 mt-1">£${estTaxReserve.toFixed(2)}</p>
-                        <p class="text-[8px] text-amber-200/60 mt-1">Cumulative tax-year calculation</p>
+                        <p class="text-lg font-extrabold text-amber-400 mt-1">${taxRangeSupported(startStr,endStr)?'£'+estTaxReserve.toFixed(2):'Unavailable'}</p>
+                        <p class="text-[8px] text-amber-200/60 mt-1">${taxYearForDate(startStr).label} tax-year calculation</p>
                     </div>
                     <div class="bg-teal-500/10 border border-teal-500/20 rounded-2xl p-3">
                         <p class="text-[9px] uppercase font-bold text-teal-300">Estimated Take-Home</p>
-                        <p class="text-lg font-extrabold text-teal-300 mt-1">£${estimatedTakeHome.toFixed(2)}</p>
+                        <p class="text-lg font-extrabold text-teal-300 mt-1">${taxRangeSupported(startStr,endStr)?'£'+estimatedTakeHome.toFixed(2):'Unavailable'}</p>
                     </div>
                 </div>
 
@@ -4219,10 +4231,11 @@ function renderRegularCostLists() {
                             <p class="text-[10px] uppercase font-bold text-violet-300">Regular Costs Breakdown</p>
                             <button onclick="openRecurringExpenseModal()" class="text-[9px] font-bold text-violet-300">+ Add</button>
                         </div>
+                        ${a.recurring.items.some(r=>r.includedDays)?'<p class="text-xs text-amber-200">Some regular costs are already included in your saved catch-up expense total, so they are not deducted again. If these are extra costs, edit the summary below and choose “No — deduct my regular-cost share separately”.</p>':''}
                         ${a.recurring.items.map(r => `
                             <div class="flex justify-between text-[10px]">
                                 <span class="text-slate-500">${escapeHtml(r.category)} · ${escapeHtml(r.frequency)}</span>
-                                <span class="text-slate-300">£${r.share.toFixed(2)}</span>
+                                <span class="text-slate-300">${r.includedDays&&r.share===0?'Included in catch-up total':'£'+r.share.toFixed(2)}</span>
                             </div>
                         `).join('')}
                     </div>
@@ -4241,18 +4254,11 @@ function renderRegularCostLists() {
                     </div>
                 ` : ''}
 
-                <div class="bg-slate-950/50 rounded-xl p-3 space-y-2">
-                    <div class="flex justify-between text-xs"><span class="text-slate-400">Cash profit</span><span class="font-bold text-white">£${cashProfit.toFixed(2)}</span></div>
-                    <div class="flex justify-between text-xs"><span class="text-slate-400">Share of regular costs</span><span class="font-bold text-violet-300">-£${recurringShare.toFixed(2)}</span></div>
-                    <div class="border-t border-slate-800 pt-2 flex justify-between text-xs"><span class="text-slate-300 font-bold">True business profit</span><span class="font-extrabold text-emerald-400">£${profit.toFixed(2)}</span></div>
-                    ${(a.recurring?.items || []).map(r => '<div class="flex justify-between text-[10px]"><span class="text-slate-500">'+escapeHtml(r.category)+' · '+escapeHtml(r.frequency)+'</span><span class="text-slate-400">£'+r.share.toFixed(2)+'</span></div>').join('')}
-                    <button onclick="openRecurringExpenseModal()" class="w-full mt-1 bg-violet-500/10 border border-violet-500/20 text-violet-300 font-bold py-2.5 rounded-xl text-[10px]">+ Add Monthly / Yearly Cost</button>
-                </div>
 
                 <div class="bg-slate-950/50 rounded-xl p-3 space-y-2">
                     <div class="flex justify-between text-xs"><span class="text-slate-400">Days selected</span><span class="font-bold text-white">${days}</span></div>
                     <div class="flex justify-between text-xs"><span class="text-slate-400">Tax reserve saved</span><span class="font-bold text-amber-400">£${a.reserve.toFixed(2)}</span></div>
-                    <p class="text-[9px] text-slate-600">Estimated tax reserve is based on your cumulative 2026/27 tax-year position up to the end of this selected period, not a flat percentage of this period's profit.</p>
+                    <p class="text-[9px] text-slate-600">${escapeHtml(taxRangeNote(startStr,endStr))}</p>
                 </div>
 
                 <button onclick="openPeriodEntryModal()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2">
@@ -4313,16 +4319,16 @@ function renderRegularCostLists() {
             openPeriodEntryModal();
         }
         function previewPeriodTax(start,end,totals,included){
-            const bounds=currentTaxYearBounds();
             if(!start||!end||start>end)return 'Choose a complete date range to preview tax.';
-            if(start<bounds.start||end>bounds.end)return 'Tax estimate unavailable for these dates. The estimator currently supports '+bounds.label+' (6 April to 5 April). Save separate totals for each tax year.';
+            const bounds=taxYearForDate(start);
+            if(!taxRangeSupported(start,end))return taxRangeNote(start,end);
             if(!included)return 'Choose how regular costs are treated to preview tax.';
             const original=appState.periodEntries;
             try{
                 appState.periodEntries=(original||[]).filter(p=>p.id!==appState.editingPeriodId);
                 appState.periodEntries.push({id:'tax-preview',period_start:start,period_end:end,income_amount:totals.income,expense_amount:totals.expenses,business_miles:0,reconciled:true,regular_costs_included:included==='yes'});
-                const estimate=getTaxYearSummary();
-                return 'Estimated business tax reserve for '+bounds.label+' after saving: £'+estimate.total.toFixed(2)+'. Uses all recorded tax-year profit and your Tax Profile. This is not tax on the receipt or a full-year forecast. £0 may be correct below the applicable thresholds.';
+                const estimate=getTaxYearSummary(bounds.end,bounds);
+                return 'Estimated business tax reserve for '+bounds.label+' after saving: £'+estimate.total.toFixed(2)+'. '+taxRangeNote(start,end)+' £0 may be correct below the applicable thresholds.';
             }finally{appState.periodEntries=original;}
         }
         function updatePeriodSummaryPreview(){
@@ -4455,7 +4461,7 @@ function renderRegularCostLists() {
             document.getElementById('calendar-day-expense').textContent = '£' + a.expenses.toFixed(2);
             document.getElementById('calendar-day-profit').textContent = '£' + trueProfit.toFixed(2);
             const dailyTaxReserve = getEstimatedDailyTaxReserve(dateStr);
-            document.getElementById('calendar-day-tax').textContent = '£' + dailyTaxReserve.toFixed(2);
+            document.getElementById('calendar-day-tax').textContent = taxRangeSupported(dateStr,dateStr)?'£' + dailyTaxReserve.toFixed(2):'Unavailable';
 
             const items = [];
             a.tx.forEach(t => {
@@ -5259,11 +5265,19 @@ function renderRegularCostLists() {
             return parseIsoDate(dateStr).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
         }
 
+        function renderRecurringSummaryNote(date){
+            const host=document.getElementById('recurring-summary-note');if(!host)return;host.replaceChildren();
+            const p=(appState.periodEntries||[]).find(p=>p.regular_costs_included&&p.period_start<=date&&p.period_end>=date);
+            if(!p)return;
+            const text=document.createElement('p');text.textContent='Your catch-up summary already includes regular costs for '+formatUkDate(p.period_start)+' to '+formatUkDate(p.period_end)+'. This payment will be saved, but no extra deduction is added for those dates.';host.appendChild(text);
+            const button=document.createElement('button');button.type='button';button.className='text-blue-300 underline';button.textContent='These costs are extra — review catch-up summary';button.onclick=()=>{closeRecurringExpenseModal();openPeriodEntryModal(p.id);};host.appendChild(button);
+        }
         function setRecurringStartDate(dateStr) {
             const hidden = document.getElementById('recurring-start-date');
             const label = document.getElementById('recurring-start-date-label');
             if (hidden) hidden.value = dateStr;
             if (label) label.textContent = formatUkDate(dateStr);
+            renderRecurringSummaryNote(dateStr);
         }
 
         function openRecurringExpenseModal(preserveFrequency = false) {
@@ -5398,9 +5412,9 @@ function renderRegularCostLists() {
                 let data, error;
                 const payload = { category, amount, frequency, start_date, notes, ...readExpenseTaxFields('recurring'), is_active:true, end_date:null, updated_at:new Date().toISOString() };
                 if (appState.editingRecurringId) {
-                    ({ data, error } = await supabaseClient.from('recurring_expenses').update(payload).eq('id',appState.editingRecurringId).eq('user_id',appState.currentUser.id).select('id, category, amount, frequency, start_date').single());
+                    ({ data, error } = await supabaseClient.from('recurring_expenses').update(payload).eq('id',appState.editingRecurringId).eq('user_id',appState.currentUser.id).select('*').single());
                 } else {
-                    ({ data, error } = await supabaseClient.from('recurring_expenses').insert([{ user_id:appState.currentUser.id, ...payload }]).select('id, category, amount, frequency, start_date').single());
+                    ({ data, error } = await supabaseClient.from('recurring_expenses').insert([{ user_id:appState.currentUser.id, ...payload }]).select('*').single());
                 }
 
                 if (error) throw error;
@@ -5410,13 +5424,14 @@ function renderRegularCostLists() {
                 appState.editingRecurringId = null;
                 closeRecurringExpenseModal();
                 await fetchUserData(appState.currentUser.id);
-                renderRegularCostLists();
+                appState.recurringExpenses=[...(appState.recurringExpenses||[]).filter(r=>r.id!==data.id),data];
+                renderUI();renderRegularCostLists();
                 showToast(wasEditing ? 'Regular cost updated' : 'Regular cost saved');
                 if (wasEditing) finishRecurringCostEntry();
                 else openRecurringNextModal();
             } catch (err) {
                 console.error('Recurring expense save error:', err);
-                showToast('Could not save regular cost — please retry');
+                showToast('Could not save regular cost: '+(err.message||'Connection unavailable'));
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Save Regular Cost';
