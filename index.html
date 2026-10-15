@@ -204,6 +204,7 @@
 
             <!-- VIEW 1: DASHBOARD -->
             <section id="view-dashboard" class="p-5 space-y-4">
+                <div id="dashboard-tax-due" aria-live="polite"></div>
                 
                 <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700/60 rounded-2xl p-4 shadow-lg space-y-3">
                     <div class="grid grid-cols-3 gap-1 rounded-xl bg-slate-950 p-1" role="group" aria-label="Dashboard period">
@@ -1194,6 +1195,7 @@
             transactions: [],
             mileageTrips: [],
             taxReserveEntries: [],
+            taxPayments: [],taxYearAccounts: [],taxPaymentsLoaded:false,
             periodEntries: [],
             recurringExpenses: [],
             receipts: [],
@@ -1261,7 +1263,7 @@
                     await checkAndShowOnboarding(session.user.id);
                     maybeOpenHomeCalendar();
                 } else if (event === 'SIGNED_OUT') {
-                    appState.currentUser = null;
+                    appState.currentUser = null;appState.taxPayments=[];appState.taxYearAccounts=[];appState.taxPaymentsLoaded=false;appState.taxPaymentsUser=null;appState.pendingTaxPayment=null;
                     appState.dashboardPeriod='week';appState.dashboardPreferences=null;appState.dashboardPreferenceKey=null;appState.homeCalendarOpened=false;
                     document.getElementById('shift-reminder-banner').classList.add('hidden');
                     closeDashboardSettings();closeInvoiceScreens();appState.invoices=[];appState.invoiceDrafts=[];appState.vatProfile=null;appState.vatPurchases=[];appState.invoiceCredits=[];appState.vatClassifications=[];appState.vatReturnReviews=[];appState.vatRawTransactions=null;
@@ -1771,7 +1773,7 @@
 
         async function signOutUser() {
             await supabaseClient.auth.signOut();
-            appState.currentUser = null;
+            appState.currentUser = null;appState.taxPayments=[];appState.taxYearAccounts=[];appState.taxPaymentsLoaded=false;appState.taxPaymentsUser=null;appState.pendingTaxPayment=null;
                     appState.dashboardPeriod='week';appState.dashboardPreferences=null;appState.dashboardPreferenceKey=null;appState.homeCalendarOpened=false;
                     document.getElementById('shift-reminder-banner').classList.add('hidden');
                     closeDashboardSettings();closeInvoiceScreens();appState.invoices=[];appState.invoiceDrafts=[];appState.vatProfile=null;appState.vatPurchases=[];appState.invoiceCredits=[];appState.vatClassifications=[];appState.vatReturnReviews=[];appState.vatRawTransactions=null;
@@ -1890,6 +1892,7 @@
                 renderRegularCostLists();
 
                 renderUI();
+                refreshTaxPayments().catch(()=>{appState.taxPaymentsLoaded=false;renderTaxDueCards();});
             } catch (err) {
                 console.error("Error fetching user data:", err);
                 showToast("Failed to load cloud data");
@@ -2736,7 +2739,7 @@
             document.getElementById('dash-today-tax').textContent='£'+summary.tax.toFixed(2);
             document.getElementById('dash-tax-label').textContent=period==='week'?'Tax reserve for this week':period==='month'?'Tax reserve for this month':'Tax reserve for today';
             const year=getTaxYearSummary();
-            renderDashboardYearSummary(year);
+            renderDashboardYearSummary(year);renderTaxDueCards();
             document.getElementById('dash-tax-year-note').textContent='Tax year '+year.label+': estimated business tax reserve £'+year.total.toFixed(2)+'. View Tax for the breakdown.';
             document.getElementById('dash-today-net').textContent='£'+(summary.profit-summary.tax).toFixed(2);
             const today=period==='today'?summary:dashboardPeriodSummary('today');
@@ -3106,6 +3109,82 @@
             return {start:y+'-04-06',end:(y+1)+'-04-05',label:y+'/'+String(y+1).slice(-2)};
         }
         function currentTaxYearBounds() { return taxYearForDate(driverToday()); }
+        function taxDueYearSummary(year){return getTaxYearSummary((year+1)+'-04-05',taxYearForDate(year+'-04-06'));}
+        function taxDueSnapshot(t){return JSON.stringify([t.start,t.income,t.expenses,t.total,t.residence]);}
+        function taxDueStatus(year,t=taxDueYearSummary(year)){
+            const account=(appState.taxYearAccounts||[]).find(a=>Number(a.tax_year)===year);
+            const payments=(appState.taxPayments||[]).filter(p=>Number(p.tax_year)===year);
+            const paid=moneyRound(payments.filter(p=>p.kind==='balancing').reduce((s,p)=>s+Number(p.amount),0));
+            const onAccount=moneyRound(payments.filter(p=>p.kind==='on_account').reduce((s,p)=>s+Number(p.amount),0));
+            const confirmed=account?.bill_amount!==null&&account?.bill_amount!==undefined;
+            const bill=confirmed?Number(account.bill_amount):t.total;
+            const changed=confirmed&&account.estimate_snapshot!==taxDueSnapshot(t);
+            const remaining=Math.max(0,moneyRound(bill-paid));
+            return {account,payments,paid,onAccount,confirmed,bill,remaining,changed,settled:confirmed&&remaining===0&&!changed,deadline:(year+2)+'-01-31'};
+        }
+        async function refreshTaxPayments(){
+            const user=appState.currentUser?.id;if(!user)return;
+            if(appState.taxPaymentsUser!==user){appState.taxPayments=[];appState.taxYearAccounts=[];appState.taxPaymentsLoaded=false;appState.taxPaymentsUser=user;appState.pendingTaxPayment=null;}
+            const [a,p]=await Promise.all([fetchAllUserRows('tax_payment_records',user),supabaseClient.from('tax_year_accounts').select('*').eq('user_id',user)]);
+            if(appState.currentUser?.id!==user)return;
+            if(a.error||p.error)throw a.error||p.error;
+            appState.taxPayments=a.data;appState.taxYearAccounts=p.data;appState.taxPaymentsLoaded=true;renderTaxDueCards();
+        }
+        function viewTaxDueYear(year){
+            appState.calendarRangeStart=year+'-04-06';appState.calendarRangeEnd=(year+1)+'-04-05';appState.calendarDate=parseIsoDate(appState.calendarRangeStart);appState.calendarSelectionMode='range';openCalendarModal();
+        }
+        function renderTaxDueCards(){
+            const host=document.getElementById('dashboard-tax-due');if(!host)return;host.replaceChildren();
+            const year=2025,bounds=taxYearForDate(year+'-04-06');
+            const activity=getRangeActivity(bounds.start,bounds.end);
+            const hasRecords=activity.tx.length||activity.periodEntries.length||(appState.taxPayments||[]).some(p=>Number(p.tax_year)===year)||(appState.taxYearAccounts||[]).some(p=>Number(p.tax_year)===year);
+            if(!hasRecords)return;
+            const t=taxDueYearSummary(year),status=taxDueStatus(year,t),money=n=>'£'+Number(n).toFixed(2);
+            if(status.settled){const b=document.createElement('button');b.type='button';b.className='w-full rounded-xl border border-emerald-500/30 p-3 text-left text-xs text-emerald-300';b.textContent='2025/26 · Paid as recorded by you — view payment history';b.onclick=()=>openTaxPayments(year);host.appendChild(b);return;}
+            const card=document.createElement('div');card.className='bg-amber-500/10 border border-amber-400/50 rounded-2xl p-4 space-y-3';
+            const h=document.createElement('h3');h.className='text-sm font-bold text-amber-200';h.textContent='2025/26 · '+(status.confirmed?'Your recorded HMRC bill':'Previous-year estimated tax');card.appendChild(h);
+            const value=document.createElement('p');value.className='text-3xl font-extrabold text-white';value.textContent=money(status.remaining);card.appendChild(value);
+            const date=document.createElement('p');date.className='text-xs font-bold text-amber-200';date.textContent=(driverToday()>status.deadline?'Past usual deadline · ':'Usual payment deadline · ')+formatUkDate(status.deadline);card.appendChild(date);
+            const details=document.createElement('p');details.className='text-xs text-slate-300';details.textContent='Income '+money(t.income)+' · Tax-deductible expenses '+money(t.expenses)+' · Profit '+money(t.profit)+'. '+(status.paid?'Balancing payments recorded: '+money(status.paid)+'. ':'')+(status.onAccount?'Payments on account for 2025/26 recorded separately: '+money(status.onAccount)+'. ':'');card.appendChild(details);
+            const note=document.createElement('p');note.className='text-[11px] text-slate-400';note.textContent=(status.changed?'Records changed since you entered the HMRC bill. Review it before marking paid. ':'')+(status.confirmed?'Self-reported bill and payments; not verified with HMRC.':'Provisional business-only estimate. Assumes standard allowance and no other income/reliefs/loans. Not an HMRC balance.')+' Payments on account are separate: do not count them twice. Check HMRC for your actual balance and any different deadline.';card.appendChild(note);
+            const actions=document.createElement('div');actions.className='flex gap-3 flex-wrap';[['View breakdown',()=>viewTaxDueYear(year)],['Record payment / review bill',()=>openTaxPayments(year)]].forEach(([label,action])=>{const b=document.createElement('button');b.type='button';b.className='rounded-xl bg-slate-800 px-3 py-2 text-xs font-bold text-blue-200';b.textContent=label;b.onclick=action;actions.appendChild(b);});card.appendChild(actions);
+            if(!appState.taxPaymentsLoaded){const b=document.createElement('button');b.type='button';b.className='text-xs text-amber-200 underline';b.textContent='Payment history not loaded — retry';b.onclick=()=>refreshTaxPayments().catch(()=>showToast('Payment history could not load. Try again.'));card.appendChild(b);}
+            host.appendChild(card);
+        }
+        async function openTaxPayments(year=2025){
+            appState.taxPaymentYear=year;
+            const el=batchModal('tax-payment-manager','Tax payments you have already made',`<p>Record payments made outside this app. This does not send money, file a return or check your HMRC account.</p><p id="tax-payment-year" class="font-bold"></p><p id="tax-payment-status"></p><form id="tax-bill-form" class="space-y-2 border-t border-slate-700 pt-3"><label class="block">HMRC balancing bill for this tax year (£)<input id="tax-confirmed-bill" type="number" min="0" max="999999999" step="0.01" class="${batchInput}"></label><p class="text-slate-400">Optional. Enter the amount from HMRC after credits/payments on account, but before the balancing payments you record below. Leave blank to use the app estimate. Do not include next year's payment on account.</p><button id="tax-bill-save" class="${batchButton}" type="submit">Save bill / confirm review</button></form><form id="tax-payment-form" class="space-y-2 border-t border-slate-700 pt-3"><label class="block">Payment amount (£)<input id="tax-payment-amount" type="number" min="0.01" max="999999999" step="0.01" required class="${batchInput}"></label><label class="block">Paid on<input id="tax-payment-date" type="date" required class="${batchInput}"></label><label class="block">Payment type<select id="tax-payment-kind" class="${batchInput}"><option value="balancing">Balancing payment for this tax year</option><option value="on_account">Payment on account for this tax year</option></select></label><label class="block">Note (optional, do not enter your UTR)<input id="tax-payment-note" maxlength="200" class="${batchInput}"></label><label class="block"><input id="tax-payment-confirm" type="checkbox" required> I have already paid this amount to HMRC.</label><button id="tax-payment-save" class="${batchButton}" type="submit">Record payment already made</button></form><p id="tax-payment-message" role="status" class="text-amber-200"></p><div id="tax-payment-list" class="space-y-2"></div>`);
+            document.getElementById('tax-payment-form').onsubmit=saveTaxPayment;document.getElementById('tax-bill-form').onsubmit=saveTaxBill;
+            document.getElementById('tax-payment-form').reset();document.getElementById('tax-payment-date').value=driverToday();document.getElementById('tax-payment-date').max=driverToday();document.getElementById('tax-payment-message').textContent='Loading payment history…';
+            showBatchModal(el);
+            try{await refreshTaxPayments();renderTaxPaymentManager();document.getElementById('tax-payment-message').textContent='';}catch(e){document.getElementById('tax-payment-message').textContent='Could not load payment history. Close and reopen before recording another payment.';}
+        }
+        function renderTaxPaymentManager(){
+            const year=appState.taxPaymentYear,status=taxDueStatus(year),t=taxDueYearSummary(year);
+            document.getElementById('tax-payment-year').textContent=year+'/'+String(year+1).slice(-2)+' · usual deadline '+formatUkDate(status.deadline);
+            document.getElementById('tax-payment-status').textContent=(status.settled?'Paid as recorded by you. ':status.changed?'Records changed: review your HMRC bill. ':'')+'Balancing payments: £'+status.paid.toFixed(2)+' · Payments on account: £'+status.onAccount.toFixed(2)+' · '+(status.confirmed?'Recorded bill remaining':'Estimated reserve remaining')+': £'+status.remaining.toFixed(2);
+            document.getElementById('tax-confirmed-bill').value=status.account?.bill_amount??'';
+            const host=document.getElementById('tax-payment-list');host.replaceChildren();
+            status.payments.sort((a,b)=>b.paid_on.localeCompare(a.paid_on)).forEach(p=>{const row=document.createElement('div');row.className='bg-slate-950 rounded-xl p-3';const text=document.createElement('p');text.textContent=formatUkDate(p.paid_on)+' · £'+Number(p.amount).toFixed(2)+' · '+(p.kind==='balancing'?'Balancing payment':'Payment on account')+(p.note?' · '+p.note:'');row.appendChild(text);const b=document.createElement('button');b.type='button';b.className='text-xs text-rose-300 underline mt-2';b.textContent='Remove mistaken payment record';b.onclick=async()=>{if(!window.confirm('Remove this record? This does not reverse or refund an actual HMRC payment.'))return;b.disabled=true;try{const {error}=await supabaseClient.from('tax_payment_records').delete().eq('id',p.id).eq('user_id',appState.currentUser.id);if(error)throw error;await refreshTaxPayments();renderTaxPaymentManager();}catch(e){document.getElementById('tax-payment-message').textContent='Could not remove record: '+e.message;b.disabled=false;}};row.appendChild(b);host.appendChild(row);});
+        }
+        async function saveTaxBill(event){
+            event.preventDefault();const el=document.getElementById('tax-payment-manager'),b=document.getElementById('tax-bill-save');if(el.dataset.busy==='true')return;
+            const raw=document.getElementById('tax-confirmed-bill').value,value=raw===''?null:Number(raw),year=appState.taxPaymentYear;
+            if(value!==null&&(!Number.isFinite(value)||value<0||value>999999999))return;
+            el.dataset.busy='true';b.disabled=true;
+            try{const {error}=await supabaseClient.from('tax_year_accounts').upsert({user_id:appState.currentUser.id,tax_year:year,bill_amount:value,estimate_snapshot:taxDueSnapshot(taxDueYearSummary(year))},{onConflict:'user_id,tax_year'});if(error)throw error;await refreshTaxPayments();renderTaxPaymentManager();document.getElementById('tax-payment-message').textContent='Bill saved as reported by you. This is not verified with HMRC.';}catch(e){document.getElementById('tax-payment-message').textContent='Could not save bill: '+e.message;}finally{el.dataset.busy='false';b.disabled=false;}
+        }
+        async function saveTaxPayment(event){
+            event.preventDefault();const el=document.getElementById('tax-payment-manager'),b=document.getElementById('tax-payment-save');if(el.dataset.busy==='true')return;
+            const amount=Number(document.getElementById('tax-payment-amount').value),date=document.getElementById('tax-payment-date').value,kind=document.getElementById('tax-payment-kind').value;
+            if(!appState.taxPaymentsLoaded||!Number.isFinite(amount)||amount<=0||amount>999999999||!date||date>driverToday()||!document.getElementById('tax-payment-confirm').checked)return;
+            const payload={user_id:appState.currentUser.id,tax_year:appState.taxPaymentYear,amount:moneyRound(amount),paid_on:date,kind,note:document.getElementById('tax-payment-note').value.trim()};
+            const signature=JSON.stringify(payload);
+            if(appState.pendingTaxPayment?.signature!==signature)appState.pendingTaxPayment={signature,id:crypto.randomUUID()};
+            el.dataset.busy='true';b.disabled=true;
+            try{const {error}=await supabaseClient.from('tax_payment_records').upsert({id:appState.pendingTaxPayment.id,...payload},{onConflict:'id',ignoreDuplicates:true});if(error)throw error;await refreshTaxPayments();appState.pendingTaxPayment=null;document.getElementById('tax-payment-form').reset();document.getElementById('tax-payment-date').value=driverToday();renderTaxPaymentManager();document.getElementById('tax-payment-message').textContent='Payment recorded. No money was sent by this app.';}catch(e){document.getElementById('tax-payment-message').textContent='Could not confirm payment record: '+e.message+'. Retry with the same details to avoid duplicates.';}finally{el.dataset.busy='false';b.disabled=false;}
+        }
+
         function renderDashboardYearSummary(year=getTaxYearSummary()) {
             const host=document.getElementById('dashboard-year-summary');if(!host)return;
             const entries=[...(appState.periodEntries||[])].sort((a,b)=>b.period_end.localeCompare(a.period_end));
