@@ -1,0 +1,140 @@
+
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json",
+};
+
+function bytesToBase64(bytes: Uint8Array) {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunk, bytes.length)));
+  }
+  return btoa(binary);
+}
+
+function cleanJsonText(text: string) {
+  return text.replace(/^\s*```(?:json)?/i, "").replace(/```\s*$/i, "").trim();
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: cors });
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const openaiKey = Deno.env.get("OPENAI_API_KEY");
+
+    if (!openaiKey) {
+      return new Response(JSON.stringify({ error: "AI scanner is not activated yet", code: "OPENAI_KEY_MISSING" }), { status: 503, headers: cors });
+    }
+
+    const authHeader = req.headers.get("Authorization") || "";
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: cors });
+
+    const body = await req.json();
+    const path = String(body?.path || "");
+    const categories = Array.isArray(body?.categories)
+      ? body.categories.map((x: unknown) => String(x)).filter(Boolean).slice(0, 30)
+      : [];
+
+    if (!path || !path.startsWith(user.id + "/")) {
+      return new Response(JSON.stringify({ error: "Invalid receipt path" }), { status: 400, headers: cors });
+    }
+
+    const admin = createClient(supabaseUrl, serviceKey);
+    const { data: blob, error: downloadError } = await admin.storage.from("receipts").download(path);
+    if (downloadError || !blob) {
+      return new Response(JSON.stringify({ error: "Could not read receipt image" }), { status: 404, headers: cors });
+    }
+
+    if (blob.size > 10 * 1024 * 1024) {
+      return new Response(JSON.stringify({ error: "Receipt image is too large" }), { status: 413, headers: cors });
+    }
+
+    const mime = blob.type || "image/jpeg";
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const dataUrl = `data:${mime};base64,${bytesToBase64(bytes)}`;
+    const categoryText = categories.length ? categories.join(", ") : "Fuel, Parking, Tolls, Vehicle Repairs, Vehicle Cleaning, Phone, Insurance, Licensing, Other";
+
+    const prompt = `Read this UK business receipt carefully. Return ONLY a JSON object with:
+merchant: string or "",
+date: YYYY-MM-DD or "",
+amount: receipt grand total as a number or null,
+vat: VAT amount explicitly shown on the receipt as a number or null,
+category: choose the best single category from this exact list: ${categoryText},
+confidence: number from 0 to 1,\nitems: array of up to 60 readable purchase lines, each with description (string), amount (final line total including VAT after line discounts, number), category (from the category list). Use [] when item lines cannot be read reliably.\nDo not treat a subtotal, receipt total or payment as a product. Do not invent amounts to balance the receipt. Keep unallocated discounts visible by leaving item totals unreconciled for the user to check.
+
+Rules:
+- Use the final amount actually paid / grand total, not a subtotal.
+- Never invent VAT. If VAT is not explicitly shown, use null.
+- Never invent unreadable values.
+- For ambiguous numeric dates, use UK day/month/year convention.
+- Do not include markdown or commentary.`;
+
+    const aiResponse = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${openaiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-6-luna",
+        input: [{
+          role: "user",
+          content: [
+            { type: "input_text", text: prompt },
+            { type: "input_image", image_url: dataUrl, detail: "high" }
+          ]
+        }],
+        max_output_tokens: 2400
+      }),
+    });
+
+    const raw = await aiResponse.json();
+    if (!aiResponse.ok) {
+      console.error("OpenAI error", raw?.error?.message || raw);
+      return new Response(JSON.stringify({ error: "AI could not read this receipt. You can still enter it manually.", code: "AI_ERROR" }), { status: 502, headers: cors });
+    }
+
+    const outputText =
+      raw?.output_text ||
+      raw?.output?.flatMap((item: any) => item?.content || []).find((part: any) => part?.type === "output_text")?.text ||
+      "";
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(cleanJsonText(outputText));
+    } catch {
+      console.error("Could not parse model output", outputText);
+      return new Response(JSON.stringify({ error: "AI result needs manual entry", code: "PARSE_ERROR" }), { status: 422, headers: cors });
+    }
+
+    const result = {
+      merchant: typeof parsed.merchant === "string" ? parsed.merchant.trim().slice(0, 120) : "",
+      date: /^\d{4}-\d{2}-\d{2}$/.test(String(parsed.date || "")) ? String(parsed.date) : "",
+      amount: Number.isFinite(Number(parsed.amount)) && Number(parsed.amount) >= 0 ? Number(parsed.amount) : null,
+      vat: parsed.vat === null || parsed.vat === "" || parsed.vat === undefined ? null : (Number.isFinite(Number(parsed.vat)) && Number(parsed.vat) >= 0 ? Number(parsed.vat) : null),
+      category: categories.includes(String(parsed.category)) ? String(parsed.category) : (categories.includes("Other") ? "Other" : String(parsed.category || "Other")),
+      items: Array.isArray(parsed.items) ? parsed.items.slice(0,60).filter((i: any) => typeof i?.description === "string" && typeof i?.amount === "number" && Number.isFinite(i.amount) && i.amount > 0 && i.amount < 1000000000).map((i: any) => ({description:i.description.trim().slice(0,200), amount:Math.round(i.amount*100)/100, category:categories.includes(i.category)?i.category:"Other"})) : [],
+      confidence: Math.max(0, Math.min(1, Number(parsed.confidence) || 0)),
+    };
+
+    return new Response(JSON.stringify({ data: result }), { status: 200, headers: cors });
+  } catch (err) {
+    console.error(err);
+    return new Response(JSON.stringify({ error: "Receipt scan failed. You can still enter the receipt manually." }), { status: 500, headers: cors });
+  }
+});
+
