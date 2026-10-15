@@ -3062,11 +3062,14 @@
             const current = document.getElementById(inputId)?.value || isoDate(new Date());
             appState.universalDateMonth = new Date(parseIsoDate(current));
             renderUniversalDatePicker();
-            document.getElementById('universal-date-picker-modal')?.classList.remove('hidden');
+            const picker=document.getElementById('universal-date-picker-modal');
+            if(inputId==='tax-payment-date'&&picker){appState.taxCalendarHome={parent:picker.parentNode,next:picker.nextSibling};document.body.appendChild(picker);picker.style.position='fixed';picker.style.zIndex='150';}
+            picker?.classList.remove('hidden');
         }
 
         function closeUniversalDatePicker() {
-            document.getElementById('universal-date-picker-modal')?.classList.add('hidden');
+            const picker=document.getElementById('universal-date-picker-modal');picker?.classList.add('hidden');
+            if(appState.taxCalendarHome&&picker){const {parent,next}=appState.taxCalendarHome;parent.insertBefore(picker,next?.parentNode===parent?next:null);picker.style.position='';picker.style.zIndex='';appState.taxCalendarHome=null;document.getElementById('tax-payment-date-button')?.focus();}
         }
 
         function changeUniversalDateMonth(delta) {
@@ -3094,12 +3097,14 @@
             for(let day=1;day<=days;day++){
                 const ds=year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
                 const active=ds===selected;
-                html += '<button type="button" onclick="selectUniversalDate(\''+ds+'\')" class="min-h-[42px] rounded-xl border text-[11px] font-bold '+(active?'border-emerald-400 bg-emerald-500/15 text-emerald-300':'border-slate-800 bg-slate-950/50 text-slate-200')+'">'+day+'</button>';
+                const disabled=appState.universalDateTarget==='tax-payment-date'&&(ds>driverToday()||ds<'2020-01-01');
+                html += '<button type="button" '+(disabled?'disabled ':'')+'aria-label="'+formatUkDate(ds)+'" onclick="selectUniversalDate(\''+ds+'\')" class="disabled:opacity-30 min-h-[42px] rounded-xl border text-[11px] font-bold '+(active?'border-emerald-400 bg-emerald-500/15 text-emerald-300':'border-slate-800 bg-slate-950/50 text-slate-200')+'">'+day+'</button>';
             }
             grid.innerHTML=html;
         }
 
         function selectUniversalDate(dateStr) {
+            if(appState.universalDateTarget==='tax-payment-date'&&(dateStr>driverToday()||dateStr<'2020-01-01'))return;
             if (appState.universalDateTarget) setDateField(appState.universalDateTarget, appState.universalDateLabelTarget, dateStr);
             if(appState.universalDateTarget==='recurring-start-date')renderRecurringSummaryNote(dateStr);
             closeUniversalDatePicker();
@@ -3154,9 +3159,9 @@
         }
         async function openTaxPayments(year=2025){
             appState.taxPaymentYear=year;
-            const el=batchModal('tax-payment-manager','Tax payments you have already made',`<p>Record payments made outside this app. This does not send money, file a return or check your HMRC account.</p><p id="tax-payment-year" class="font-bold"></p><p id="tax-payment-status"></p><form id="tax-bill-form" class="space-y-2 border-t border-slate-700 pt-3"><label class="block">HMRC balancing bill for this tax year (£)<input id="tax-confirmed-bill" type="number" min="0" max="999999999" step="0.01" class="${batchInput}"></label><p class="text-slate-400">Optional. Enter the amount from HMRC after credits/payments on account, but before the balancing payments you record below. Leave blank to use the app estimate. Do not include next year's payment on account.</p><button id="tax-bill-save" class="${batchButton}" type="submit">Save bill / confirm review</button></form><form id="tax-payment-form" class="space-y-2 border-t border-slate-700 pt-3"><label class="block">Payment amount (£)<input id="tax-payment-amount" type="number" min="0.01" max="999999999" step="0.01" required class="${batchInput}"></label><label class="block">Paid on<input id="tax-payment-date" type="date" required class="${batchInput}"></label><label class="block">Payment type<select id="tax-payment-kind" class="${batchInput}"><option value="balancing">Balancing payment for this tax year</option><option value="on_account">Payment on account for this tax year</option></select></label><label class="block">Note (optional, do not enter your UTR)<input id="tax-payment-note" maxlength="200" class="${batchInput}"></label><label class="block"><input id="tax-payment-confirm" type="checkbox" required> I have already paid this amount to HMRC.</label><button id="tax-payment-save" class="${batchButton}" type="submit">Record payment already made</button></form><p id="tax-payment-message" role="status" class="text-amber-200"></p><div id="tax-payment-list" class="space-y-2"></div>`);
+            const el=batchModal('tax-payment-manager','Tax payments you have already made',`<p>Record payments made outside this app. This does not send money, file a return or check your HMRC account.</p><p id="tax-payment-year" class="font-bold"></p><p id="tax-payment-status"></p><form id="tax-bill-form" class="space-y-2 border-t border-slate-700 pt-3"><label class="block">HMRC balancing bill for this tax year (£)<input id="tax-confirmed-bill" type="number" min="0" max="999999999" step="0.01" class="${batchInput}"></label><p class="text-slate-400">Optional. Enter the amount from HMRC after credits/payments on account, but before the balancing payments you record below. Leave blank to use the app estimate. Do not include next year's payment on account.</p><button id="tax-bill-save" class="${batchButton}" type="submit">Save bill / confirm review</button></form><form id="tax-payment-form" class="space-y-2 border-t border-slate-700 pt-3"><label class="block">Payment amount (£)<input id="tax-payment-amount" type="number" min="0.01" max="999999999" step="0.01" required class="${batchInput}"></label><div><label for="tax-payment-date-button" class="block mb-1">Paid on</label><input id="tax-payment-date" type="hidden"><button id="tax-payment-date-button" type="button" onclick="openUniversalDatePicker('tax-payment-date','tax-payment-date-label')" class="${batchInput} flex items-center justify-between min-h-[44px]"><span id="tax-payment-date-label">Select date</span><span aria-hidden="true">📅</span></button></div><label class="block">Payment type<select id="tax-payment-kind" class="${batchInput}"><option value="balancing">Balancing payment for this tax year</option><option value="on_account">Payment on account for this tax year</option></select></label><label class="block">Note (optional, do not enter your UTR)<input id="tax-payment-note" maxlength="200" class="${batchInput}"></label><label class="block"><input id="tax-payment-confirm" type="checkbox" required> I have already paid this amount to HMRC.</label><button id="tax-payment-save" class="${batchButton}" type="submit">Record payment already made</button></form><p id="tax-payment-message" role="status" class="text-amber-200"></p><div id="tax-payment-list" class="space-y-2"></div>`);
             document.getElementById('tax-payment-form').onsubmit=saveTaxPayment;document.getElementById('tax-bill-form').onsubmit=saveTaxBill;
-            document.getElementById('tax-payment-form').reset();document.getElementById('tax-payment-date').value=driverToday();document.getElementById('tax-payment-date').max=driverToday();document.getElementById('tax-payment-message').textContent='Loading payment history…';
+            document.getElementById('tax-payment-form').reset();setDateField('tax-payment-date','tax-payment-date-label',driverToday());document.getElementById('tax-payment-date').max=driverToday();document.getElementById('tax-payment-message').textContent='Loading payment history…';
             showBatchModal(el);
             try{await refreshTaxPayments();renderTaxPaymentManager();document.getElementById('tax-payment-message').textContent='';}catch(e){document.getElementById('tax-payment-message').textContent='Could not load payment history. Close and reopen before recording another payment.';}
         }
@@ -3183,7 +3188,7 @@
             const signature=JSON.stringify(payload);
             if(appState.pendingTaxPayment?.signature!==signature)appState.pendingTaxPayment={signature,id:crypto.randomUUID()};
             el.dataset.busy='true';b.disabled=true;
-            try{const {error}=await supabaseClient.from('tax_payment_records').upsert({id:appState.pendingTaxPayment.id,...payload},{onConflict:'id',ignoreDuplicates:true});if(error)throw error;await refreshTaxPayments();appState.pendingTaxPayment=null;document.getElementById('tax-payment-form').reset();document.getElementById('tax-payment-date').value=driverToday();renderTaxPaymentManager();document.getElementById('tax-payment-message').textContent='Payment recorded. No money was sent by this app.';}catch(e){document.getElementById('tax-payment-message').textContent='Could not confirm payment record: '+e.message+'. Retry with the same details to avoid duplicates.';}finally{el.dataset.busy='false';b.disabled=false;}
+            try{const {error}=await supabaseClient.from('tax_payment_records').upsert({id:appState.pendingTaxPayment.id,...payload},{onConflict:'id',ignoreDuplicates:true});if(error)throw error;await refreshTaxPayments();appState.pendingTaxPayment=null;document.getElementById('tax-payment-form').reset();setDateField('tax-payment-date','tax-payment-date-label',driverToday());renderTaxPaymentManager();document.getElementById('tax-payment-message').textContent='Payment recorded. No money was sent by this app.';}catch(e){document.getElementById('tax-payment-message').textContent='Could not confirm payment record: '+e.message+'. Retry with the same details to avoid duplicates.';}finally{el.dataset.busy='false';b.disabled=false;}
         }
 
         function renderDashboardYearSummary(year=getTaxYearSummary()) {
