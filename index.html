@@ -244,9 +244,9 @@
                 </div>
                 <div id="shift-reminder-banner" class="hidden border border-blue-400/30 bg-blue-500/10 rounded-2xl p-4 space-y-2" aria-live="polite">
                     <p class="text-sm font-bold text-white">Finished your shift?</p><p class="text-[11px] text-blue-200">When you're parked, take a moment to add your income and check your receipts.</p>
-                    <div class="flex gap-3"><button type="button" onclick="dismissShiftReminder();startDailyEntry(driverToday())" class="text-xs text-blue-200 font-bold">Add income</button><button type="button" onclick="dismissShiftReminder();switchTab('scan')" class="text-xs text-blue-200 font-bold">Scan receipt</button><button type="button" onclick="dismissShiftReminder()" class="text-xs text-slate-300">Dismiss today</button></div>
+                    <div class="flex gap-3"><button type="button" onclick="dismissShiftReminder();startDailyEntry(driverToday())" class="text-xs text-blue-200 font-bold">Add income</button><button type="button" onclick="dismissShiftReminder()" class="text-xs text-slate-300">Dismiss today</button></div>
                 </div>
-                <div class="grid grid-cols-3 gap-2">
+                <div class="grid grid-cols-2 gap-2">
                     <button id="dash-add-income" type="button" onclick="startDailyEntry(driverToday())" class="bg-blue-400 hover:bg-blue-300 text-slate-950 font-bold py-3 px-3 rounded-2xl flex items-center justify-center flex-col gap-1 shadow-lg shadow-emerald-500/20 transition transform active:scale-95">
                         <span aria-hidden="true" class="text-xl leading-none">💷</span>
                         <span class="text-xs font-bold">+ Add Income</span>
@@ -255,10 +255,11 @@
                         <span aria-hidden="true" class="text-xl leading-none">🧾</span>
                         <span class="text-xs font-bold">+ Add Expense</span>
                     </button>
-                    <button type="button" onclick="switchTab('scan')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-3 px-2 rounded-2xl flex items-center justify-center flex-col gap-1"><span aria-hidden="true" class="text-xl leading-none">📸</span><span class="text-xs">Scan receipt</span></button>
+                    
                 </div>
 
                 <p class="text-[10px] text-slate-400">Add Income starts your daily record: income → expenses → mileage. You can skip a step.</p>
+                <section id="dashboard-year-summary" class="bg-slate-900 border border-blue-400/30 rounded-2xl p-4 space-y-3" aria-live="polite"></section>
                 <div id="past-earnings-warning" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-[10px] text-amber-200"></div>
                 <button id="dash-past-earnings" type="button" onclick="openPastEarnings()" class="w-full text-left bg-blue-500/15 border border-blue-400/40 p-4 rounded-2xl flex items-center gap-3">
                     <span aria-hidden="true" class="text-2xl leading-none">🗓️</span>
@@ -297,18 +298,7 @@
                     <i class="fa-solid fa-chevron-right text-xs text-slate-500"></i>
                 </button>
 
-                <button onclick="switchTab('scan')" class="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between transition group">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm">
-                            <span aria-hidden="true" class="text-xl">📸</span>
-                        </div>
-                        <div class="text-left">
-                            <h4 class="text-xs font-bold text-white group-hover:text-emerald-400 transition">Scan a receipt</h4>
-                            <p class="text-[10px] text-slate-400">Snap fuel pumps or receipts instantly</p>
-                        </div>
-                    </div>
-                    <i class="fa-solid fa-chevron-right text-xs text-slate-500"></i>
-                </button>
+                
 
                 <div>
                     <div class="flex justify-between items-center mb-3">
@@ -1072,7 +1062,7 @@
                 <form onsubmit="saveDashboardSettings(event)" class="space-y-4">
                     <div><label for="weekly-profit-goal" class="block text-xs text-slate-200 mb-2">Weekly profit goal (£), before tax</label><input id="weekly-profit-goal" type="number" min="1" max="1000000" step="0.01" placeholder="e.g. 800 (optional)" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-sm"><p class="text-[10px] text-slate-400 mt-1">Leave blank to remove your goal. Choose what suits you.</p></div>
                     <label class="flex items-center gap-2 text-xs text-slate-200"><input id="shift-reminder-enabled" type="checkbox" class="accent-blue-400">Show an end-of-shift reminder while the app is open</label>
-                    <div><label for="shift-reminder-time" class="block text-xs text-slate-200 mb-2">Reminder time (UK time)</label><input id="shift-reminder-time" type="time" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-sm"></div>
+                    <div><label for="shift-reminder-time" class="block text-xs text-slate-200 mb-2">Reminder time (UK time)</label><input id="shift-reminder-time" type="hidden"><div class="flex gap-2"><select id="shift-hour" aria-label="Reminder hour" onchange="syncReminderTime()" class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-white"><option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option></select><span class="p-3">:</span><select id="shift-minute" aria-label="Reminder minute" onchange="syncReminderTime()" class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-white"><option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option><option value="32">32</option><option value="33">33</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option><option value="46">46</option><option value="47">47</option><option value="48">48</option><option value="49">49</option><option value="50">50</option><option value="51">51</option><option value="52">52</option><option value="53">53</option><option value="54">54</option><option value="55">55</option><option value="56">56</option><option value="57">57</option><option value="58">58</option><option value="59">59</option></select></div></div>
                     <p class="text-[10px] text-slate-400">These settings and review ticks are saved for your account on this device. You can turn the reminder off at any time.</p>
                     <p id="dashboard-settings-error" role="alert" class="hidden text-xs text-amber-200"></p>
                     <button type="submit" class="w-full bg-blue-400 text-slate-950 rounded-xl p-3 text-xs font-bold">Save settings</button>
@@ -1802,7 +1792,7 @@
                     fetchAllUserRows('expenses',userId),
                     supabaseClient.from('mileage').select('*').eq('user_id', userId).order('trip_date', { ascending: false }),
                     supabaseClient.from('tax_reserve').select('*').eq('user_id', userId).order('saved_on', { ascending: false }),
-                    supabaseClient.from('period_entries').select('*').eq('user_id', userId).order('period_start', { ascending: false }),
+                    fetchAllUserRows('period_entries',userId),
                     supabaseClient.from('recurring_expenses').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
                     fetchAllUserRows('receipts',userId),
                     supabaseClient.from('invoices').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
@@ -2737,7 +2727,8 @@
             document.getElementById('dash-today-tax').textContent='£'+summary.tax.toFixed(2);
             document.getElementById('dash-tax-label').textContent=period==='week'?'Tax reserve for this week':period==='month'?'Tax reserve for this month':'Tax reserve for today';
             const year=getTaxYearSummary();
-            document.getElementById('dash-tax-year-note').textContent='Tax year '+year.label+': estimated amount remaining £'+year.total.toFixed(2)+'. View Tax for the breakdown.';
+            renderDashboardYearSummary(year);
+            document.getElementById('dash-tax-year-note').textContent='Tax year '+year.label+': estimated business tax reserve £'+year.total.toFixed(2)+'. View Tax for the breakdown.';
             document.getElementById('dash-today-net').textContent='£'+(summary.profit-summary.tax).toFixed(2);
             const today=period==='today'?summary:dashboardPeriodSummary('today');
             document.getElementById('dash-today-note').textContent="Today's recorded profit: £"+today.profit.toFixed(2)+(today.partial?' (whole-period catch-up amounts shown in their full range)':'');
@@ -2800,11 +2791,13 @@
             showBatchModal(el);
         }
         function openWeeklyReview(){appState.dashboardPeriod='week';renderDriverDashboard();openTodayDetails();}
+        function syncReminderTime(){document.getElementById('shift-reminder-time').value=document.getElementById('shift-hour').value+':'+document.getElementById('shift-minute').value;}
         function openDashboardSettings(){
             const prefs=readDashboardPreferences();
             document.getElementById('weekly-profit-goal').value=prefs.goal||'';
             document.getElementById('shift-reminder-enabled').checked=prefs.reminderEnabled;
             document.getElementById('shift-reminder-time').value=prefs.reminderTime;
+            document.getElementById('shift-hour').value=prefs.reminderTime.slice(0,2);document.getElementById('shift-minute').value=prefs.reminderTime.slice(3,5);
             document.getElementById('dashboard-settings-error').classList.add('hidden');
             document.getElementById('dashboard-settings-modal').classList.remove('hidden');
         }
@@ -3098,10 +3091,27 @@
             closeUniversalDatePicker();
         }
 
-        function currentTaxYearBounds() {
-            const now = new Date();
-            const y = (now.getMonth() > 3 || (now.getMonth() === 3 && now.getDate() >= 6)) ? now.getFullYear() : now.getFullYear()-1;
-            return { start: y+'-04-06', end:(y+1)+'-04-05', label:y+'/'+String(y+1).slice(-2) };
+        function taxYearForDate(date) {
+            const y=Number(date.slice(0,4))-(date.slice(5)<'04-06'?1:0);
+            return {start:y+'-04-06',end:(y+1)+'-04-05',label:y+'/'+String(y+1).slice(-2)};
+        }
+        function currentTaxYearBounds() { return taxYearForDate(driverToday()); }
+        function renderDashboardYearSummary(year=getTaxYearSummary()) {
+            const host=document.getElementById('dashboard-year-summary');if(!host)return;
+            const entries=[...(appState.periodEntries||[])].sort((a,b)=>b.period_end.localeCompare(a.period_end));
+            const money=n=>'£'+Number(n).toFixed(2);
+            const range=getRangeActivity(year.start,year.end);
+            const incomplete=range.partialPeriodEntries.length||range.overlappingPeriodEntries.length;
+            host.innerHTML='<h3 class="text-sm font-bold text-white">Tax year '+year.label+' · totals so far</h3><p class="text-xs text-slate-400">6 April to 5 April. Includes saved past earnings within this tax year.</p><div class="grid grid-cols-2 gap-3 text-xs"><div>Business income<b class="block text-white text-lg">'+money(year.income)+'</b></div><div>Tax-deductible expenses<b class="block text-white text-lg">'+money(year.expenses)+'</b></div><div>Taxable business profit<b class="block text-white text-lg">'+money(year.profit)+'</b></div><div>Estimated business tax reserve<b class="block text-emerald-300 text-lg">'+money(year.total)+'</b></div></div><p class="text-xs text-slate-400">'+(incomplete?'Incomplete: a catch-up summary crosses the tax-year boundary or conflicts with dated records. Review the entries below.':'Based on recorded profit and your Tax Profile, not a full-year forecast. £0 can be correct when no additional tax is estimated.')+'</p><button type="button" onclick="switchTab(\'tax\')" class="text-blue-300 text-xs font-bold">View tax breakdown</button>';
+            const list=document.createElement('details');list.open=entries.length>0;
+            const title=document.createElement('summary');title.className='text-sm font-bold text-white cursor-pointer';title.textContent='Saved past earnings ('+entries.length+')';list.appendChild(title);
+            entries.forEach(p=>{
+                const button=document.createElement('button');button.type='button';button.className='w-full text-left border-t border-slate-700 py-3 text-xs text-slate-200';
+                const crosses=taxYearForDate(p.period_start).start!==taxYearForDate(p.period_end).start;
+                const included=range.periodEntries.some(x=>x.id===p.id);
+                button.textContent=formatUkDate(p.period_start)+' to '+formatUkDate(p.period_end)+' · Income '+money(p.income_amount)+' · Expenses '+money(p.expense_amount)+' · '+(included?'Included above':crosses?'Needs separate totals either side of 6 April':p.period_end<year.start?'Previous tax year — excluded above':'Review full period')+' — View / edit';
+                button.onclick=()=>viewPeriodSummary(p.id);list.appendChild(button);
+            });host.appendChild(list);
         }
 
         async function refreshAvatarPreview() {
@@ -4337,6 +4347,7 @@ function renderRegularCostLists() {
         function viewPeriodSummary(id){
             const p=(appState.periodEntries||[]).find(x=>x.id===id);if(!p)return;
             appState.calendarRangeStart=p.period_start;appState.calendarRangeEnd=p.period_end;appState.calendarSelectionMode='range';appState.calendarDate=parseIsoDate(p.period_start);
+            openCalendarModal();
             showCalendarRange(p.period_start,p.period_end);
         }
         function openPeriodEntryModal(id=null){
@@ -4372,6 +4383,7 @@ function renderRegularCostLists() {
             const start=document.getElementById('period-start').value,end=document.getElementById('period-end').value;
             try{
                 if(!start||!end||start>end||end>isoDate(new Date()))throw new Error('Choose a completed date range ending today or earlier.');
+                if(taxYearForDate(start).start!==taxYearForDate(end).start)throw new Error('This range crosses 6 April. Save separate totals ending 5 April and starting 6 April so each tax year is accurate.');
                 if(periodSummaryOverlap(start,end,appState.editingPeriodId))throw new Error('These dates overlap a saved summary. Edit that summary or choose another range.');
                 const mode=document.getElementById('period-entry-mode').value;
                 const turnover=Number(document.getElementById('period-income').value);
