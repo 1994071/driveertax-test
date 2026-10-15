@@ -1,0 +1,94 @@
+# DriverTax master launch checklist
+
+Reviewed: 15 October 2026. This is the working checklist for the next sessions.
+
+## Evidence and limits
+
+Compared the accessible 4–15 October conversation history and recalled earlier requests with current `index.html`, deployed Edge Functions, release notes, tests and GitHub issues. Current application baseline: PR #33, merge `5a10c874e3f12fbd0c6bb0529396766c7376681e`. Earlier PRs #26–33 cover the bookkeeping and dashboard work below. This audit does not claim access to every historical message or missing screenshot, and it is not an accountant, penetration-test or legal sign-off. Older prototype files and historical notes are not evidence of current production behavior.
+
+Status meanings: **Built/live** means code was released; **tested** names the checks performed; **unverified** means an acceptance check remains. A released button alone does not establish a working external service.
+
+## Launch priorities — do in this order
+
+- [ ] **L01 — Finish outgoing email.** Live read-only `email-tax-report` status check on 15 October returned `configured:false`, `providerConfigured:false`, `senderConfigured:false`. Configure the provider API key and verified sender/domain; no secrets in the browser or chat. Then verify a real invoice PDF and tax-report PDF/CSV reach intended inboxes, including attachment opening, spam/bounce/failure handling. No email was sent by this audit. Signup/password-reset mail is a separate flow and needs its own delivery test. A business mailbox is also separate from the transactional sending service.
+- [ ] **L02 — Run real-phone receipt acceptance.** Camera capture is coded, alongside image upload, AI extraction, edit/confirm, duplicate Cancel/Save anyway, item splitting and evidence storage. Recent scanner/item tests used mocked AI; they do not prove live end-to-end extraction. Test iPhone Safari and Android Chrome: camera permission allowed/denied, photo library choice, clear/blurred/long receipts, rotated images, HEIC, >10 MB, interruption/offline, review/save, refresh, private evidence access and duplicate override. HEIC is advertised; no explicit conversion/compression implementation was found. Confirm supported types or convert before promising them. Native camera capture behavior is browser-dependent.
+- [ ] **L03 — Independently verify supported tax calculations.** 2026/27 has PAYE-aware incremental business estimates; 96 Scottish/relief regression checks plus other tax tests passed. This is not independent accountant sign-off. Verify thresholds/boundaries, PAYE + business, all supported residence/loan choices, pensions/Gift Aid, allowance taper, Marriage/Blind Person's Allowance, eligible expense treatment and VAT interactions against a trusted reference. Do not present the business reserve as a complete HMRC settlement balance.
+- [ ] **L04 — Complete year-specific tax profiles.** 2025/26 currently uses a provisional business-only estimate with saved residence and standard allowance; employment income, other income, reliefs and loans for that year are excluded. 2026/27's Tax Profile is one current-year record, not a year-indexed history. Add separately saved employment/other-income settings for each supported year, or clearly restrict historical estimates. Do not reuse this year's salary for a previous year. Both years need complete dashboard/export/breakdown consistency.
+- [ ] **L05 — Fix/limit the regular-cost and catch-up tax model.** Regular costs are daily spread/budget shares, not a dated cash-payment ledger; review the accounting basis before treating them as tax deductions. Whole-period catch-up expenses currently assume deductible expense totals, without individual eligibility review. Add explicit allowable-versus-total treatment/review and avoid overlap with dated transactions, VAT and actual payments. Included regular costs are intentionally not deducted twice. Test partial periods, changed records, edits/deletes and stopped costs.
+- [ ] **L06 — Define launch tax scope.** Specialist CIS, landlord/property, childminding and farming calculations are not implemented. A profession option or rental-income field does not establish support. Decide whether to exclude these cases initially or build and independently verify them. Also identify unsupported losses, capital allowances, finance principal/interest, trading allowance, savings/dividends, Class 4 age exemptions, Class 1/Class 4 maximum adjustments and multiple-plan/student-loan repayment reconciliation. Do not market estimates as complete Self Assessment for every self-employed person.
+- [ ] **L07 — Add monitoring and recovery.** Current global error listener only writes a diagnostic to the page; console/toast errors exist. No deployed remote crash collection, unhandled-promise reporting, uptime monitoring or owner alerting was established. Add privacy-filtered event reporting, failed-save/scan/email alerts, release identification and a support process. Test alerts while the owner is away. Avoid logging receipts, financial details, passwords or keys.
+- [ ] **L08 — Verify security, storage and restore.** Owner-scoped RLS, private receipt paths and temporary links exist and several isolation tests passed; this is not a full security audit. Review all tables/storage/RPCs, auth/session recovery, expired links, abandoned uploads and delete cleanup. The latest advisor still reports leaked-password protection disabled. Confirm database backups AND receipt-object backup/recovery, then run a restore exercise. Verify actual hosting/storage plan, capacity, retention and costs; no capacity/backup guarantee was established by prior estimates.
+- [ ] **L09 — Control usage and scale.** Receipt scanning has auth/path ownership and a 10 MB cap, but no per-user scan quota/rate limit was found in its function. Add cost caps/abuse limits to AI/email and monitoring to hosting/storage. Test simultaneous users and large accounts. Income, expenses, receipts, summaries and tax payments paginate, but mileage/reserve/invoice/VAT fetches still need review for default row caps. Refresh currently depends on many queries and catches errors centrally; test partial service failures and do not silently show incomplete totals.
+- [ ] **L10 — Complete domain, support and privacy setup.** Domain/brand remains unresolved; company mailbox, support address and transactional sender need completion. Privacy notice, terms, retention/export policy, full account deletion and any applicable cookie/consent handling were not established in the current UI. Bulk clearing records is not account deletion. Check ICO obligations, supplier/data-processing arrangements (including receipt AI), permissions, business details, licensing and accessibility with appropriate review. Do not assume every site needs the same cookie banner.
+- [ ] **L11 — Full real-device pilot.** Run signup/verification/reset/login, profession setup/change, income/expenses, regular costs, catch-up, receipt scans/splits, invoices/VAT, reports/sharing, payment tracking and deletion across real iOS/Android devices. Include slow/offline networks, repeated taps, interrupted uploads and re-login. Verify each saved item survives refresh and appears once in all relevant views/exports. Then pilot with roughly 10–20 willing users and fix observed issues. No such completed pilot is established.
+- [ ] **L12 — Prepare store builds if store launch is the goal.** Current production is a hosted web app, not signed iOS/Android packages. Native/hybrid packaging, camera/file/share integration, permissions, deep links/auth, beta testing, store assets/disclosures and review remain. Yohan must own developer accounts and complete identity/agreements. Check current Apple/Google requirements when preparing submission; no approval or upload capability is guaranteed. Subscriptions remain deliberately deferred.
+
+## Earlier requests — what exists and what remains
+
+| Request | Verified implementation status | Remaining acceptance or development |
+|---|---|---|
+| Simplify bottom navigation | Records removed from bottom bar; records still reachable from dashboard | Verify access remains obvious on real phones |
+| One Scan Receipt entry | Bottom navigation retained; duplicate dashboard shortcuts removed | Real-device navigation check |
+| Add income/expenses below summary | Moved directly under Today/Week/Month cards, above chart | Check mobile scroll/access with long tax card |
+| Week/month/calendar views | Implemented, with day/range selection and UK dates | Real-device date selection; more consistent date controls where native inputs still exist |
+| Weekly chart, date edits | Chart and explicit Edit/double-tap chooser implemented; browser-tested | Real iPhone/Android gestures; catch-up totals are NOT invented for individual chart days |
+| Income changed to zero should also clear expenses | NOT implemented as automatic expense deletion; independent expenses are retained | Decide on an explicit reviewed day-reset flow if still desired; never describe retained expenses as a failed income save |
+| Catch-up turnover/expenses/profit | Save/reconciliation, tax-year guards, preview, confirmed row read-back, calendar links built; database/browser tests passed | Real-account journey, allowable-cost model and previous-year employment support (L04/L05) |
+| Catch-up matches existing entries | Reconciled whole-period remainder avoids double counting | Broader real datasets, old unreconciled summaries and partial ranges |
+| Delete tax/catch-up summary | Per-summary confirmation, dates/amounts, stale guard, owner-scoped delete and recalculation live | Retains independent records/receipts/payment history; verify phone flow |
+| Prior tax visible until paid | 2025/26 due card plus primary summary, usual 31 Jan 2027 deadline; remains past deadline if unpaid | Card/year support is explicitly 2025/26, not a general future-year obligation system. Year rollover needs design/rates review |
+| Record tax payments | Persisted self-reported balancing bill/payments, separate payments on account, retry IDs, removal of mistaken records; tested | Does not pay HMRC, verify its balance, calculate interest or automatically prepare payments-on-account obligations |
+| PAYE + self-employment | 2026/27 annual taxable pay from all jobs, incremental business tax/NI estimate | Multiple jobs are one aggregate figure, not separate P60/P45 records. No full PAYE/loan-deduction reconciliation; L03/L04 |
+| Scottish bands, pensions/Gift Aid, loans, marriage | Implemented engine with regression checks; 2025/26 engine has dated bands | Independent tax review and unsupported cases above; historical profile deliberately restricted |
+| All professions, roles/search/custom | Profession groups, searchable roles/aliases, custom text, expenses and invoice suggestions built | Category suggestions are not profession-specific tax approval; custom roles do not add new tax rules |
+| Carpenter/electrician/window cleaner | Represented within broader profession/role setup | Relevant specialist handling such as CIS still missing |
+| Change profession later | Profile editing and suggested descriptions/expense options exist | Verify historical records stay unchanged and multiple-work setup remains clear |
+| Lease/rent/finance and own categories | Suggested/custom categories and business-use/tax review fields built | Category alone does not distinguish finance principal/interest or capital treatment; L06 |
+| Receipt scan/upload | Private upload, extraction and review/save built; user previously reported basic scan success | Current full scan/item flow, HEIC, camera/gallery and interruptions need L02 |
+| Duplicate receipt warning with override | Exact-file hash and merchant/date/amount candidates, Cancel/Save anyway built | Test altered crops/new photos of same receipt and intentional repeats; no perfect visual duplicate guarantee |
+| Split receipt products | AI suggestions + editable allocations/custom categories, amount reconciliation, personal/business treatment built | Item-level VAT unsupported and blocked; discounts/corrections require manual reconciliation; advanced invoice-document extraction is not established |
+| Food allowances | Purpose helper built; ordinary personal food/client entertaining excluded, uncertain cases reviewed | No automatic daily allowance; specialist eligibility/VAT still separate review |
+| Monthly/yearly receipt evidence | Expense-date folders/search/missing filters, open private file, attach without duplicate, CSV index built | Bundled image/PDF/ZIP accountant export not built; expired-link/large-export recovery acceptance remains |
+| Invoice creation/payment methods | Issuing, PDF, terms, bank list plus Other entry, validation, payment links built | Live delivery and real client workflow testing; bank name entry does not verify account ownership |
+| Invoice descriptions by profession/suggestions | Optional profession-based descriptions/helper built | Check unfamiliar/custom trades and editing; no general AI adviser established |
+| Invoice quantity simplified | Fixed job price by default, optional quantity/hours; +/- moves by whole units; fractions can be typed | This replaces unwanted default decimal stepping; do not claim fractional hours were removed |
+| Future invoice dates | Future intended dates in drafts, shared calendars; issue-now uses actual issue date | Automatic scheduled issuing/sending is not built |
+| Drafts/delete/archive | Draft save/edit/delete and issued archive/restore built | Issued record cancellation/payment accounting stay separate; no blanket issued-invoice deletion button implied |
+| Invoice paid/unpaid and reminders | Paid/unpaid/overdue dashboard counts/status built | Automatic background invoice due notifications/email/SMS are not built; app-open alerts are not push notifications |
+| VAT invoicing, Flat Rate and return review | VAT rates/basis, recorded classifications, Flat Rate logic and reviewed return preview exist | Limited supported ordinary UK scope; no HMRC VAT filing. Split-item VAT unsupported; advanced/import/export/reverse-charge/partial-exemption etc excluded. Independent review and full regression rerun required |
+| Tax/report PDF/CSV | Export code exists and earlier tests/releases cover parts | Historical dashboard selection is not the same as export year selection; current tax-summary export uses current year. Audit historical-year export, catch-up data, splits and payment history completeness |
+| Email invoices/tax reports | UI + deployed `email-tax-report` function exist | CONFIRMED NOT CONFIGURED, not merely unverified: L01 |
+| WhatsApp sharing | Native file-share path and explicit download/manual-attachment fallback built | Real iOS/Android/desktop testing; cannot guarantee direct attachment on unsupported browsers |
+| Upload bank statement | GBP CSV column mapping/review/approval/dedupe/safe undo built | PDF/text/OCR statements, stronger receipt/invoice matching, statement balance reconciliation and richer categorisation remain |
+| Live bank connection | Provider outreach/quotes, no live connection feature | Choose viable AIS provider, commercial/regulatory arrangement, sandbox, consent/onboarding/import matching and production approval; no bank provider contract confirmed |
+| SMS signup/autofill/Face ID | Not implemented; email/password signup/reset exists | Decide whether needed; provider setup, recovery flows, phone changes and device/passkey testing would be new work |
+| Shift reminder/goal | Optional weekly goal, app-open shift reminder, hour/minute selectors and downloadable calendar reminder built | Preferences are device-local; calendar reminders need user import. No closed-app push guarantee |
+| Clear selected records/start fresh | Type-selective bulk clear, explicit confirmation and receipt cleanup tracking built | Verify new tax-payment/account data is included in any intended full-clear/account-delete scope; those tables were added later and remain separate |
+| Crash prevention/error alerts | Field validation, operation errors and some retry/atomic writes built | Remote monitoring, runtime recovery and resilience not finished (L07) |
+| HMRC tax filing/payment | Enquiry sent in earlier session; no integration deployed | Developer response, correct access route, sandbox/OAuth, production requirements and filing tests. Recording payment is not making payment; estimates are not HMRC calculations |
+| Subscriptions/pricing | Deliberately postponed by Yohan | Implement billing, entitlements, cancellation/refunds and store-related rules only when core app is ready |
+| Marketing/branding/launch date | Ideas discussed; no executed launch plan established | Final brand/domain, audience, supported-scope messaging, pilot feedback and marketing assets |
+
+## Backlog hygiene
+
+Open issues #22–#25 still contain their original “next batch / pending” wording. Treat them as partly implemented requests, not wholly absent features:
+
+- #22 receipt splitting: base allocation implemented; item VAT and richer reconciliation remain.
+- #23 meal guidance: helper implemented; no universal allowance and no blanket automated tax eligibility.
+- #24 statement import: CSV implemented; PDF, full matching and balance reconciliation remain.
+- #25 evidence folders: browse/attach/index implemented; bundled evidence export remains.
+
+Invoice bank entry, account-number validation, drafts and archiving are present in code; do not rebuild them simply because older messages call them pending.
+
+## Evidence references
+
+- Current implementation: `index.html`; scanner function `supabase/functions/scan-receipt/index.ts` (live v3); email function inspected live v4.
+- Bookkeeping release notes: `docs/bookkeeping-batch-oct15.md`.
+- Tax scope limitations: `docs/tax-by-trade-review.md` (historical note; its “current-year only” statement predates the new basic 2025/26 calculation).
+- Regression evidence: `tests/bookkeeping-batch-*`, `tests/scottish-relief-checks.cjs`, `tests/tax-history-checks.cjs`, `tests/expense-tax-*`, `tests/tax-payment-*`, `tests/delete-summary-*`, `tests/historical-catchup-browser.cjs`.
+- Invoice test runner was not run in the October 15 bookkeeping batch because optional `linkedom` dependency was absent. Earlier invoice tests/source are evidence of implementation, not current full invoice regression completion.
+- These checks do not prove real-device hardware behavior, live AI extraction, delivered emails, external HMRC/bank integrations, production backups or store approval.
+
+## Working rule
+
+For each next change record: request → implementation → automated check → real-device/external acceptance where relevant → released commit and live verification. Keep incomplete external setup and unsupported tax scope visibly open. Do not call a feature complete solely because its code or button exists.
