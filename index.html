@@ -4303,7 +4303,7 @@ function renderRegularCostLists() {
                 if(request!==appState.periodReviewRequest)return;
                 if(error||!data)throw error||new Error('Could not check existing records');
                 appState.periodReviewedRecords={...data,start,end};updatePeriodSummaryPreview();
-            }catch(err){if(request===appState.periodReviewRequest){document.getElementById('period-reconciliation').textContent='Could not check existing records. Close and reopen this form to retry.';}}
+            }catch(err){if(request===appState.periodReviewRequest){document.getElementById('period-reconciliation').textContent='Could not check existing records: '+(err.message||'Connection unavailable')+'. Close and reopen this form to retry.';}}
         }
         function openPastEarnings(){
             const week=getWeekBounds(new Date());
@@ -4311,6 +4311,19 @@ function renderRegularCostLists() {
             const start=new Date(end);start.setDate(start.getDate()-6);
             appState.calendarRangeStart=isoDate(start);appState.calendarRangeEnd=isoDate(end);appState.periodOpenedFromDashboard=true;
             openPeriodEntryModal();
+        }
+        function previewPeriodTax(start,end,totals,included){
+            const bounds=currentTaxYearBounds();
+            if(!start||!end||start>end)return 'Choose a complete date range to preview tax.';
+            if(start<bounds.start||end>bounds.end)return 'Tax estimate unavailable for these dates. The estimator currently supports '+bounds.label+' (6 April to 5 April). Save separate totals for each tax year.';
+            if(!included)return 'Choose how regular costs are treated to preview tax.';
+            const original=appState.periodEntries;
+            try{
+                appState.periodEntries=(original||[]).filter(p=>p.id!==appState.editingPeriodId);
+                appState.periodEntries.push({id:'tax-preview',period_start:start,period_end:end,income_amount:totals.income,expense_amount:totals.expenses,business_miles:0,reconciled:true,regular_costs_included:included==='yes'});
+                const estimate=getTaxYearSummary();
+                return 'Estimated business tax reserve for '+bounds.label+' after saving: £'+estimate.total.toFixed(2)+'. Uses all recorded tax-year profit and your Tax Profile. This is not tax on the receipt or a full-year forecast. £0 may be correct below the applicable thresholds.';
+            }finally{appState.periodEntries=original;}
         }
         function updatePeriodSummaryPreview(){
             const mode=document.getElementById('period-entry-mode').value;
@@ -4341,7 +4354,7 @@ function renderRegularCostLists() {
                 }
                 const included=document.getElementById('period-regular-included').value;
                 const share=included==='no'&&start&&end&&start<=end?getRecurringCostShare(start,end,appState.editingPeriodId).total:0;
-                preview.innerHTML='<div class="flex justify-between"><span>Turnover</span><b>£'+t.income.toFixed(2)+'</b></div><div class="flex justify-between"><span>Expenses'+(mode==='profit'?' (calculated)':'')+'</span><b>£'+t.expenses.toFixed(2)+'</b></div><div class="flex justify-between text-violet-300"><span>Additional regular-cost share</span><b>£'+share.toFixed(2)+'</b></div><div class="flex justify-between text-emerald-300"><span>Business profit before tax</span><b>£'+(t.profit-share).toFixed(2)+'</b></div><p class="text-[9px] text-slate-500">'+(included==='yes'?'Regular costs are included — no second deduction.':included==='no'?'Your regular-cost share will be deducted separately.':'Choose whether regular costs are included to finish this review.')+'</p>';
+                preview.innerHTML='<div class="flex justify-between"><span>Turnover</span><b>£'+t.income.toFixed(2)+'</b></div><div class="flex justify-between"><span>Expenses'+(mode==='profit'?' (calculated)':'')+'</span><b>£'+t.expenses.toFixed(2)+'</b></div><div class="flex justify-between text-violet-300"><span>Additional regular-cost share</span><b>£'+share.toFixed(2)+'</b></div><div class="flex justify-between text-emerald-300"><span>Business profit before tax</span><b>£'+(t.profit-share).toFixed(2)+'</b></div><p class="text-[9px] text-slate-500">'+(included==='yes'?'Regular costs are included — no second deduction.':included==='no'?'Your regular-cost share will be deducted separately.':'Choose whether regular costs are included to finish this review.')+'</p><p id="period-tax-preview" class="text-xs text-blue-200 border-t border-slate-700 pt-2">'+escapeHtml(previewPeriodTax(start,end,t,included))+'</p>';
             }catch(err){preview.textContent=err.message;}
         }
         function viewPeriodSummary(id){
@@ -4404,12 +4417,19 @@ function renderRegularCostLists() {
                     statement_source:document.getElementById('period-source').value.trim(),notes:document.getElementById('period-notes').value.trim()}});
                 if(saveError){if(saveError.message==='period_records_changed')refreshPeriodReconciliation();throw new Error(saveError.message==='period_records_changed'?'Records changed since your review. Review the updated amounts and save again.':saveError.message==='period_summary_overlap'?'These dates overlap another saved summary.':saveError.message);}
                 if(!data)throw new Error('Save could not be confirmed. Refresh before retrying.');
+                const {data:saved,error:readError}=await supabaseClient.from('period_entries').select('*').eq('id',data).eq('user_id',appState.currentUser.id).single();
+                if(readError||!saved)throw new Error('The server accepted your save, but confirmation could not be loaded. Close and reopen Catch Up Records before retrying to avoid duplicates.');
                 const editing=!!appState.editingPeriodId;
+                appState.editingPeriodId=saved.id;
+                appState.periodEntries=[...(appState.periodEntries||[]).filter(p=>p.id!==saved.id),saved];
                 closePeriodEntryModal();await fetchUserData(appState.currentUser.id);
+                // Keep the server-confirmed record visible even if another data request failed.
+                appState.periodEntries=[...(appState.periodEntries||[]).filter(p=>p.id!==saved.id),saved];
+                renderUI();
                 appState.calendarRangeStart=start;appState.calendarRangeEnd=end;appState.calendarSelectionMode='range';appState.calendarDate=parseIsoDate(start);
                 if(appState.periodOpenedFromDashboard){appState.periodOpenedFromDashboard=false;openCalendarModal();}
-                showCalendarRange(start,end);showToast(editing?'Summary updated':'Whole-period summary saved');
-            }catch(err){error.textContent=err.message||'Could not save summary';error.classList.remove('hidden');}
+                showCalendarRange(start,end);showToast(editing?'Summary updated and confirmed':'Catch-up record saved and confirmed');
+            }catch(err){error.textContent=err.message||'Could not save summary';error.classList.remove('hidden');error.scrollIntoView({block:'center',behavior:'smooth'});}
             finally{appState.periodSaving=false;btn.disabled=false;btn.textContent=appState.editingPeriodId?'Update Summary':'Save Catch Up Records';}
         }
 
