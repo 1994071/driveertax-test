@@ -3128,7 +3128,7 @@
             const [a,p]=await Promise.all([fetchAllUserRows('tax_payment_records',user),supabaseClient.from('tax_year_accounts').select('*').eq('user_id',user)]);
             if(appState.currentUser?.id!==user)return;
             if(a.error||p.error)throw a.error||p.error;
-            appState.taxPayments=a.data;appState.taxYearAccounts=p.data;appState.taxPaymentsLoaded=true;renderTaxDueCards();
+            appState.taxPayments=a.data;appState.taxYearAccounts=p.data;appState.taxPaymentsLoaded=true;renderTaxDueCards();renderDashboardYearSummary();
         }
         function viewTaxDueYear(year){
             appState.calendarRangeStart=year+'-04-06';appState.calendarRangeEnd=(year+1)+'-04-05';appState.calendarDate=parseIsoDate(appState.calendarRangeStart);appState.calendarSelectionMode='range';openCalendarModal();
@@ -3187,11 +3187,17 @@
 
         function renderDashboardYearSummary(year=getTaxYearSummary()) {
             const host=document.getElementById('dashboard-year-summary');if(!host)return;
+            const current=year,previous=taxDueYearSummary(2025),previousActivity=getRangeActivity(previous.start,previous.end);
+            const hasPrevious=previousActivity.tx.length||previousActivity.periodEntries.length||(appState.taxPayments||[]).some(p=>Number(p.tax_year)===2025)||(appState.taxYearAccounts||[]).some(p=>Number(p.tax_year)===2025);
+            const showPrevious=hasPrevious&&!taxDueStatus(2025,previous).settled;
+            if(showPrevious)year=previous;
             const entries=[...(appState.periodEntries||[])].sort((a,b)=>b.period_end.localeCompare(a.period_end));
             const money=n=>'£'+Number(n).toFixed(2);
             const range=getRangeActivity(year.start,year.end);
             const incomplete=range.partialPeriodEntries.length||range.overlappingPeriodEntries.length;
-            host.innerHTML='<h3 class="text-sm font-bold text-white">Tax year '+year.label+' · totals so far</h3><p class="text-xs text-slate-400">6 April to 5 April. Includes saved past earnings within this tax year.</p><div class="grid grid-cols-2 gap-3 text-xs"><div>Business income<b class="block text-white text-lg">'+money(year.income)+'</b></div><div>Tax-deductible expenses<b class="block text-white text-lg">'+money(year.expenses)+'</b></div><div>Taxable business profit<b class="block text-white text-lg">'+money(year.profit)+'</b></div><div>Estimated business tax reserve<b class="block text-emerald-300 text-lg">'+money(year.total)+'</b></div></div><p class="text-xs text-slate-400">'+(incomplete?'Incomplete: a catch-up summary crosses the tax-year boundary or conflicts with dated records. Review the entries below.':'Based on recorded profit and your Tax Profile, not a full-year forecast. £0 can be correct when no additional tax is estimated.')+'</p><button type="button" onclick="switchTab(\'tax\')" class="text-blue-300 text-xs font-bold">View tax breakdown</button>';
+            host.innerHTML='<h3 class="text-sm font-bold text-white">Tax year '+year.label+(showPrevious?' · awaiting payment':' · totals so far')+'</h3><p class="text-xs text-slate-400">6 April to 5 April. Includes saved past earnings within this tax year.</p><div class="grid grid-cols-2 gap-3 text-xs"><div>Business income<b class="block text-white text-lg">'+money(year.income)+'</b></div><div>Tax-deductible expenses<b class="block text-white text-lg">'+money(year.expenses)+'</b></div><div>Taxable business profit<b class="block text-white text-lg">'+money(year.profit)+'</b></div><div>Estimated business tax reserve<b class="block text-emerald-300 text-lg">'+money(year.total)+'</b></div></div><p class="text-xs text-slate-400">'+(incomplete?'Incomplete: a catch-up summary crosses the tax-year boundary or conflicts with dated records. Review the entries below.':taxRangeNote(year.start,year.end))+'</p><button type="button" onclick="switchTab(\'tax\')" class="text-blue-300 text-xs font-bold">View tax breakdown</button>';
+            const breakdown=host.querySelector('button');breakdown.onclick=()=>showPrevious?viewTaxDueYear(2025):switchTab('tax');
+            if(showPrevious){const deadline=document.createElement('p');deadline.className='text-xs font-bold text-amber-200';deadline.textContent='Usual payment deadline: 31 January 2027. Remains visible until recorded as paid.';host.insertBefore(deadline,host.children[1]);}
             const list=document.createElement('details');list.open=entries.length>0;
             const title=document.createElement('summary');title.className='text-sm font-bold text-white cursor-pointer';title.textContent='Saved past earnings ('+entries.length+')';list.appendChild(title);
             entries.forEach(p=>{
@@ -3201,6 +3207,12 @@
                 button.textContent=formatUkDate(p.period_start)+' to '+formatUkDate(p.period_end)+' · Income '+money(p.income_amount)+' · Expenses '+money(p.expense_amount)+' · '+(included?'Included above':crosses?'Needs separate totals either side of 6 April':p.period_end<year.start?'Previous tax year — excluded above':'Review full period')+' — View / edit';
                 button.onclick=()=>viewPeriodSummary(p.id);list.appendChild(button);
             });host.appendChild(list);
+            if(showPrevious){
+                const next=document.createElement('details');next.id='dashboard-current-tax-year';next.className='border-t border-slate-700 pt-3 space-y-3';
+                const heading=document.createElement('summary');heading.className='text-sm font-bold text-blue-200 cursor-pointer';heading.textContent='Current tax year '+current.label+' — view separate totals';next.appendChild(heading);
+                const values=document.createElement('p');values.className='text-xs text-slate-300';values.textContent='Business income '+money(current.income)+' · Tax-deductible expenses '+money(current.expenses)+' · Profit '+money(current.profit)+' · Estimated business tax reserve '+money(current.total)+'. These amounts only cover 6 April 2026 to 5 April 2027.';next.appendChild(values);
+                const link=document.createElement('button');link.type='button';link.className='text-xs text-blue-200 underline';link.textContent='View current-year tax breakdown';link.onclick=()=>switchTab('tax');next.appendChild(link);host.appendChild(next);
+            }
         }
 
         async function refreshAvatarPreview() {
