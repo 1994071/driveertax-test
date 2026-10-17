@@ -336,12 +336,17 @@
                     <h2 class="text-lg font-bold text-white">AI Receipt Scanner</h2>
                     <p class="text-xs text-slate-400">Upload a receipt → details fill automatically → check → save.</p>
                 </div>
-                <label class="relative bg-slate-900 border-2 border-dashed border-slate-700 rounded-3xl p-6 flex flex-col items-center justify-center text-center min-h-56 cursor-pointer">
+                <div class="relative bg-slate-900 border-2 border-dashed border-slate-700 rounded-3xl p-6 flex flex-col items-center justify-center text-center min-h-56">
                     <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto text-2xl"><i class="fa-solid fa-receipt"></i></div>
-                    <h3 class="text-sm font-bold text-white mt-3">Take a photo or choose receipt</h3>
-                    <p class="text-[10px] text-slate-500 mt-1">JPG, PNG or HEIC • privately stored</p>
-                    <input id="receipt-file-input" type="file" accept="image/*" capture="environment" class="hidden" onchange="handleReceiptSelected(this)">
-                </label>
+                    <h3 class="text-sm font-bold text-white mt-3">Add your receipt</h3>
+                    <p class="text-[10px] text-slate-500 mt-1">JPG, PNG or WebP • up to 10 MB • privately stored</p>
+                    <div class="flex flex-wrap justify-center gap-2 mt-4">
+                        <button type="button" onclick="document.getElementById('receipt-file-input').click()" class="bg-emerald-500 text-slate-950 rounded-xl px-4 py-3 text-xs font-bold"><i class="fa-solid fa-camera mr-1" aria-hidden="true"></i>Take photo</button>
+                        <button type="button" onclick="document.getElementById('receipt-gallery-input').click()" class="bg-slate-800 text-white rounded-xl px-4 py-3 text-xs font-bold"><i class="fa-solid fa-image mr-1" aria-hidden="true"></i>Choose image</button>
+                    </div>
+                    <input id="receipt-file-input" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" class="hidden" onchange="handleReceiptSelected(this)">
+                    <input id="receipt-gallery-input" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="handleReceiptSelected(this)">
+                </div>
                 <div id="receipt-scan-status" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-slate-300"></div>
                 <div id="receipt-review-card" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
                     <div class="flex items-center justify-between"><div><h3 class="text-sm font-bold text-white">Review receipt</h3><p class="text-[9px] text-slate-500">Check every field before saving</p></div><span id="receipt-ai-confidence" class="text-[9px] font-bold text-amber-300">Needs review</span></div>
@@ -3653,7 +3658,10 @@ function openAccountModal() {
             const file=input.files?.[0];
             if(!file||!appState.currentUser)return;
             if(appState.receiptScanning||appState.receiptSaving){showToast('Please wait for the current receipt');return;}
-            if(file.size>10*1024*1024){showToast('Choose an image under 10 MB');return;}
+            if(!['image/jpeg','image/png','image/webp'].includes(file.type)){
+                showToast(/heic|heif/i.test(file.type+' '+file.name)?'Please convert this HEIC photo to JPG or PNG, then choose it again.':'Choose a JPG, PNG or WebP receipt image.');input.value='';return;
+            }
+            if(!file.size||file.size>10*1024*1024){showToast(file.size?'Choose an image up to 10 MB':'This image is empty. Please choose another photo.');input.value='';return;}
 
             cancelReceiptReview();
             appState.receiptScanning=true;
@@ -3674,7 +3682,7 @@ function openAccountModal() {
                 appState.pendingReceiptSaveId=crypto.randomUUID();
                 appState.pendingReceiptExactMatch=!!(await findSavedReceiptHash(hash));
                 status.textContent='Uploading receipt securely…';
-                const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+                const ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp'})[file.type];
                 const path=appState.currentUser.id+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
                 const {error}=await supabaseClient.storage.from('receipts').upload(path,file,{
                     contentType:file.type||'image/jpeg',
@@ -3737,7 +3745,7 @@ function openAccountModal() {
                 status.textContent='Could not check or upload this receipt. Please retry.';
                 appState.pendingReceiptPath=null;
             }finally{
-                appState.receiptScanning=false;input.disabled=false;
+                appState.receiptScanning=false;input.disabled=false;input.value='';
             }
         }
         async function confirmReceiptExpense(){
@@ -3801,7 +3809,7 @@ function openAccountModal() {
                 if(btn){btn.disabled=false;btn.textContent='Confirm & Save';}
             }
         }
-        function cancelReceiptReview(){document.getElementById('receipt-review-card')?.classList.add('hidden');document.getElementById('receipt-scan-status')?.classList.add('hidden');document.getElementById('receipt-validation-msg')?.classList.add('hidden');document.getElementById('receipt-file-input').value='';appState.pendingReceiptItems=[];appState.pendingReceiptFile=null;appState.pendingReceiptPath=null;appState.pendingReceiptAi=false;appState.pendingReceiptHash=null;appState.pendingReceiptSaveId=null;appState.pendingReceiptExactMatch=false;appState.receiptDuplicateOverride=null;appState.receiptDuplicateCandidate=null;document.getElementById('receipt-duplicate-warning')?.classList.add('hidden');}
+        function cancelReceiptReview(){document.getElementById('receipt-review-card')?.classList.add('hidden');document.getElementById('receipt-scan-status')?.classList.add('hidden');document.getElementById('receipt-validation-msg')?.classList.add('hidden');document.getElementById('receipt-file-input').value='';document.getElementById('receipt-gallery-input').value='';appState.pendingReceiptItems=[];appState.pendingReceiptFile=null;appState.pendingReceiptPath=null;appState.pendingReceiptAi=false;appState.pendingReceiptHash=null;appState.pendingReceiptSaveId=null;appState.pendingReceiptExactMatch=false;appState.receiptDuplicateOverride=null;appState.receiptDuplicateCandidate=null;document.getElementById('receipt-duplicate-warning')?.classList.add('hidden');}
 
 function renderRegularCostLists() {
             const rows = (appState.recurringExpenses || []).filter(r => r.is_active).map(r => {

@@ -63,7 +63,13 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Receipt image is too large" }), { status: 413, headers: cors });
     }
 
-    const mime = blob.type || "image/jpeg";
+    const mime = blob.type;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(mime)) {
+      return new Response(JSON.stringify({ error: "Choose a JPG, PNG or WebP receipt image.", code: "UNSUPPORTED_IMAGE" }), { status: 415, headers: cors });
+    }
+    if (!blob.size) {
+      return new Response(JSON.stringify({ error: "Receipt image is empty.", code: "EMPTY_IMAGE" }), { status: 400, headers: cors });
+    }
     const bytes = new Uint8Array(await blob.arrayBuffer());
     const dataUrl = `data:${mime};base64,${bytesToBase64(bytes)}`;
     const categoryText = categories.length ? categories.join(", ") : "Fuel, Parking, Tolls, Vehicle Repairs, Vehicle Cleaning, Phone, Insurance, Licensing, Other";
