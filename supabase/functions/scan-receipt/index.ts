@@ -55,27 +55,49 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Invalid receipt path" }), { status: 400, headers: cors });
     }
 
-    const admin = createClient(supabaseUrl, serviceKey);
     const downloadStarted = Date.now();
-    const { data: blob, error: downloadError } = await admin.storage.from("receipts").download(path);
-    if (downloadError || !blob) {
-      return new Response(JSON.stringify({ error: "Could not read receipt image" }), { status: 404, headers: cors });
-    }
-
-    if (blob.size > 10 * 1024 * 1024) {
-      return new Response(JSON.stringify({ error: "Receipt image is too large" }), { status: 413, headers: cors });
-    }
-
-    const mime = blob.type;
-    if (!["image/jpeg", "image/png", "image/webp"].includes(mime)) {
-      return new Response(JSON.stringify({ error: "Choose a JPG, PNG or WebP receipt image.", code: "UNSUPPORTED_IMAGE" }), { status: 415, headers: cors });
-    }
-    if (!blob.size) {
-      return new Response(JSON.stringify({ error: "Receipt image is empty.", code: "EMPTY_IMAGE" }), { status: 400, headers: cors });
+    let dataUrl: string;
+    if (body?.image !== undefined) {
+      // Direct image input never fetches caller URLs or accesses another user's storage.
+      if (includeItems || typeof body.image !== "string" || body.image.length > 2800000) {
+        return new Response(JSON.stringify({ error: "Invalid scan image" }), { status: 400, headers: cors });
+      }
+      const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/.exec(body.image);
+      if (!match || match[2].length % 4 !== 0) {
+        return new Response(JSON.stringify({ error: "Invalid scan image" }), { status: 400, headers: cors });
+      }
+      const binary = atob(match[2]);
+      if (!binary.length || binary.length > 2 * 1024 * 1024) {
+        return new Response(JSON.stringify({ error: "Scan image is too large" }), { status: 413, headers: cors });
+      }
+      const head = Array.from(binary.slice(0, 12), c => c.charCodeAt(0));
+      const jpeg = head[0] === 255 && head[1] === 216 && head[2] === 255;
+      const png = [137,80,78,71,13,10,26,10].every((v,i) => head[i] === v);
+      const webp = binary.startsWith("RIFF") && binary.slice(8,12) === "WEBP";
+      if (!(match[1] === "image/jpeg" ? jpeg : match[1] === "image/png" ? png : webp)) {
+        return new Response(JSON.stringify({ error: "Invalid image contents" }), { status: 415, headers: cors });
+      }
+      dataUrl = body.image;
+    } else {
+      const admin = createClient(supabaseUrl, serviceKey);
+      const { data: blob, error: downloadError } = await admin.storage.from("receipts").download(path);
+      if (downloadError || !blob) {
+        return new Response(JSON.stringify({ error: "Could not read receipt image" }), { status: 404, headers: cors });
+      }
+      if (blob.size > 10 * 1024 * 1024) {
+        return new Response(JSON.stringify({ error: "Receipt image is too large" }), { status: 413, headers: cors });
+      }
+      const mime = blob.type;
+      if (!["image/jpeg", "image/png", "image/webp"].includes(mime)) {
+        return new Response(JSON.stringify({ error: "Choose a JPG, PNG or WebP receipt image.", code: "UNSUPPORTED_IMAGE" }), { status: 415, headers: cors });
+      }
+      if (!blob.size) {
+        return new Response(JSON.stringify({ error: "Receipt image is empty.", code: "EMPTY_IMAGE" }), { status: 400, headers: cors });
+      }
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      dataUrl = `data:${mime};base64,${bytesToBase64(bytes)}`;
     }
     const downloadMs = Date.now() - downloadStarted;
-    const bytes = new Uint8Array(await blob.arrayBuffer());
-    const dataUrl = `data:${mime};base64,${bytesToBase64(bytes)}`;
     const categoryText = categories.length ? categories.join(", ") : "Fuel, Parking, Tolls, Vehicle Repairs, Vehicle Cleaning, Phone, Insurance, Licensing, Other";
 
     const itemInstructions = includeItems
