@@ -1089,7 +1089,14 @@
             <div class="flex justify-between items-center mb-4"><h2 class="text-lg font-bold text-white">Your invoices</h2><button type="button" onclick="closeInvoiceScreens()" aria-label="Close invoices" class="w-8 h-8 bg-slate-800 rounded-full text-white">✕</button></div>
             <button type="button" onclick="openInvoiceCreate()" class="w-full bg-blue-400 text-slate-950 rounded-xl p-3 text-xs font-bold mb-3">📄 Create invoice</button>
             <p id="invoice-list-summary" class="text-xs text-slate-300 mb-3"></p>
-            <label for="invoice-list-filter" class="text-[11px] text-slate-300">Show</label><select id="invoice-list-filter" onchange="renderInvoices()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white mb-4"><option value="all">Active invoices</option><option value="drafts">Drafts</option><option value="archived">Archived</option><option value="unpaid">Unpaid</option><option value="paid">Paid</option><option value="cancelled">Cancelled</option></select>
+            <label for="invoice-list-filter" class="text-[11px] text-slate-300">Show</label><select id="invoice-list-filter" onchange="changeInvoiceListFilter()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white mb-4"><option value="all">Active invoices</option><option value="drafts">Drafts</option><option value="archived">Archived</option><option value="unpaid">Unpaid</option><option value="paid">Paid</option><option value="cancelled">Cancelled</option></select>
+            <button id="invoice-select-toggle" type="button" onclick="toggleInvoiceSelection()" class="w-full border border-blue-400/40 bg-blue-500/10 text-blue-200 rounded-xl p-3 text-xs font-bold mb-3">Select invoices</button>
+            <div id="invoice-selection-tools" class="hidden bg-slate-900 border border-slate-600 rounded-xl p-3 mb-3 space-y-3">
+                <div class="flex items-center justify-between gap-2"><p id="invoice-selection-count" role="status" class="text-xs text-white">0 selected</p><button id="invoice-select-all" type="button" onclick="selectAllVisibleInvoices()" class="text-xs font-bold text-blue-200 p-2">Select all shown</button></div>
+                <p id="invoice-selection-help" class="text-[11px] text-slate-300"></p>
+                <button id="invoice-selection-action" type="button" onclick="applyInvoiceSelection()" class="w-full rounded-xl p-3 text-xs font-bold bg-rose-500/15 border border-rose-400/40 text-rose-200 disabled:opacity-50" disabled>Delete selected drafts</button>
+            </div>
+            <p id="invoice-selection-message" role="status" class="hidden text-xs text-amber-200 mb-3"></p>
             <div id="invoice-list" class="space-y-3"></div>
         </div>
         <div id="invoice-create-modal" class="hidden absolute inset-0 bg-slate-950/95 z-[96] p-5 overflow-y-auto">
@@ -2312,10 +2319,61 @@
 
         function invoiceById(id=appState.selectedInvoiceId){return (appState.invoices||[]).find(i=>i.id===id);}
         function closeInvoiceScreens(){['invoice-list-modal','invoice-create-modal','invoice-detail-modal','invoice-payment-modal','vat-centre-modal','invoice-calendar-modal'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));appState.selectedInvoiceId=null;}
-        function openInvoices(){closeInvoiceScreens();document.getElementById('invoice-list-modal').classList.remove('hidden');renderInvoices();}
+        function openInvoices(){appState.invoiceSelectionMode=false;appState.invoiceSelectionIds=[];closeInvoiceScreens();document.getElementById('invoice-list-modal').classList.remove('hidden');renderInvoices();}
         function closeInvoiceCreate(){if(!appState.invoiceSaving)document.getElementById('invoice-create-modal').classList.add('hidden');}
         function closeInvoiceDetail(){document.getElementById('invoice-detail-modal').classList.add('hidden');closeInvoicePayment();}
         function closeInvoicePayment(){if(!appState.invoicePaying)document.getElementById('invoice-payment-modal').classList.add('hidden');}
+        function visibleInvoiceSelectionRows(){
+            const filter=document.getElementById('invoice-list-filter').value||'all';
+            return filter==='drafts'?(appState.invoiceDrafts||[]):(appState.invoices||[]).filter(i=>filter==='archived'?i.archived:!i.archived&&(filter==='all'||i.status===filter));
+        }
+        function changeInvoiceListFilter(){if(appState.invoiceSelectionBusy)return;appState.invoiceSelectionIds=[];document.getElementById('invoice-selection-message').classList.add('hidden');renderInvoices();}
+        function toggleInvoiceSelection(){if(appState.invoiceSelectionBusy)return;appState.invoiceSelectionMode=!appState.invoiceSelectionMode;appState.invoiceSelectionIds=[];document.getElementById('invoice-selection-message').classList.add('hidden');renderInvoices();}
+        function toggleSelectedInvoice(id,checked){
+            if(appState.invoiceSelectionBusy||!visibleInvoiceSelectionRows().some(i=>i.id===id))return;
+            const ids=new Set(appState.invoiceSelectionIds||[]);checked?ids.add(id):ids.delete(id);appState.invoiceSelectionIds=[...ids];renderInvoices();
+        }
+        function selectAllVisibleInvoices(){
+            if(appState.invoiceSelectionBusy)return;const rows=visibleInvoiceSelectionRows(),ids=new Set(appState.invoiceSelectionIds||[]);
+            appState.invoiceSelectionIds=rows.length&&rows.every(i=>ids.has(i.id))?[]:rows.map(i=>i.id);renderInvoices();
+        }
+        function invoiceSelectionCheckbox(row){
+            if(!appState.invoiceSelectionMode)return '';
+            return '<label class="flex items-center gap-2 text-xs text-blue-200 mb-2"><input type="checkbox" data-invoice-selection="'+escapeHtml(row.id)+'" '+((appState.invoiceSelectionIds||[]).includes(row.id)?'checked ':'')+(appState.invoiceSelectionBusy?'disabled ':'')+'onchange="toggleSelectedInvoice(this.dataset.invoiceSelection,this.checked)" class="w-5 h-5 accent-blue-400">Select '+escapeHtml(row.invoice_number||'draft')+'</label>';
+        }
+        function renderInvoiceSelectionTools(){
+            const active=!!appState.invoiceSelectionMode,busy=!!appState.invoiceSelectionBusy,filter=document.getElementById('invoice-list-filter').value||'all';
+            const visible=new Set(visibleInvoiceSelectionRows().map(i=>i.id));appState.invoiceSelectionIds=(appState.invoiceSelectionIds||[]).filter(id=>visible.has(id));
+            document.getElementById('invoice-select-toggle').textContent=active?'Done selecting':'Select invoices';document.getElementById('invoice-select-toggle').disabled=busy;
+            document.getElementById('invoice-list-filter').disabled=busy;document.getElementById('invoice-select-all').disabled=busy||!visible.size;
+            document.getElementById('invoice-selection-tools').classList.toggle('hidden',!active);
+            document.getElementById('invoice-selection-count').textContent=appState.invoiceSelectionIds.length+' selected';
+            document.getElementById('invoice-selection-help').textContent=filter==='drafts'?'Selected drafts will be permanently deleted after confirmation. They have not been issued.':'Issued invoices keep their payment and tax history. Archive to hide them, or restore them from Archived. To delete drafts, choose Drafts above.';
+            const action=document.getElementById('invoice-selection-action');action.textContent=busy?'Updating…':filter==='drafts'?'Delete selected drafts':filter==='archived'?'Restore selected invoices':'Archive selected invoices';action.disabled=busy||!appState.invoiceSelectionIds.length;
+        }
+        async function applyInvoiceSelection(){
+            if(!appState.currentUser||appState.invoiceSelectionBusy)return;
+            const rows=visibleInvoiceSelectionRows().filter(i=>(appState.invoiceSelectionIds||[]).includes(i.id));if(!rows.length)return;
+            const filter=document.getElementById('invoice-list-filter').value||'all',drafts=filter==='drafts',restore=filter==='archived';
+            const names=rows.slice(0,5).map(i=>i.invoice_number||i.data?.customer_name||'Unnamed draft').join('\n');
+            const action=drafts?'Permanently delete':restore?'Restore':'Archive';
+            if(!confirm(action+' '+rows.length+(drafts?' selected draft(s)? This cannot be undone.':' selected invoice(s)? Payment and tax history will be kept.')+'\n\n'+names+(rows.length>5?'\n…':'')))return;
+            appState.invoiceSelectionBusy=true;renderInvoiceSelectionTools();let completed=0,message='';
+            try{
+                if(drafts){
+                    const {data,error}=await supabaseClient.from('invoice_drafts').delete().eq('user_id',appState.currentUser.id).in('id',rows.map(i=>i.id)).select('id');
+                    if(error)throw error;completed=data?.length||0;
+                    if(completed!==rows.length)message='Deleted '+completed+' draft(s). Some selected drafts changed or were already removed; refresh and review them.';
+                }else{
+                    for(const row of rows){const {error}=await supabaseClient.rpc('set_driver_invoice_archived',{p_id:row.id,p_archived:!restore});if(error)throw error;completed++;}
+                }
+                if(!message)message=(drafts?'Deleted ':restore?'Restored ':'Archived ')+completed+(drafts?' draft(s).':' invoice(s).');
+            }catch(error){message=completed+' completed. '+(error.message||'Could not update the selection. Please retry.');}
+            finally{
+                await fetchUserData(appState.currentUser.id);appState.invoiceSelectionIds=[];appState.invoiceSelectionBusy=false;renderInvoices();
+                const note=document.getElementById('invoice-selection-message');note.textContent=message;note.classList.remove('hidden');
+            }
+        }
         function renderInvoices(){
             const invoices=appState.invoices||[],unpaid=invoices.filter(i=>i.status==='unpaid'),outstanding=unpaid.reduce((sum,i)=>sum+Number(i.total),0),today=driverToday();
             document.getElementById('dash-invoice-outstanding').textContent=unpaid.length?unpaid.length+' unpaid · £'+outstanding.toFixed(2)+' outstanding':'Create, save and track your invoices';
@@ -2323,11 +2381,11 @@
             document.getElementById('dash-invoice-alert').textContent=[due?due+' due today':'',late?late+' overdue':'',(appState.invoiceDrafts||[]).length?appState.invoiceDrafts.length+' drafts saved':''].filter(Boolean).join(' · ');
             const coverage=document.getElementById('dash-vat-coverage');coverage.classList.toggle('hidden',!appState.vatProfile?.registered);coverage.textContent='Profit separates classified VAT. Flat Rate figures use a provisional limited-cost rate until the VAT period review is saved. Check unclassified records.';
             document.getElementById('invoice-list-summary').textContent=unpaid.length+' unpaid · £'+outstanding.toFixed(2)+' outstanding, including archived invoices. Unpaid invoices are not income.';
-            const filter=document.getElementById('invoice-list-filter').value||'all';
-            if(filter==='drafts'){document.getElementById('invoice-list').innerHTML=(appState.invoiceDrafts||[]).map(d=>'<div class="bg-slate-900 border border-slate-700 rounded-xl p-3"><button type="button" onclick="openInvoiceDraft(\''+d.id+'\')" class="w-full text-left"><b class="text-white">Draft · '+escapeHtml(d.data.customer_name||'Unnamed customer')+'</b><p class="text-xs text-slate-300">Intended date '+(d.data.invoice_date?formatUkDate(d.data.invoice_date):'Not set')+' · No invoice number yet</p></button><button type="button" onclick="deleteInvoiceDraft(\''+d.id+'\')" class="text-xs text-rose-200 mt-2">Delete draft</button></div>').join('')||'<p class="text-xs text-slate-300">No saved drafts.</p>';return;}
+            const filter=document.getElementById('invoice-list-filter').value||'all';renderInvoiceSelectionTools();
+            if(filter==='drafts'){document.getElementById('invoice-list').innerHTML=(appState.invoiceDrafts||[]).map(d=>'<div class="bg-slate-900 border border-slate-700 rounded-xl p-3">'+invoiceSelectionCheckbox(d)+'<button type="button" onclick="openInvoiceDraft(\''+d.id+'\')" class="w-full text-left"><b class="text-white">Draft · '+escapeHtml(d.data.customer_name||'Unnamed customer')+'</b><p class="text-xs text-slate-300">Intended date '+(d.data.invoice_date?formatUkDate(d.data.invoice_date):'Not set')+' · No invoice number yet</p></button><button type="button" onclick="deleteInvoiceDraft(\''+d.id+'\')" class="text-xs text-rose-200 mt-2">Delete draft</button></div>').join('')||'<p class="text-xs text-slate-300">No saved drafts.</p>';return;}
             document.getElementById('invoice-list').innerHTML=invoices.filter(i=>filter==='archived'?i.archived:!i.archived&&(filter==='all'||i.status===filter)).map(i=>{
                 const overdue=i.status==='unpaid'&&i.due_date<today;
-                return '<button type="button" onclick="openInvoiceDetail(\''+i.id+'\')" class="w-full text-left bg-slate-900 border border-slate-700 rounded-xl p-3"><div class="flex justify-between gap-2"><b class="text-white">'+escapeHtml(i.invoice_number)+'</b><b class="text-emerald-300">£'+Number(i.total).toFixed(2)+'</b></div><p class="text-xs text-slate-300 mt-1">'+escapeHtml(i.customer_name)+'</p><p class="text-[10px] '+(overdue?'text-amber-200':'text-slate-400')+' mt-1">'+(i.archived?'Archived · ':'')+(overdue?'Overdue':i.status==='paid'?'Paid':i.status==='cancelled'?'Cancelled':'Unpaid')+' · Due '+formatUkDate(i.due_date)+'</p></button>';
+                return '<div>'+invoiceSelectionCheckbox(i)+'<button type="button" onclick="openInvoiceDetail(\''+i.id+'\')" class="w-full text-left bg-slate-900 border border-slate-700 rounded-xl p-3"><div class="flex justify-between gap-2"><b class="text-white">'+escapeHtml(i.invoice_number)+'</b><b class="text-emerald-300">£'+Number(i.total).toFixed(2)+'</b></div><p class="text-xs text-slate-300 mt-1">'+escapeHtml(i.customer_name)+'</p><p class="text-[10px] '+(overdue?'text-amber-200':'text-slate-400')+' mt-1">'+(i.archived?'Archived · ':'')+(overdue?'Overdue':i.status==='paid'?'Paid':i.status==='cancelled'?'Cancelled':'Unpaid')+' · Due '+formatUkDate(i.due_date)+'</p></button></div>';
             }).join('')||'<p class="text-xs text-slate-300 py-4">No invoices here yet.</p>';
         }
         function openInvoiceCreate(){
