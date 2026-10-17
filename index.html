@@ -370,6 +370,10 @@
 <p id="receipt-tax-preview" role="status" class="text-[11px] text-amber-200"></p><p class="text-[10px] text-slate-400">A suggested category does not confirm tax relief. Review cars, loan repayments, equipment and private use. VAT is reviewed separately.</p>
 </div>
                     <p id="receipt-validation-msg" class="hidden text-[10px] font-semibold text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-xl p-2"></p>
+                    <div class="rounded-xl border border-slate-700 bg-slate-950 p-3 space-y-2">
+                        <button id="receipt-read-items" type="button" onclick="readReceiptItems()" class="text-xs text-emerald-300 font-bold disabled:opacity-50">Read individual products (optional)</button>
+                        <p id="receipt-items-status" role="status" class="text-[10px] text-slate-400">Save the receipt total now, or read products to help split a mixed receipt into categories. Reading products takes longer.</p>
+                    </div>
                     <div id="receipt-duplicate-warning" role="alert" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 space-y-2">
                         <p id="receipt-duplicate-title" class="text-xs font-bold text-amber-300">Possible duplicate receipt</p>
                         <p id="receipt-duplicate-details" class="text-[10px] text-amber-200"></p>
@@ -3654,6 +3658,35 @@ function openAccountModal() {
             confirmReceiptExpense();
         }
 
+        async function timeReceiptStep(timings,key,action){
+            const started=performance.now();
+            try{return await action();}finally{timings[key]=Math.round(performance.now()-started);}
+        }
+        function recordReceiptTimings(timings,started,server){
+            const safe={...timings,total_ms:Math.round(performance.now()-started)};
+            for(const key of ['download_ms','ai_ms','total_ms'])if(Number.isFinite(server?.[key]))safe['server_'+key]=server[key];
+            appState.lastReceiptScanTimings=safe;
+            console.info('Receipt scan stages',JSON.stringify(safe));
+        }
+        async function readReceiptItems(){
+            if(!appState.pendingReceiptPath||appState.receiptScanning||appState.receiptSaving||appState.receiptItemsReading)return;
+            const requestId=appState.pendingReceiptSaveId,path=appState.pendingReceiptPath;
+            const button=document.getElementById('receipt-read-items'),note=document.getElementById('receipt-items-status');
+            const confirm=document.getElementById('receipt-confirm-btn'),started=performance.now(),timings={};
+            appState.receiptItemsReading=true;button.disabled=true;confirm.disabled=true;note.textContent='Reading individual products… You can cancel this receipt at any time.';
+            try{
+                const categories=[...document.getElementById('receipt-category').options].map(o=>o.value);
+                const {data,error}=await timeReceiptStep(timings,'request_ms',()=>supabaseClient.functions.invoke('scan-receipt',{body:{path,categories,mode:'items'}}));
+                if(appState.pendingReceiptSaveId!==requestId)return;
+                recordReceiptTimings(timings,started,data?.timings);
+                if(error||!data?.data)throw new Error('Products could not be read. You can still save the total and split it manually.');
+                appState.pendingReceiptItems=Array.isArray(data.data.items)?data.data.items:[];
+                ensureBatchFeatures();
+                document.getElementById('receipt-split-after').checked=appState.pendingReceiptItems.length>0;
+                note.textContent=appState.pendingReceiptItems.length?appState.pendingReceiptItems.length+' product lines read. After saving, check their amounts and categories in Split products.':'No readable products found. You can save the total and split it manually.';
+            }catch(error){if(appState.pendingReceiptSaveId===requestId)note.textContent=error.message;}
+            finally{if(appState.pendingReceiptSaveId===requestId){appState.receiptItemsReading=false;button.disabled=false;confirm.disabled=false;}}
+        }
         async function handleReceiptSelected(input){
             const file=input.files?.[0];
             if(!file||!appState.currentUser)return;
@@ -3671,21 +3704,22 @@ function openAccountModal() {
             const status=document.getElementById('receipt-scan-status');
             const review=document.getElementById('receipt-review-card');appState.pendingReceiptItems=[];
             const confidenceEl=document.getElementById('receipt-ai-confidence');
+            const started=performance.now(),timings={};
 
             status.classList.remove('hidden');
             review.classList.add('hidden');
             status.textContent='Checking whether this receipt has already been added…';
 
             try{
-                const hash=await receiptFileHash(file);
+                const hash=await timeReceiptStep(timings,'hash_ms',()=>receiptFileHash(file));
                 appState.pendingReceiptHash=hash;
                 appState.pendingReceiptSaveId=crypto.randomUUID();
                 status.textContent='Uploading receipt and checking for duplicates…';
                 const ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp'})[file.type];
                 const path=appState.currentUser.id+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
                 const [duplicateCheck,upload]=await Promise.allSettled([
-                    findSavedReceiptHash(hash),
-                    supabaseClient.storage.from('receipts').upload(path,file,{contentType:file.type,upsert:false})
+                    timeReceiptStep(timings,'duplicate_ms',()=>findSavedReceiptHash(hash)),
+                    timeReceiptStep(timings,'upload_ms',()=>supabaseClient.storage.from('receipts').upload(path,file,{contentType:file.type,upsert:false}))
                 ]);
                 if(upload.status==='rejected')throw upload.reason;
                 if(upload.value.error)throw upload.value.error;
@@ -3707,11 +3741,12 @@ function openAccountModal() {
                 document.getElementById('receipt-vat').value='';
                 confidenceEl.textContent='AI reading…';
                 confidenceEl.className='text-[9px] font-bold text-emerald-300';
-                status.innerHTML='<i class="fa-solid fa-wand-magic-sparkles text-emerald-400 mr-2"></i>AI is reading merchant, date, total, VAT and category…';
+                status.innerHTML='<i class="fa-solid fa-wand-magic-sparkles text-emerald-400 mr-2"></i>Reading receipt totals… Individual products can be read afterwards.';
 
-                const {data:scanResponse,error:scanError}=await supabaseClient.functions.invoke('scan-receipt',{
-                    body:{path,categories:cats}
-                });
+                const {data:scanResponse,error:scanError}=await timeReceiptStep(timings,'request_ms',()=>supabaseClient.functions.invoke('scan-receipt',{
+                    body:{path,categories:cats,mode:'summary'}
+                }));
+                recordReceiptTimings(timings,started,scanResponse?.timings);
 
                 if(scanError || !scanResponse?.data){
                     console.error('Receipt AI scan error',scanError,scanResponse);
@@ -3748,13 +3783,14 @@ function openAccountModal() {
                 console.error(err);
                 status.textContent='Could not check or upload this receipt. Please retry.';
                 appState.pendingReceiptPath=null;
+                recordReceiptTimings(timings,started);
             }finally{
                 appState.receiptScanning=false;input.disabled=false;input.value='';
             }
         }
         async function confirmReceiptExpense(){
             if(!appState.currentUser||!appState.pendingReceiptPath||appState.receiptScanning)return;
-            if(appState.receiptSaving)return;
+            if(appState.receiptSaving||appState.receiptItemsReading)return;
 
             const btn=document.getElementById('receipt-confirm-btn');
             const validation=document.getElementById('receipt-validation-msg');
@@ -3813,7 +3849,7 @@ function openAccountModal() {
                 if(btn){btn.disabled=false;btn.textContent='Confirm & Save';}
             }
         }
-        function cancelReceiptReview(){document.getElementById('receipt-review-card')?.classList.add('hidden');document.getElementById('receipt-scan-status')?.classList.add('hidden');document.getElementById('receipt-validation-msg')?.classList.add('hidden');document.getElementById('receipt-file-input').value='';document.getElementById('receipt-gallery-input').value='';appState.pendingReceiptItems=[];appState.pendingReceiptFile=null;appState.pendingReceiptPath=null;appState.pendingReceiptAi=false;appState.pendingReceiptHash=null;appState.pendingReceiptSaveId=null;appState.pendingReceiptExactMatch=false;appState.receiptDuplicateOverride=null;appState.receiptDuplicateCandidate=null;document.getElementById('receipt-duplicate-warning')?.classList.add('hidden');}
+        function cancelReceiptReview(){appState.receiptItemsReading=false;const itemButton=document.getElementById('receipt-read-items');if(itemButton)itemButton.disabled=false;const confirmButton=document.getElementById('receipt-confirm-btn');if(confirmButton)confirmButton.disabled=false;const itemStatus=document.getElementById('receipt-items-status');if(itemStatus)itemStatus.textContent='Save the receipt total now, or read products to help split a mixed receipt into categories. Reading products takes longer.';const splitOption=document.getElementById('receipt-split-after');if(splitOption)splitOption.checked=false;document.getElementById('receipt-review-card')?.classList.add('hidden');document.getElementById('receipt-scan-status')?.classList.add('hidden');document.getElementById('receipt-validation-msg')?.classList.add('hidden');document.getElementById('receipt-file-input').value='';document.getElementById('receipt-gallery-input').value='';appState.pendingReceiptItems=[];appState.pendingReceiptFile=null;appState.pendingReceiptPath=null;appState.pendingReceiptAi=false;appState.pendingReceiptHash=null;appState.pendingReceiptSaveId=null;appState.pendingReceiptExactMatch=false;appState.receiptDuplicateOverride=null;appState.receiptDuplicateCandidate=null;document.getElementById('receipt-duplicate-warning')?.classList.add('hidden');}
 
 function renderRegularCostLists() {
             const rows = (appState.recurringExpenses || []).filter(r => r.is_active).map(r => {
