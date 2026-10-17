@@ -14,12 +14,12 @@ const main = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map
     await page.addStyleTag({ content: '.hidden{display:none!important}' });
     if (process.env.TEST_TAILWIND_PATH) await page.addScriptTag({ content: fs.readFileSync(process.env.TEST_TAILWIND_PATH, 'utf8') });
     await page.addScriptTag({ content: `
-      crypto.randomUUID=()=> '00000000-0000-4000-8000-000000000001';
-      window.requestModes=[];window.blockItems=false;window.failItems=false;window.uploads=[];window.saves=[];window.removals=[];window.scanCalls=0;window.blockDuplicate=false;window.failDuplicate=false;window.failUpload=false;window.failScan=false;window.failSave=false;window.exactMatch=false;
+      let testRequestId=0;crypto.randomUUID=()=> '00000000-0000-4000-8000-'+String(++testRequestId).padStart(12,'0');
+      window.requestBodies=[];window.blockUpload=false;window.requestModes=[];window.blockItems=false;window.failItems=false;window.uploads=[];window.saves=[];window.removals=[];window.scanCalls=0;window.blockDuplicate=false;window.failDuplicate=false;window.failUpload=false;window.failScan=false;window.failSave=false;window.exactMatch=false;
       window.supabase={createClient:()=>({
         from:table=>{const q={select:()=>q,eq:()=>q,limit:async()=>{if(blockDuplicate)await new Promise(resolve=>window.releaseDuplicate=resolve);return failDuplicate?{error:{message:'Duplicate check offline'}}:{data:exactMatch?[{id:'existing'}]:[]};},then:resolve=>Promise.resolve({data:[]}).then(resolve)};return q;},
-        storage:{from:()=>({upload:async(path,file)=>{uploads.push({path,type:file.type});return failUpload?{error:{message:'Offline'}}:{error:null};},remove:async paths=>{removals.push(paths);return {error:null};}})},
-        functions:{invoke:async(name,args)=>{scanCalls++;requestModes.push(args.body.mode);if(args.body.mode==='items'&&blockItems)await new Promise(resolve=>window.releaseItems=resolve);return failScan||(args.body.mode==='items'&&failItems)?{error:{message:'Scanner unavailable'}}:{data:{timings:{download_ms:5,ai_ms:10,total_ms:20},data:{merchant:'Shop',date:'2026-10-17',amount:20,vat:null,category:'Other',confidence:.9,items:args.body.mode==='items'?[{description:'Tools',amount:12,category:'Other'},{description:'Food',amount:8,category:'Other'}]:[]}}};}},
+        storage:{from:()=>({upload:async(path,file)=>{uploads.push({path,type:file.type,size:file.size});if(blockUpload)await new Promise(resolve=>window.releaseUpload=resolve);return failUpload?{error:{message:'Offline'}}:{error:null};},remove:async paths=>{removals.push(paths);return {error:null};}})},
+        functions:{invoke:async(name,args)=>{scanCalls++;requestBodies.push(args.body);requestModes.push(args.body.mode);if(args.body.mode==='items'&&blockItems)await new Promise(resolve=>window.releaseItems=resolve);return failScan||(args.body.mode==='items'&&failItems)?{error:{message:'Scanner unavailable'}}:{data:{timings:{download_ms:5,ai_ms:10,total_ms:20},data:{merchant:'Shop',date:'2026-10-17',amount:20,vat:null,category:'Other',confidence:.9,items:args.body.mode==='items'?[{description:'Tools',amount:12,category:'Other'},{description:'Food',amount:8,category:'Other'}]:[]}}};}},
         rpc:async(name,args)=>{saves.push(args);return failSave?{error:{message:'Offline'}}:{data:'expense-id'};}
       })};
     ` });
@@ -121,7 +121,51 @@ const main = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map
     assert.equal(await page.evaluate(() => appState.pendingReceiptItems.length), 0);
     assert.equal(await page.evaluate(() => appState.receiptItemsReading), false);
     assert.equal(await page.locator('#receipt-split-after').isChecked(), false);
+    // Exercise the real image-copy helper, not a mock of resizing or decoding.
+    const imageFixture = await page.evaluate(async () => {
+      const canvas=document.createElement('canvas');canvas.width=2000;canvas.height=3000;
+      const c=canvas.getContext('2d');c.fillStyle='#fff';c.fillRect(0,0,2000,3000);
+      c.fillStyle='#111';c.font='40px sans-serif';for(let y=100;y<2900;y+=70)c.fillText('Example receipt product  £12.34',100,y);
+      const pixels=c.createImageData(600,600);let seed=5;for(let i=0;i<pixels.data.length;i+=4){seed=(seed*1664525+1013904223)>>>0;pixels.data[i]=seed&255;pixels.data[i+1]=(seed>>>8)&255;pixels.data[i+2]=(seed>>>16)&255;pixels.data[i+3]=255;}c.putImageData(pixels,700,1000);
+      return canvas.toDataURL('image/png').split(',')[1];
+    });
+    const original=Buffer.from(imageFixture,'base64');assert.ok(original.length>512*1024);
+    await page.evaluate(()=>{exactMatch=false;blockUpload=true;});
+    await choose('large-original.png','image/png',original);
+    await page.waitForFunction(()=>!appState.receiptScanning&&typeof releaseUpload==='function');
+    assert.equal(await page.locator('#receipt-review-card').evaluate(el=>el.classList.contains('hidden')),false);
+    assert.equal(await page.locator('#receipt-confirm-btn').isDisabled(),true);
+    assert.equal(await page.locator('#receipt-read-items').isDisabled(),true);
+    assert.match(await page.locator('#receipt-evidence-status').textContent(),/Uploading original/);
+    assert.equal(await page.evaluate(()=>uploads.at(-1).size),original.length);
+    assert.equal(await page.evaluate(()=>uploads.at(-1).type),'image/png');
+    const copy=await page.evaluate(async()=>{const image=requestBodies.at(-1).image;const blob=await (await fetch(image)).blob();const bitmap=await createImageBitmap(blob);return {type:blob.type,size:blob.size,width:bitmap.width,height:bitmap.height};});
+    assert.equal(copy.type,'image/jpeg');assert.ok(copy.size<original.length);assert.equal(copy.width,1600);assert.equal(copy.height,2400);
+    const savesBeforeEvidence=await page.evaluate(()=>saves.length);
+    await page.evaluate(()=>confirmReceiptExpense());assert.equal(await page.evaluate(()=>saves.length),savesBeforeEvidence);
+    await page.locator('#receipt-merchant').fill('Edited during upload');
+    await page.evaluate(()=>{blockUpload=false;releaseUpload();});
+    await page.waitForFunction(()=>appState.receiptEvidenceStatus==='ready');
+    assert.equal(await page.locator('#receipt-confirm-btn').isDisabled(),false);
+    assert.equal(await page.locator('#receipt-merchant').inputValue(),'Edited during upload');
+    await page.evaluate(()=>{cancelReceiptReview();failUpload=true;});
+    await choose('retry-original.png','image/png',original);
+    await page.waitForFunction(()=>!appState.receiptScanning&&appState.receiptEvidenceStatus==='failed');
+    assert.equal(await page.locator('#receipt-evidence-retry').evaluate(el=>el.classList.contains('hidden')),false);
+    const failedPath=await page.evaluate(()=>appState.pendingReceiptPath);
+    await page.evaluate(()=>{failUpload=false;return retryReceiptEvidence();});
+    assert.equal(await page.evaluate(()=>appState.receiptEvidenceStatus),'ready');
+    assert.notEqual(await page.evaluate(()=>appState.pendingReceiptPath),failedPath);
+    assert.equal(await page.evaluate(()=>uploads.at(-1).size),original.length);
+    await page.evaluate(()=>{cancelReceiptReview();blockUpload=true;});
+    await choose('cancel-original.png','image/png',original);
+    await page.waitForFunction(()=>!appState.receiptScanning&&appState.receiptEvidenceStatus==='uploading');
+    const cancelledPath=await page.evaluate(()=>appState.pendingReceiptPath);
+    await page.evaluate(()=>{cancelReceiptReview();blockUpload=false;releaseUpload();});
+    await page.waitForFunction(path=>removals.some(paths=>paths.includes(path)),cancelledPath);
+    assert.equal(await page.evaluate(()=>appState.pendingReceiptPath),null);
+    assert.equal(await page.locator('#receipt-review-card').evaluate(el=>el.classList.contains('hidden')),true);
     assert.deepEqual(errors, []);
-    console.log('PASS: separate camera/gallery inputs, unsupported/empty/oversize rejection before upload, parallel upload/duplicate checks, cleanup after check failure, retry selection, AI fallback, duplicate override and failed-save retention, totals-first requests, optional products, manual-field preservation, stage timings and cancel-during-items stale-result rejection. Mocked services; no live AI calls or financial writes.');
+    console.log('PASS: actual reading-copy resizing, original bytes retained, early review while evidence uploads, save/item guards, evidence retry and cancelled-upload cleanup; separate camera/gallery inputs, unsupported/empty/oversize rejection before upload, parallel upload/duplicate checks, cleanup after check failure, retry selection, AI fallback, duplicate override and failed-save retention, totals-first requests, optional products, manual-field preservation, stage timings and cancel-during-items stale-result rejection. Mocked services; no live AI calls or financial writes.');
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exit(1); });
