@@ -15,11 +15,11 @@ const main = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map
     if (process.env.TEST_TAILWIND_PATH) await page.addScriptTag({ content: fs.readFileSync(process.env.TEST_TAILWIND_PATH, 'utf8') });
     await page.addScriptTag({ content: `
       crypto.randomUUID=()=> '00000000-0000-4000-8000-000000000001';
-      window.uploads=[];window.saves=[];window.failUpload=false;window.failScan=false;window.failSave=false;window.exactMatch=false;
+      window.uploads=[];window.saves=[];window.removals=[];window.scanCalls=0;window.blockDuplicate=false;window.failDuplicate=false;window.failUpload=false;window.failScan=false;window.failSave=false;window.exactMatch=false;
       window.supabase={createClient:()=>({
-        from:table=>{const q={select:()=>q,eq:()=>q,limit:async()=>({data:exactMatch?[{id:'existing'}]:[]}),then:resolve=>Promise.resolve({data:[]}).then(resolve)};return q;},
-        storage:{from:()=>({upload:async(path,file)=>{uploads.push({path,type:file.type});return failUpload?{error:{message:'Offline'}}:{error:null};}})},
-        functions:{invoke:async()=>failScan?{error:{message:'Scanner unavailable'}}:{data:{data:{merchant:'Shop',date:'2026-10-17',amount:20,vat:null,category:'Other',confidence:.9,items:[]}}}},
+        from:table=>{const q={select:()=>q,eq:()=>q,limit:async()=>{if(blockDuplicate)await new Promise(resolve=>window.releaseDuplicate=resolve);return failDuplicate?{error:{message:'Duplicate check offline'}}:{data:exactMatch?[{id:'existing'}]:[]};},then:resolve=>Promise.resolve({data:[]}).then(resolve)};return q;},
+        storage:{from:()=>({upload:async(path,file)=>{uploads.push({path,type:file.type});return failUpload?{error:{message:'Offline'}}:{error:null};},remove:async paths=>{removals.push(paths);return {error:null};}})},
+        functions:{invoke:async()=>{scanCalls++;return failScan?{error:{message:'Scanner unavailable'}}:{data:{data:{merchant:'Shop',date:'2026-10-17',amount:20,vat:null,category:'Other',confidence:.9,items:[]}}};}},
         rpc:async(name,args)=>{saves.push(args);return failSave?{error:{message:'Offline'}}:{data:'expense-id'};}
       })};
     ` });
@@ -40,6 +40,21 @@ const main = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map
     await choose('big.jpg', 'image/jpeg', Buffer.alloc(10 * 1024 * 1024 + 1));
     assert.match(await page.evaluate(() => toast), /10 MB/);
     assert.equal(await page.evaluate(() => uploads.length), 0);
+    await page.evaluate(() => blockDuplicate = true);
+    await choose('parallel.jpg', 'image/jpeg');
+    await page.waitForFunction(() => uploads.length === 1 && typeof releaseDuplicate === 'function');
+    assert.equal(await page.evaluate(() => scanCalls), 0);
+    assert.equal(await page.evaluate(() => appState.receiptScanning), true);
+    await page.evaluate(() => { blockDuplicate = false; releaseDuplicate(); });
+    await page.waitForFunction(() => !appState.receiptScanning);
+    assert.equal(await page.evaluate(() => scanCalls), 1);
+    await page.evaluate(() => { cancelReceiptReview(); failDuplicate = true; });
+    await choose('check-fails.jpg', 'image/jpeg');
+    await page.waitForFunction(() => !appState.receiptScanning);
+    assert.equal(await page.evaluate(() => removals.length), 1);
+    assert.equal(await page.evaluate(() => scanCalls), 1);
+    assert.equal(await page.evaluate(() => appState.pendingReceiptPath), null);
+    await page.evaluate(() => { failDuplicate = false; uploads = []; });
     await page.evaluate(() => failUpload = true);
     await choose('receipt.png', 'image/png');
     await page.waitForFunction(() => !appState.receiptScanning);
@@ -70,6 +85,6 @@ const main = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map
     assert.equal(await page.evaluate(() => saves.at(-1).p_receipt.duplicate_override), true);
     assert.equal(await page.evaluate(() => toast), 'Receipt confirmed and expense saved');
     assert.deepEqual(errors, []);
-    console.log('PASS: separate camera/gallery inputs, unsupported/empty/oversize rejection before upload, retry selection, AI fallback, duplicate override and failed-save retention. Mocked services; no live AI calls or financial writes.');
+    console.log('PASS: separate camera/gallery inputs, unsupported/empty/oversize rejection before upload, parallel upload/duplicate checks, cleanup after check failure, retry selection, AI fallback, duplicate override and failed-save retention. Mocked services; no live AI calls or financial writes.');
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exit(1); });

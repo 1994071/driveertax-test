@@ -3680,17 +3680,21 @@ function openAccountModal() {
                 const hash=await receiptFileHash(file);
                 appState.pendingReceiptHash=hash;
                 appState.pendingReceiptSaveId=crypto.randomUUID();
-                appState.pendingReceiptExactMatch=!!(await findSavedReceiptHash(hash));
-                status.textContent='Uploading receipt securely…';
+                status.textContent='Uploading receipt and checking for duplicates…';
                 const ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp'})[file.type];
                 const path=appState.currentUser.id+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
-                const {error}=await supabaseClient.storage.from('receipts').upload(path,file,{
-                    contentType:file.type||'image/jpeg',
-                    upsert:false
-                });
-                if(error)throw error;
-
+                const [duplicateCheck,upload]=await Promise.allSettled([
+                    findSavedReceiptHash(hash),
+                    supabaseClient.storage.from('receipts').upload(path,file,{contentType:file.type,upsert:false})
+                ]);
+                if(upload.status==='rejected')throw upload.reason;
+                if(upload.value.error)throw upload.value.error;
                 appState.pendingReceiptPath=path;
+                if(duplicateCheck.status==='rejected'){
+                    try{await supabaseClient.storage.from('receipts').remove([path]);}catch{}
+                    throw duplicateCheck.reason;
+                }
+                appState.pendingReceiptExactMatch=!!duplicateCheck.value;
                 document.getElementById('receipt-preview').src=URL.createObjectURL(file);
                 setDateField('receipt-date','receipt-date-label',isoDate(new Date()));
 

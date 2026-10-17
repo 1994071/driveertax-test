@@ -27,6 +27,7 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: cors });
 
   try {
+    const scanStarted = Date.now();
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -54,6 +55,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const admin = createClient(supabaseUrl, serviceKey);
+    const downloadStarted = Date.now();
     const { data: blob, error: downloadError } = await admin.storage.from("receipts").download(path);
     if (downloadError || !blob) {
       return new Response(JSON.stringify({ error: "Could not read receipt image" }), { status: 404, headers: cors });
@@ -70,6 +72,7 @@ Deno.serve(async (req: Request) => {
     if (!blob.size) {
       return new Response(JSON.stringify({ error: "Receipt image is empty.", code: "EMPTY_IMAGE" }), { status: 400, headers: cors });
     }
+    const downloadMs = Date.now() - downloadStarted;
     const bytes = new Uint8Array(await blob.arrayBuffer());
     const dataUrl = `data:${mime};base64,${bytesToBase64(bytes)}`;
     const categoryText = categories.length ? categories.join(", ") : "Fuel, Parking, Tolls, Vehicle Repairs, Vehicle Cleaning, Phone, Insurance, Licensing, Other";
@@ -89,6 +92,7 @@ Rules:
 - For ambiguous numeric dates, use UK day/month/year convention.
 - Do not include markdown or commentary.`;
 
+    const aiStarted = Date.now();
     const aiResponse = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -97,6 +101,7 @@ Rules:
       },
       body: JSON.stringify({
         model: "gpt-6-luna",
+        reasoning: { effort: "low" },
         input: [{
           role: "user",
           content: [
@@ -137,7 +142,9 @@ Rules:
       confidence: Math.max(0, Math.min(1, Number(parsed.confidence) || 0)),
     };
 
-    return new Response(JSON.stringify({ data: result }), { status: 200, headers: cors });
+    const timings = { download_ms: downloadMs, ai_ms: Date.now() - aiStarted, total_ms: Date.now() - scanStarted };
+    console.info("Receipt scan timing", JSON.stringify(timings));
+    return new Response(JSON.stringify({ data: result, timings }), { status: 200, headers: cors });
   } catch (err) {
     console.error(err);
     return new Response(JSON.stringify({ error: "Receipt scan failed. You can still enter the receipt manually." }), { status: 500, headers: cors });
