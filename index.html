@@ -350,6 +350,7 @@
                 <div id="receipt-scan-status" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-slate-300"></div>
                 <div id="receipt-review-card" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
                     <div class="flex items-center justify-between"><div><h3 class="text-sm font-bold text-white">Review receipt</h3><p class="text-[9px] text-slate-500">Check every field before saving</p></div><span id="receipt-ai-confidence" class="text-[9px] font-bold text-amber-300">Needs review</span></div>
+                    <div class="rounded-xl bg-slate-950 p-3"><p id="receipt-evidence-status" role="status" class="text-[11px] text-slate-300"></p><button id="receipt-evidence-retry" type="button" onclick="retryReceiptEvidence()" class="hidden text-xs font-bold text-emerald-300 mt-2">Retry evidence upload</button></div>
                     <img id="receipt-preview" class="w-full max-h-44 object-contain rounded-xl bg-slate-950 border border-slate-800" alt="Receipt preview">
                     <div class="grid grid-cols-2 gap-2">
                         <div><label class="text-[10px] text-slate-500 font-bold">Merchant</label><input id="receipt-merchant" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
@@ -3658,6 +3659,69 @@ function openAccountModal() {
             confirmReceiptExpense();
         }
 
+        async function prepareReceiptScanImage(file){
+            // Preserve small originals; larger photos get a reading copy only. Evidence stays unchanged.
+            let image=null,objectUrl=null;
+            try{
+                let scanBlob=file;
+                if(file.size>512*1024){
+                    if(globalThis.createImageBitmap)image=await createImageBitmap(file);
+                    else{
+                        objectUrl=URL.createObjectURL(file);
+                        image=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=reject;img.src=objectUrl;});
+                    }
+                    const width=image.width,height=image.height;
+                    if(!width||!height)return null;
+                    // Keep more pixels than a 1024px thumbnail, especially for long receipts.
+                    const scale=Math.min(1,1600/Math.min(width,height),4096/Math.max(width,height));
+                    const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
+                    const context=canvas.getContext('2d');if(!context)return null;
+                    context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(image,0,0,canvas.width,canvas.height);
+                    const resized=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.88));
+                    canvas.width=canvas.height=1;
+                    if(resized&&resized.size<file.size)scanBlob=resized;
+                }
+                if(scanBlob.size>2*1024*1024)return null;
+                const head=new Uint8Array(await scanBlob.slice(0,12).arrayBuffer());
+                const valid=scanBlob.type==='image/jpeg'?head[0]===255&&head[1]===216&&head[2]===255:scanBlob.type==='image/png'?[137,80,78,71,13,10,26,10].every((v,i)=>head[i]===v):String.fromCharCode(...head.slice(0,4))==='RIFF'&&String.fromCharCode(...head.slice(8,12))==='WEBP';
+                if(!valid)return null;
+                const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(scanBlob);});
+                return {image:dataUrl,bytes:scanBlob.size};
+            }catch{return null;}
+            finally{image?.close?.();if(objectUrl)URL.revokeObjectURL(objectUrl);}
+        }
+        function receiptEvidencePath(file){
+            const ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp'})[file.type];
+            return appState.currentUser.id+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
+        }
+        function updateReceiptEvidenceUi(){
+            const state=appState.receiptEvidenceStatus;
+            document.getElementById('receipt-evidence-status').textContent=state==='ready'?'Original evidence uploaded. Review the details before saving.':state==='failed'?'Original evidence could not upload. Keep this screen open and retry before saving.':'Uploading original evidence… You can review the details now. Keep this screen open until upload finishes.';
+            document.getElementById('receipt-evidence-retry').classList.toggle('hidden',state!=='failed');
+            document.getElementById('receipt-confirm-btn').disabled=state!=='ready'||!!appState.receiptItemsReading;
+            document.getElementById('receipt-read-items').disabled=state!=='ready'||!!appState.receiptItemsReading;
+        }
+        async function uploadReceiptEvidence(file,path,requestId,timings){
+            appState.receiptEvidenceStatus='uploading';updateReceiptEvidenceUi();
+            try{
+                const {error}=await timeReceiptStep(timings,'upload_ms',()=>supabaseClient.storage.from('receipts').upload(path,file,{contentType:file.type,upsert:false}));
+                if(error)throw error;
+                if(appState.pendingReceiptSaveId!==requestId){try{await supabaseClient.storage.from('receipts').remove([path]);}catch{}return false;}
+                appState.receiptEvidenceStatus='ready';
+                appState.lastReceiptEvidenceTimings={upload_ms:timings.upload_ms};
+                console.info('Receipt evidence upload timing',JSON.stringify(appState.lastReceiptEvidenceTimings));
+                return true;
+            }catch{
+                if(appState.pendingReceiptSaveId===requestId)appState.receiptEvidenceStatus='failed';
+                return false;
+            }finally{if(appState.pendingReceiptSaveId===requestId)updateReceiptEvidenceUi();}
+        }
+        async function retryReceiptEvidence(){
+            if(appState.receiptEvidenceStatus!=='failed'||!appState.pendingReceiptFile||appState.receiptSaving)return;
+            // A fresh path avoids overwriting evidence after an ambiguous network failure.
+            const path=receiptEvidencePath(appState.pendingReceiptFile);appState.pendingReceiptPath=path;
+            await uploadReceiptEvidence(appState.pendingReceiptFile,path,appState.pendingReceiptSaveId,{});
+        }
         async function timeReceiptStep(timings,key,action){
             const started=performance.now();
             try{return await action();}finally{timings[key]=Math.round(performance.now()-started);}
@@ -3669,7 +3733,7 @@ function openAccountModal() {
             console.info('Receipt scan stages',JSON.stringify(safe));
         }
         async function readReceiptItems(){
-            if(!appState.pendingReceiptPath||appState.receiptScanning||appState.receiptSaving||appState.receiptItemsReading)return;
+            if(!appState.pendingReceiptPath||appState.receiptEvidenceStatus!=='ready'||appState.receiptScanning||appState.receiptSaving||appState.receiptItemsReading)return;
             const requestId=appState.pendingReceiptSaveId,path=appState.pendingReceiptPath;
             const button=document.getElementById('receipt-read-items'),note=document.getElementById('receipt-items-status');
             const confirm=document.getElementById('receipt-confirm-btn'),started=performance.now(),timings={};
@@ -3685,7 +3749,7 @@ function openAccountModal() {
                 document.getElementById('receipt-split-after').checked=appState.pendingReceiptItems.length>0;
                 note.textContent=appState.pendingReceiptItems.length?appState.pendingReceiptItems.length+' product lines read. After saving, check their amounts and categories in Split products.':'No readable products found. You can save the total and split it manually.';
             }catch(error){if(appState.pendingReceiptSaveId===requestId)note.textContent=error.message;}
-            finally{if(appState.pendingReceiptSaveId===requestId){appState.receiptItemsReading=false;button.disabled=false;confirm.disabled=false;}}
+            finally{if(appState.pendingReceiptSaveId===requestId){appState.receiptItemsReading=false;updateReceiptEvidenceUi();}}
         }
         async function handleReceiptSelected(input){
             const file=input.files?.[0];
@@ -3714,21 +3778,25 @@ function openAccountModal() {
                 const hash=await timeReceiptStep(timings,'hash_ms',()=>receiptFileHash(file));
                 appState.pendingReceiptHash=hash;
                 appState.pendingReceiptSaveId=crypto.randomUUID();
-                status.textContent='Uploading receipt and checking for duplicates…';
-                const ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp'})[file.type];
-                const path=appState.currentUser.id+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
-                const [duplicateCheck,upload]=await Promise.allSettled([
-                    timeReceiptStep(timings,'duplicate_ms',()=>findSavedReceiptHash(hash)),
-                    timeReceiptStep(timings,'upload_ms',()=>supabaseClient.storage.from('receipts').upload(path,file,{contentType:file.type,upsert:false}))
-                ]);
-                if(upload.status==='rejected')throw upload.reason;
-                if(upload.value.error)throw upload.value.error;
-                appState.pendingReceiptPath=path;
-                if(duplicateCheck.status==='rejected'){
-                    try{await supabaseClient.storage.from('receipts').remove([path]);}catch{}
-                    throw duplicateCheck.reason;
+                status.textContent='Preparing receipt and checking for duplicates…';
+                const requestId=appState.pendingReceiptSaveId;
+                const path=receiptEvidencePath(file);appState.pendingReceiptPath=path;
+                const duplicateTask=timeReceiptStep(timings,'duplicate_ms',()=>findSavedReceiptHash(hash)).then(value=>({value}),error=>({error}));
+                const scanImage=await timeReceiptStep(timings,'prepare_ms',()=>prepareReceiptScanImage(file));
+                // Keep the mobile uplink free for the small reading copy first.
+                let evidence=scanImage?null:uploadReceiptEvidence(file,path,requestId,timings);
+                const duplicateCheck=await duplicateTask;
+                if(appState.pendingReceiptSaveId!==requestId)return;
+                if(duplicateCheck.error){
+                    appState.pendingReceiptSaveId=null;
+                    if(evidence && await evidence){try{await supabaseClient.storage.from('receipts').remove([path]);}catch{}}
+                    throw duplicateCheck.error;
                 }
                 appState.pendingReceiptExactMatch=!!duplicateCheck.value;
+                if(!scanImage && !(await evidence))throw new Error('Evidence upload failed');
+                if(appState.pendingReceiptSaveId!==requestId)return;
+                if(scanImage)timings.scan_bytes=scanImage.bytes;
+                timings.original_bytes=file.size;
                 document.getElementById('receipt-preview').src=URL.createObjectURL(file);
                 setDateField('receipt-date','receipt-date-label',isoDate(new Date()));
 
@@ -3744,8 +3812,11 @@ function openAccountModal() {
                 status.innerHTML='<i class="fa-solid fa-wand-magic-sparkles text-emerald-400 mr-2"></i>Reading receipt totals… Individual products can be read afterwards.';
 
                 const {data:scanResponse,error:scanError}=await timeReceiptStep(timings,'request_ms',()=>supabaseClient.functions.invoke('scan-receipt',{
-                    body:{path,categories:cats,mode:'summary'}
+                    body:{path,categories:cats,mode:'summary',...(scanImage?{image:scanImage.image}:{})}
                 }));
+                if(appState.pendingReceiptSaveId!==requestId)return;
+                if(scanImage)evidence=uploadReceiptEvidence(file,path,requestId,timings);
+                timings.review_ms=Math.round(performance.now()-started);
                 recordReceiptTimings(timings,started,scanResponse?.timings);
 
                 if(scanError || !scanResponse?.data){
@@ -3791,6 +3862,7 @@ function openAccountModal() {
         async function confirmReceiptExpense(){
             if(!appState.currentUser||!appState.pendingReceiptPath||appState.receiptScanning)return;
             if(appState.receiptSaving||appState.receiptItemsReading)return;
+            if(appState.receiptEvidenceStatus!=='ready'){showToast('Wait for the original evidence upload, or retry it before saving.');return;}
 
             const btn=document.getElementById('receipt-confirm-btn');
             const validation=document.getElementById('receipt-validation-msg');
@@ -3849,7 +3921,7 @@ function openAccountModal() {
                 if(btn){btn.disabled=false;btn.textContent='Confirm & Save';}
             }
         }
-        function cancelReceiptReview(){appState.receiptItemsReading=false;const itemButton=document.getElementById('receipt-read-items');if(itemButton)itemButton.disabled=false;const confirmButton=document.getElementById('receipt-confirm-btn');if(confirmButton)confirmButton.disabled=false;const itemStatus=document.getElementById('receipt-items-status');if(itemStatus)itemStatus.textContent='Save the receipt total now, or read products to help split a mixed receipt into categories. Reading products takes longer.';const splitOption=document.getElementById('receipt-split-after');if(splitOption)splitOption.checked=false;document.getElementById('receipt-review-card')?.classList.add('hidden');document.getElementById('receipt-scan-status')?.classList.add('hidden');document.getElementById('receipt-validation-msg')?.classList.add('hidden');document.getElementById('receipt-file-input').value='';document.getElementById('receipt-gallery-input').value='';appState.pendingReceiptItems=[];appState.pendingReceiptFile=null;appState.pendingReceiptPath=null;appState.pendingReceiptAi=false;appState.pendingReceiptHash=null;appState.pendingReceiptSaveId=null;appState.pendingReceiptExactMatch=false;appState.receiptDuplicateOverride=null;appState.receiptDuplicateCandidate=null;document.getElementById('receipt-duplicate-warning')?.classList.add('hidden');}
+        function cancelReceiptReview(){appState.receiptEvidenceStatus=null;appState.receiptItemsReading=false;const itemButton=document.getElementById('receipt-read-items');if(itemButton)itemButton.disabled=false;const confirmButton=document.getElementById('receipt-confirm-btn');if(confirmButton)confirmButton.disabled=false;const itemStatus=document.getElementById('receipt-items-status');if(itemStatus)itemStatus.textContent='Save the receipt total now, or read products to help split a mixed receipt into categories. Reading products takes longer.';const splitOption=document.getElementById('receipt-split-after');if(splitOption)splitOption.checked=false;document.getElementById('receipt-review-card')?.classList.add('hidden');document.getElementById('receipt-scan-status')?.classList.add('hidden');document.getElementById('receipt-validation-msg')?.classList.add('hidden');document.getElementById('receipt-file-input').value='';document.getElementById('receipt-gallery-input').value='';appState.pendingReceiptItems=[];appState.pendingReceiptFile=null;appState.pendingReceiptPath=null;appState.pendingReceiptAi=false;appState.pendingReceiptHash=null;appState.pendingReceiptSaveId=null;appState.pendingReceiptExactMatch=false;appState.receiptDuplicateOverride=null;appState.receiptDuplicateCandidate=null;document.getElementById('receipt-duplicate-warning')?.classList.add('hidden');}
 
 function renderRegularCostLists() {
             const rows = (appState.recurringExpenses || []).filter(r => r.is_active).map(r => {
