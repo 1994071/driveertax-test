@@ -15,11 +15,11 @@ const main = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map
     if (process.env.TEST_TAILWIND_PATH) await page.addScriptTag({ content: fs.readFileSync(process.env.TEST_TAILWIND_PATH, 'utf8') });
     await page.addScriptTag({ content: `
       crypto.randomUUID=()=> '00000000-0000-4000-8000-000000000001';
-      window.uploads=[];window.saves=[];window.removals=[];window.scanCalls=0;window.blockDuplicate=false;window.failDuplicate=false;window.failUpload=false;window.failScan=false;window.failSave=false;window.exactMatch=false;
+      window.requestModes=[];window.blockItems=false;window.failItems=false;window.uploads=[];window.saves=[];window.removals=[];window.scanCalls=0;window.blockDuplicate=false;window.failDuplicate=false;window.failUpload=false;window.failScan=false;window.failSave=false;window.exactMatch=false;
       window.supabase={createClient:()=>({
         from:table=>{const q={select:()=>q,eq:()=>q,limit:async()=>{if(blockDuplicate)await new Promise(resolve=>window.releaseDuplicate=resolve);return failDuplicate?{error:{message:'Duplicate check offline'}}:{data:exactMatch?[{id:'existing'}]:[]};},then:resolve=>Promise.resolve({data:[]}).then(resolve)};return q;},
         storage:{from:()=>({upload:async(path,file)=>{uploads.push({path,type:file.type});return failUpload?{error:{message:'Offline'}}:{error:null};},remove:async paths=>{removals.push(paths);return {error:null};}})},
-        functions:{invoke:async()=>{scanCalls++;return failScan?{error:{message:'Scanner unavailable'}}:{data:{data:{merchant:'Shop',date:'2026-10-17',amount:20,vat:null,category:'Other',confidence:.9,items:[]}}};}},
+        functions:{invoke:async(name,args)=>{scanCalls++;requestModes.push(args.body.mode);if(args.body.mode==='items'&&blockItems)await new Promise(resolve=>window.releaseItems=resolve);return failScan||(args.body.mode==='items'&&failItems)?{error:{message:'Scanner unavailable'}}:{data:{timings:{download_ms:5,ai_ms:10,total_ms:20},data:{merchant:'Shop',date:'2026-10-17',amount:20,vat:null,category:'Other',confidence:.9,items:args.body.mode==='items'?[{description:'Tools',amount:12,category:'Other'},{description:'Food',amount:8,category:'Other'}]:[]}}};}},
         rpc:async(name,args)=>{saves.push(args);return failSave?{error:{message:'Offline'}}:{data:'expense-id'};}
       })};
     ` });
@@ -84,7 +84,33 @@ const main = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map
     await page.waitForFunction(() => !appState.receiptSaving);
     assert.equal(await page.evaluate(() => saves.at(-1).p_receipt.duplicate_override), true);
     assert.equal(await page.evaluate(() => toast), 'Receipt confirmed and expense saved');
+    assert.equal(await page.evaluate(() => requestModes.every(mode => mode === 'summary')), true);
+    await choose('items.jpg', 'image/jpeg');
+    await page.waitForFunction(() => !appState.receiptScanning);
+    assert.ok(await page.evaluate(() => appState.lastReceiptScanTimings.upload_ms >= 0));
+    assert.equal(await page.evaluate(() => appState.lastReceiptScanTimings.server_ai_ms), 10);
+    await page.locator('#receipt-amount').fill('21.00');
+    await page.locator('#receipt-merchant').fill('Corrected merchant');
+    await page.evaluate(() => { failItems = true; return readReceiptItems(); });
+    assert.match(await page.locator('#receipt-items-status').textContent(), /still save/);
+    assert.equal(await page.locator('#receipt-amount').inputValue(), '21.00');
+    assert.equal(await page.locator('#receipt-confirm-btn').isDisabled(), false);
+    await page.evaluate(() => { failItems = false; return readReceiptItems(); });
+    assert.equal(await page.evaluate(() => appState.pendingReceiptItems.length), 2);
+    assert.equal(await page.locator('#receipt-split-after').isChecked(), true);
+    assert.equal(await page.locator('#receipt-amount').inputValue(), '21.00');
+    assert.equal(await page.locator('#receipt-merchant').inputValue(), 'Corrected merchant');
+    const savesBeforeItems = await page.evaluate(() => saves.length);
+    await page.evaluate(() => { blockItems = true; window.itemTask = readReceiptItems(); });
+    await page.waitForFunction(() => typeof releaseItems === 'function');
+    await page.evaluate(() => confirmReceiptExpense());
+    assert.equal(await page.evaluate(() => saves.length), savesBeforeItems);
+    await page.evaluate(() => { cancelReceiptReview(); releaseItems(); return itemTask; });
+    assert.equal(await page.evaluate(() => appState.pendingReceiptPath), null);
+    assert.equal(await page.evaluate(() => appState.pendingReceiptItems.length), 0);
+    assert.equal(await page.evaluate(() => appState.receiptItemsReading), false);
+    assert.equal(await page.locator('#receipt-split-after').isChecked(), false);
     assert.deepEqual(errors, []);
-    console.log('PASS: separate camera/gallery inputs, unsupported/empty/oversize rejection before upload, parallel upload/duplicate checks, cleanup after check failure, retry selection, AI fallback, duplicate override and failed-save retention. Mocked services; no live AI calls or financial writes.');
+    console.log('PASS: separate camera/gallery inputs, unsupported/empty/oversize rejection before upload, parallel upload/duplicate checks, cleanup after check failure, retry selection, AI fallback, duplicate override and failed-save retention, totals-first requests, optional products, manual-field preservation, stage timings and cancel-during-items stale-result rejection. Mocked services; no live AI calls or financial writes.');
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exit(1); });
