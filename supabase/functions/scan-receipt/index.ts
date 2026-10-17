@@ -45,6 +45,7 @@ Deno.serve(async (req: Request) => {
     if (userError || !user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: cors });
 
     const body = await req.json();
+    const includeItems = body?.mode !== "summary";
     const path = String(body?.path || "");
     const categories = Array.isArray(body?.categories)
       ? body.categories.map((x: unknown) => String(x)).filter(Boolean).slice(0, 30)
@@ -77,13 +78,17 @@ Deno.serve(async (req: Request) => {
     const dataUrl = `data:${mime};base64,${bytesToBase64(bytes)}`;
     const categoryText = categories.length ? categories.join(", ") : "Fuel, Parking, Tolls, Vehicle Repairs, Vehicle Cleaning, Phone, Insurance, Licensing, Other";
 
-    const prompt = `Read this UK business receipt carefully. Return ONLY a JSON object with:
+    const itemInstructions = includeItems
+      ? 'items: array of up to 60 readable purchase lines, each with description (string), amount (final line total including VAT after line discounts, number), category (from the category list). Use [] when item lines cannot be read reliably. Do not treat a subtotal, receipt total or payment as a product. Do not invent amounts to balance the receipt. Keep unallocated discounts visible by leaving item totals unreconciled for the user to check.'
+      : 'items: []. Read the merchant, receipt date and final totals only. Do not transcribe individual products.';
+    const prompt = `Read this UK business receipt carefully. Return ONLY a compact JSON object with:
 merchant: string or "",
 date: YYYY-MM-DD or "",
 amount: receipt grand total as a number or null,
 vat: VAT amount explicitly shown on the receipt as a number or null,
 category: choose the best single category from this exact list: ${categoryText},
-confidence: number from 0 to 1,\nitems: array of up to 60 readable purchase lines, each with description (string), amount (final line total including VAT after line discounts, number), category (from the category list). Use [] when item lines cannot be read reliably.\nDo not treat a subtotal, receipt total or payment as a product. Do not invent amounts to balance the receipt. Keep unallocated discounts visible by leaving item totals unreconciled for the user to check.
+confidence: number from 0 to 1,
+${itemInstructions}
 
 Rules:
 - Use the final amount actually paid / grand total, not a subtotal.
@@ -109,7 +114,7 @@ Rules:
             { type: "input_image", image_url: dataUrl, detail: "high" }
           ]
         }],
-        max_output_tokens: 2400
+        max_output_tokens: includeItems ? 2400 : 1000
       }),
     });
 
@@ -135,10 +140,10 @@ Rules:
     const result = {
       merchant: typeof parsed.merchant === "string" ? parsed.merchant.trim().slice(0, 120) : "",
       date: /^\d{4}-\d{2}-\d{2}$/.test(String(parsed.date || "")) ? String(parsed.date) : "",
-      amount: Number.isFinite(Number(parsed.amount)) && Number(parsed.amount) >= 0 ? Number(parsed.amount) : null,
+      amount: parsed.amount === null || parsed.amount === "" || parsed.amount === undefined ? null : (Number.isFinite(Number(parsed.amount)) && Number(parsed.amount) >= 0 ? Number(parsed.amount) : null),
       vat: parsed.vat === null || parsed.vat === "" || parsed.vat === undefined ? null : (Number.isFinite(Number(parsed.vat)) && Number(parsed.vat) >= 0 ? Number(parsed.vat) : null),
       category: categories.includes(String(parsed.category)) ? String(parsed.category) : (categories.includes("Other") ? "Other" : String(parsed.category || "Other")),
-      items: Array.isArray(parsed.items) ? parsed.items.slice(0,60).filter((i: any) => typeof i?.description === "string" && typeof i?.amount === "number" && Number.isFinite(i.amount) && i.amount > 0 && i.amount < 1000000000).map((i: any) => ({description:i.description.trim().slice(0,200), amount:Math.round(i.amount*100)/100, category:categories.includes(i.category)?i.category:"Other"})) : [],
+      items: includeItems && Array.isArray(parsed.items) ? parsed.items.slice(0,60).filter((i: any) => typeof i?.description === "string" && typeof i?.amount === "number" && Number.isFinite(i.amount) && i.amount > 0 && i.amount < 1000000000).map((i: any) => ({description:i.description.trim().slice(0,200), amount:Math.round(i.amount*100)/100, category:categories.includes(i.category)?i.category:"Other"})) : [],
       confidence: Math.max(0, Math.min(1, Number(parsed.confidence) || 0)),
     };
 
