@@ -100,6 +100,17 @@ const main = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map
     assert.equal(await page.locator('#receipt-split-after').isChecked(), true);
     assert.equal(await page.locator('#receipt-amount').inputValue(), '21.00');
     assert.equal(await page.locator('#receipt-merchant').inputValue(), 'Corrected merchant');
+    if (process.env.TEST_TAILWIND_PATH) {
+      await page.evaluate(() => {
+        document.getElementById('auth-screen').classList.add('hidden');
+        document.getElementById('onboarding-screen')?.classList.add('hidden');
+        document.getElementById('view-dashboard').classList.add('hidden');
+        document.getElementById('view-scan').classList.remove('hidden');
+      });
+      await page.locator('#receipt-read-items').scrollIntoViewIfNeeded();
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= 390));
+      await page.screenshot({ path: '/tmp/receipt-totals-first.png' });
+    }
     const savesBeforeItems = await page.evaluate(() => saves.length);
     await page.evaluate(() => { blockItems = true; window.itemTask = readReceiptItems(); });
     await page.waitForFunction(() => typeof releaseItems === 'function');
