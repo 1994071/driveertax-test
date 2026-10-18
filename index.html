@@ -240,7 +240,7 @@
                     
                 </div>
 
-                <p class="text-[10px] text-slate-400">Add Income starts your daily record: income → expenses → mileage. You can skip a step.</p>
+                <p id="daily-entry-help" class="text-[10px] text-slate-400">Add Income starts your daily record: income → expenses → mileage. You can skip a step.</p>
                 <div id="dashboard-week-chart" class="bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3">
                     <div class="flex items-center justify-between gap-2"><h3 class="text-sm font-bold text-white">Your week</h3><div class="flex gap-2"><button type="button" onclick="changeDashboardChartWeek(-1)" aria-label="Previous week" class="bg-slate-800 rounded-lg px-3 py-2">‹</button><button type="button" onclick="changeDashboardChartWeek(1)" aria-label="Next week" class="bg-slate-800 rounded-lg px-3 py-2">›</button></div></div>
                     <p id="dashboard-chart-dates" class="text-xs text-slate-300"></p>
@@ -282,7 +282,7 @@
                     <p class="text-[10px] text-slate-400">Tick each item after checking your records. This does not verify your tax figures.</p>
                     <label class="flex gap-2 items-center text-xs text-slate-200"><input id="weekly-review-income" type="checkbox" onchange="setWeeklyReview('income',this.checked)" class="accent-emerald-400">Income checked</label>
                     <label class="flex gap-2 items-center text-xs text-slate-200"><input id="weekly-review-expenses" type="checkbox" onchange="setWeeklyReview('expenses',this.checked)" class="accent-emerald-400">Receipts and expenses checked</label>
-                    <label class="flex gap-2 items-center text-xs text-slate-200"><input id="weekly-review-mileage" type="checkbox" onchange="setWeeklyReview('mileage',this.checked)" class="accent-emerald-400">Mileage checked, or not needed</label>
+                    <label data-mileage-control class="flex gap-2 items-center text-xs text-slate-200"><input id="weekly-review-mileage" type="checkbox" onchange="setWeeklyReview('mileage',this.checked)" class="accent-emerald-400">Mileage checked, or not needed</label>
                     <p id="weekly-review-status" class="text-[11px] text-slate-300" aria-live="polite"></p>
                 </div>
 
@@ -293,7 +293,7 @@
                         </div>
                         <div class="text-left">
                             <h4 class="text-xs font-bold text-white group-hover:text-blue-400 transition">Calendar</h4>
-                            <p class="text-[10px] text-slate-400">Review income, expenses and mileage by day</p>
+                            <p class="text-[10px] text-slate-400">Review income and expenses by day</p>
                         </div>
                     </div>
                     <i class="fa-solid fa-chevron-right text-xs text-slate-500"></i>
@@ -314,18 +314,18 @@
             <section id="view-records" class="p-5 space-y-4 hidden">
                 <div>
                     <div class="flex items-center justify-between"><h2 class="text-lg font-bold text-white">Records</h2><button type="button" onclick="switchTab('dashboard')" class="text-xs font-bold text-emerald-400">Back to Dashboard</button></div>
-                    <p class="text-[11px] text-slate-400 mt-1">Income, expenses and mileage in one place.</p>
+                    <p class="text-[11px] text-slate-400 mt-1">Your business records in one place.</p>
                 </div>
                 <div class="grid grid-cols-4 gap-1.5 bg-slate-900 border border-slate-800 rounded-2xl p-1.5">
                     <button id="records-filter-all" onclick="setRecordsFilter('all')" class="records-filter bg-emerald-500 text-slate-950 rounded-xl py-2 text-[10px] font-bold">All</button>
                     <button id="records-filter-income" onclick="setRecordsFilter('income')" class="records-filter text-slate-400 rounded-xl py-2 text-[10px] font-bold">Income</button>
                     <button id="records-filter-expense" onclick="setRecordsFilter('expense')" class="records-filter text-slate-400 rounded-xl py-2 text-[10px] font-bold">Expenses</button>
-                    <button id="records-filter-mileage" onclick="setRecordsFilter('mileage')" class="records-filter text-slate-400 rounded-xl py-2 text-[10px] font-bold">Mileage</button>
+                    <button data-mileage-control id="records-filter-mileage" onclick="setRecordsFilter('mileage')" class="records-filter text-slate-400 rounded-xl py-2 text-[10px] font-bold">Mileage</button>
                 </div>
                 <div class="grid grid-cols-3 gap-2">
                     <button onclick="openIncomeModal()" class="bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 rounded-xl py-2.5 text-[10px] font-bold"><i class="fa-solid fa-plus mr-1"></i>Income</button>
                     <button onclick="openExpenseModal()" class="bg-rose-500/15 border border-rose-500/25 text-rose-300 rounded-xl py-2.5 text-[10px] font-bold"><i class="fa-solid fa-minus mr-1"></i>Expense</button>
-                    <button onclick="openMileageModal()" class="bg-blue-500/15 border border-blue-500/25 text-blue-300 rounded-xl py-2.5 text-[10px] font-bold"><i class="fa-solid fa-road mr-1"></i>Mileage</button>
+                    <button data-mileage-control onclick="openMileageModal()" class="bg-blue-500/15 border border-blue-500/25 text-blue-300 rounded-xl py-2.5 text-[10px] font-bold"><i class="fa-solid fa-road mr-1"></i>Mileage</button>
                 </div>
                 <div id="records-list" class="space-y-2.5"></div>
             </section>
@@ -412,7 +412,7 @@
                     </div>
                 </div>
 
-                <button onclick="openMileageModal()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 transition">
+                <button data-mileage-control onclick="openMileageModal()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 transition">
                     <i class="fa-solid fa-road"></i> Add Mileage
                 </button>
 
@@ -559,7 +559,7 @@
                     <div id="period-expenses-group"><label class="text-[11px] text-slate-400 block mb-1">Total expenses (£)</label><input id="period-expenses" type="number" min="0" step="0.01" placeholder="0.00" oninput="resetPeriodReview();updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
                     <div id="period-profit-group" class="hidden"><label class="text-[11px] text-slate-400 block mb-1">Known business profit (£) — before tax</label><input id="period-profit" type="number" step="0.01" placeholder="e.g. 3500.00 (losses can be negative)" oninput="resetPeriodReview();updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div>
                     <div><label class="text-[11px] text-slate-400 block mb-1">Do these totals already include regular costs?</label><select id="period-regular-included" required onchange="resetPeriodReview();updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><option value="">Choose one</option><option value="yes">Yes — insurance, phone and other regular costs included</option><option value="no">No — deduct my regular-cost share separately</option></select></div>
-                    <div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] text-slate-400">Business mileage (optional)</label><input id="period-mileage" type="number" min="0" step="0.1" placeholder="Leave blank to keep recorded miles" oninput="resetPeriodReview();updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div><div><label class="text-[10px] text-slate-400">Statement source (optional)</label><input id="period-source" maxlength="160" placeholder="Uber, Bolt, bank statement…" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div></div>
+                    <div class="grid grid-cols-2 gap-2"><div data-mileage-control><label class="text-[10px] text-slate-400">Business mileage (optional)</label><input id="period-mileage" type="number" min="0" step="0.1" placeholder="Leave blank to keep recorded miles" oninput="resetPeriodReview();updatePeriodSummaryPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div><div><label class="text-[10px] text-slate-400">Statement source (optional)</label><input id="period-source" maxlength="160" placeholder="Uber, Bolt, bank statement…" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></div></div>
                     <div><label class="text-[10px] text-slate-400">Notes (optional)</label><textarea id="period-notes" maxlength="2000" rows="2" placeholder="Anything to remember about these totals" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"></textarea></div>
                     <div id="period-reconciliation" aria-live="polite" class="bg-blue-500/10 border border-blue-500/25 rounded-xl p-3 text-xs space-y-2"></div>
                     <label id="period-review-label" class="hidden flex gap-2 text-[10px] text-blue-200"><input id="period-review-confirm" type="checkbox">I reviewed the recorded amounts and the remaining amounts to add. My entries are totals for the whole period.</label>
@@ -692,10 +692,18 @@
                         <div id="income-shortcuts" class="flex flex-wrap gap-2"></div>
                     </div>
                     <div>
-                        <label class="text-[11px] font-semibold text-slate-400 block mb-1">Income Source</label>
+                        <label class="text-[11px] font-semibold text-slate-400 block mb-1">Service / income source</label>
                         <select id="income-source" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
                             <option value="Other">Other</option>
                         </select>
+                        <button type="button" onclick="openCustomIncomeSource()" class="mt-2 min-h-[44px] text-emerald-300 text-xs font-bold">＋ Add your own service / source</button>
+                        <div id="income-custom-wrap" class="hidden mt-2 space-y-2">
+                            <label for="income-custom-name" class="block text-xs text-slate-300">New service / income source</label>
+                            <input id="income-custom-name" maxlength="80" placeholder="e.g. A service you offer" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white">
+                            <p class="text-[10px] text-slate-400">Saved to your account for future income entries.</p>
+                            <p id="income-custom-message" role="status" class="text-xs text-amber-200"></p>
+                            <button type="button" id="income-custom-save" onclick="saveCustomIncomeSource()" class="min-h-[44px] rounded-xl bg-emerald-500 px-4 text-xs font-bold text-slate-950">Save and use source</button>
+                        </div>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
@@ -1002,6 +1010,8 @@
                         <div id="profile-profession-picker"></div>
                         <div>
                             <label class="text-[10px] text-slate-500 font-bold">Customers, companies & platforms (optional)</label>
+                            <label class="flex items-center gap-2 text-xs text-slate-200 my-3"><input id="profile-mileage-enabled" type="checkbox" onchange="setMileageEnabled(this.checked)" class="accent-blue-400">Show business mileage tools on this device</label>
+                            <p class="text-[10px] text-slate-400">Optional for travel to clients or work sites. Turning this off keeps existing mileage records.</p>
                             <div id="profile-platform-chips" class="flex flex-wrap gap-2 mt-2"></div>
                             <div class="flex gap-2 mt-2"><input id="profile-custom-platform" type="text" placeholder="Customer or company name" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white"><button type="button" onclick="addProfileCustomPlatform()" class="bg-slate-800 text-emerald-300 px-3 rounded-xl text-[10px] font-bold">+ Add</button></div>
                         </div>
@@ -1666,11 +1676,50 @@
             finally {appState.savingOnboarding=false;btn.disabled=false;btn.textContent='Finish Setup';}
         }
 
+        const tradeIncomeServices = {"Taxi / Private Hire": ["Passenger fares", "Airport transfers", "Private hire bookings"], "Food Delivery": ["Food deliveries", "Delivery incentives", "Delivery tips"], "Parcel / Courier": ["Parcel deliveries", "Courier jobs", "Collection services"], "Removals": ["House removals", "Man-and-van jobs", "Packing services"], "Vehicle / Business Driving": ["Vehicle collection", "Vehicle delivery", "Business driving"], "Chauffeur": ["Chauffeur bookings", "Airport transfers", "Event transport"], "Bicycle courier": ["Cycle deliveries", "Collection services", "Delivery tips"], "Builder": ["Building labour", "Renovations", "Materials supplied"], "Plumber": ["Plumbing installations", "Plumbing repairs", "Emergency call-outs"], "Electrician": ["Electrical installations", "Electrical repairs", "Testing & inspections"], "Carpenter": ["Carpentry labour", "Bespoke woodwork", "Repairs & fittings"], "Joiner": ["Joinery work", "Doors & windows", "Bespoke joinery"], "Painter & decorator": ["Interior decorating", "Exterior painting", "Wallpapering"], "Plasterer": ["Plastering", "Skimming", "Rendering"], "Tiler": ["Wall tiling", "Floor tiling", "Tile repairs"], "Roofer": ["Roof installation", "Roof repairs", "Roof maintenance"], "Bricklayer": ["Bricklaying", "Garden walls", "Repointing"], "Scaffolder": ["Scaffold erection", "Scaffold hire", "Scaffold dismantling"], "Welder": ["Welding labour", "Metal fabrication", "Welding repairs"], "Glazier": ["Glass installation", "Glass replacement", "Window repairs"], "Flooring fitter": ["Floor fitting", "Floor preparation", "Floor repairs"], "Kitchen fitter": ["Kitchen installation", "Worktop fitting", "Kitchen repairs"], "Bathroom fitter": ["Bathroom installation", "Bathroom renovation", "Bathroom repairs"], "Locksmith": ["Lock fitting", "Lock replacement", "Emergency call-outs"], "Gas engineer": ["Boiler installation", "Boiler servicing", "Gas safety inspections"], "Construction subcontractor": ["Subcontract labour", "Contract work", "Materials supplied"], "Window cleaner": ["Window cleaning", "Conservatory cleaning", "Gutter cleaning"], "Domestic cleaner": ["Regular home cleaning", "Deep cleaning", "One-off cleaning"], "Commercial cleaner": ["Office cleaning", "Commercial cleaning", "Contract cleaning"], "Carpet cleaner": ["Carpet cleaning", "Upholstery cleaning", "Stain treatment"], "Oven cleaner": ["Oven cleaning", "Hob cleaning", "Extractor cleaning"], "Gutter cleaner": ["Gutter clearing", "Gutter washing", "Downpipe clearing"], "Pressure washing": ["Driveway cleaning", "Patio cleaning", "Exterior washing"], "End of tenancy cleaner": ["End of tenancy cleaning", "Move-in cleaning", "Deep cleaning"], "Gardener": ["Garden maintenance", "Lawn mowing", "Hedge trimming"], "Landscaper": ["Landscaping projects", "Paving & patios", "Planting services"], "Tree surgeon": ["Tree pruning", "Tree removal", "Stump grinding"], "Grounds maintenance": ["Grounds maintenance", "Grass cutting", "Seasonal maintenance"], "Handyman": ["General repairs", "Furniture assembly", "Installation work"], "Pest controller": ["Pest treatment", "Pest inspections", "Prevention contracts"], "Property maintenance": ["Property repairs", "Maintenance contracts", "Emergency repairs"], "Hairdresser": ["Haircuts", "Hair colouring", "Styling & treatments", "Product sales"], "Barber": ["Haircuts", "Beard trims", "Haircut & beard packages", "Product sales"], "Nail technician": ["Manicures", "Pedicures", "Nail extensions", "Nail art"], "Beautician": ["Facials", "Waxing", "Beauty treatments", "Product sales"], "Makeup artist": ["Makeup appointments", "Bridal makeup", "Event makeup"], "Lash technician": ["Lash extensions", "Lash infills", "Lash lifts"], "Brow technician": ["Brow shaping", "Brow tinting", "Brow lamination"], "Mobile beauty therapist": ["Mobile treatments", "Beauty appointments", "Product sales"], "Tattoo artist": ["Tattoo sessions", "Tattoo designs", "Touch-ups"], "Body piercer": ["Piercing appointments", "Jewellery sales", "Jewellery changes"], "Software developer": ["Software development", "Development support", "Software maintenance"], "Web developer": ["Website development", "Website maintenance", "Integration work"], "Web designer": ["Website design", "Website redesign", "Design consultation"], "IT consultant": ["IT consulting", "Project work", "Technical reviews"], "IT support": ["IT support", "Device setup", "Maintenance contracts"], "Cybersecurity consultant": ["Security assessments", "Security consulting", "Incident support"], "Business consultant": ["Business consulting", "Project work", "Workshops"], "Bookkeeper": ["Bookkeeping", "Payroll services", "Record reconciliation"], "Accountant": ["Accounts preparation", "Tax services", "Accounting advice"], "Virtual assistant": ["Admin support", "Diary management", "Project assistance"], "Administrator": ["Administration services", "Data entry", "Document preparation"], "Translator": ["Document translation", "Localisation", "Translation review"], "Interpreter": ["Interpreting sessions", "Remote interpreting", "On-site interpreting"], "Recruitment consultant": ["Placement fees", "Recruitment services", "Candidate sourcing"], "Marketing consultant": ["Marketing consulting", "Campaign management", "Marketing reviews"], "Surveyor": ["Property surveys", "Inspections", "Surveying advice"], "Architect": ["Architectural design", "Planning drawings", "Project supervision"], "Photographer": ["Photography sessions", "Event photography", "Photo editing"], "Videographer": ["Video filming", "Video editing", "Event videography"], "Graphic designer": ["Graphic design", "Brand design", "Print design"], "Illustrator": ["Illustration commissions", "Digital illustrations", "Artwork licensing"], "Artist": ["Artwork sales", "Art commissions", "Art workshops"], "Writer": ["Writing commissions", "Manuscript work", "Royalties"], "Copywriter": ["Website copy", "Advertising copy", "Copy editing"], "Journalist": ["Articles", "Reporting assignments", "Editorial work"], "Musician": ["Live performances", "Session work", "Music royalties"], "Content creator": ["Sponsored content", "Content production", "Platform earnings"], "Social media manager": ["Account management", "Content creation", "Campaign management"], "Animator": ["Animation projects", "Motion graphics", "Animation editing"], "Audio engineer": ["Recording sessions", "Audio mixing", "Audio mastering"], "Podcast producer": ["Podcast production", "Podcast editing", "Recording services"], "Online seller": ["Online product sales", "Delivery charges", "Custom orders"], "Market trader": ["Market sales", "Custom orders", "Delivery charges"], "Shopkeeper": ["Shop sales", "Online sales", "Delivery charges"], "Etsy seller": ["Etsy sales", "Custom orders", "Digital product sales"], "Craft maker": ["Craft sales", "Custom commissions", "Craft workshops"], "Jewellery maker": ["Jewellery sales", "Bespoke jewellery", "Jewellery repairs"], "Dressmaker": ["Dressmaking", "Alterations", "Bespoke clothing"], "Tailor": ["Tailoring", "Clothing alterations", "Garment repairs"], "Fashion designer": ["Fashion design", "Clothing sales", "Design commissions"], "Florist": ["Flower sales", "Event flowers", "Flower delivery"], "Furniture maker": ["Furniture sales", "Bespoke furniture", "Furniture repairs"], "Potter": ["Pottery sales", "Pottery commissions", "Pottery classes"], "Candle maker": ["Candle sales", "Custom orders", "Candle workshops"], "Caterer": ["Catering bookings", "Event catering", "Food orders"], "Private chef": ["Private dining", "Meal preparation", "Chef hire"], "Baker": ["Baked goods sales", "Custom orders", "Wholesale orders"], "Cake maker": ["Celebration cakes", "Wedding cakes", "Cake decorating"], "Food stall owner": ["Food sales", "Event bookings", "Drink sales"], "Food truck operator": ["Food sales", "Private bookings", "Drink sales"], "Restaurant owner": ["Food sales", "Drink sales", "Takeaway orders"], "Event organiser": ["Event organisation", "Event management", "Planning fees"], "Wedding planner": ["Wedding planning", "Wedding coordination", "Planning consultations"], "Party hire": ["Equipment hire", "Party packages", "Setup services"], "DJ": ["DJ bookings", "Event performances", "Equipment hire"], "Entertainer": ["Performance bookings", "Party entertainment", "Event appearances"], "Wedding celebrant": ["Ceremony bookings", "Ceremony writing", "Rehearsal services"], "Personal trainer": ["Personal training", "Training packages", "Online coaching"], "Fitness instructor": ["Fitness classes", "Private sessions", "Online classes"], "Yoga instructor": ["Yoga classes", "Private yoga", "Yoga workshops"], "Pilates instructor": ["Pilates classes", "Private Pilates", "Online sessions"], "Sports coach": ["Coaching sessions", "Training camps", "Coaching packages"], "Swimming instructor": ["Swimming lessons", "Group lessons", "Lesson packages"], "Dance instructor": ["Dance lessons", "Dance classes", "Dance workshops"], "Referee": ["Match fees", "Tournament fees", "Officiating services"], "Wellbeing coach": ["Wellbeing sessions", "Coaching packages", "Wellbeing workshops"], "Private tutor": ["Tuition sessions", "Group tuition", "Tuition packages"], "Driving instructor": ["Driving lessons", "Lesson packages", "Test-day car hire"], "Language teacher": ["Language lessons", "Group classes", "Language courses"], "Music teacher": ["Music lessons", "Group lessons", "Lesson packages"], "Exam tutor": ["Exam tuition", "Revision sessions", "Exam preparation courses"], "Training provider": ["Training courses", "Workshops", "Training materials"], "Independent carer": ["Care visits", "Overnight care", "Respite care"], "Physiotherapist": ["Physiotherapy sessions", "Initial assessments", "Rehabilitation sessions"], "Massage therapist": ["Massage appointments", "Treatment packages", "Mobile treatments"], "Sports therapist": ["Sports therapy", "Injury assessments", "Rehabilitation sessions"], "Counsellor": ["Counselling sessions", "Remote sessions", "Group sessions"], "Psychotherapist": ["Psychotherapy sessions", "Initial consultations", "Remote sessions"], "Podiatrist": ["Podiatry appointments", "Foot assessments", "Foot treatments"], "Occupational therapist": ["Therapy assessments", "Therapy sessions", "Consultation"], "Childminder": ["Childminding fees", "Before & after school care", "Holiday care"], "Self-employed childcare provider": ["Childcare fees", "Babysitting", "Holiday care"], "Dog walker": ["Dog walks", "Group walks", "Walking packages"], "Pet sitter": ["Pet sitting", "Home visits", "Overnight sitting"], "Pet groomer": ["Pet grooming", "Bathing", "Nail clipping"], "Dog trainer": ["Dog training", "Behaviour consultations", "Group training"], "Pet boarding": ["Boarding fees", "Day care", "Additional care services"], "Horse care": ["Horse care visits", "Grooming", "Stable care"], "Mechanic": ["Vehicle repairs", "Servicing", "Diagnostics", "Parts supplied"], "Mobile mechanic": ["Mobile repairs", "Mobile servicing", "Call-outs", "Parts supplied"], "Vehicle detailer": ["Vehicle detailing", "Paint correction", "Protective treatments"], "Car valeter": ["Car valeting", "Interior cleaning", "Exterior cleaning"], "Tyre fitter": ["Tyre sales", "Tyre fitting", "Puncture repairs"], "Bodywork repairer": ["Bodywork repairs", "Paintwork", "Dent repairs"], "Appliance repairer": ["Appliance repairs", "Diagnostics", "Parts supplied"], "Computer repairer": ["Computer repairs", "Diagnostics", "Device upgrades"], "Bicycle repairer": ["Bicycle repairs", "Bicycle servicing", "Parts supplied"], "Farmer": ["Produce sales", "Livestock sales", "Farm services"], "Agricultural contractor": ["Agricultural contract work", "Machinery services", "Harvesting services"], "Market gardener": ["Produce sales", "Plant sales", "Wholesale produce"], "Residential landlord": ["Residential rent", "Parking rent", "Other letting receipts"], "Commercial landlord": ["Commercial rent", "Service charges", "Other letting receipts"]};
+        function incomeServiceRoles() {
+            return appState.selectedProfessions?.length ? appState.selectedProfessions : profileProfessions(appState.profile || {});
+        }
+        function incomeSourceOptions() {
+            const roles=incomeServiceRoles();
+            const suggestions=roles.flatMap(r=>tradeIncomeServices[r.label] || ['Services provided','Project work','Goods supplied']);
+            const history=(appState.transactions||[]).filter(t=>t.type==='income').map(t=>t.source);
+            const values=[...(appState.selectedPlatforms||[]),...suggestions,...history,'Other'];
+            const seen=new Set();return values.filter(v=>{if(typeof v!=='string'||!v.trim())return false;const key=v.trim().toLowerCase();if(seen.has(key))return false;seen.add(key);return true;});
+        }
         function populateIncomeSources() {
             const select = document.getElementById('income-source');
             if (!select) return;
-            const sources = [...new Set([...(appState.selectedPlatforms || []), 'Other'])];
+            const previous=select.value,sources=incomeSourceOptions();
             select.replaceChildren(...sources.map(v=>new Option(v,v)));
+            if(sources.includes(previous))select.value=previous;
+            const notes=document.getElementById('income-notes');
+            if(notes)notes.placeholder='e.g. '+(incomeServiceRoles().flatMap(r=>tradeIncomeServices[r.label]||[]).slice(0,2).join(', ')||'Service provided or customer reference');
+        }
+        function openCustomIncomeSource() {
+            document.getElementById('income-custom-wrap').classList.remove('hidden');
+            document.getElementById('income-custom-name').focus();
+        }
+        async function saveCustomIncomeSource() {
+            if(appState.savingIncomeSource||!appState.currentUser)return;
+            const input=document.getElementById('income-custom-name'),message=document.getElementById('income-custom-message');
+            const label=input.value.trim().replace(/\s+/g,' ');
+            if(!label||label.length>80){message.textContent='Enter a service or source name of 1 to 80 characters.';return;}
+            const existing=incomeSourceOptions().find(v=>v.toLowerCase()===label.toLowerCase());
+            if(existing){document.getElementById('income-source').value=existing;document.getElementById('income-custom-wrap').classList.add('hidden');return;}
+            const userId=appState.currentUser.id,btn=document.getElementById('income-custom-save');
+            appState.savingIncomeSource=true;btn.disabled=true;message.textContent='Saving…';
+            try {
+                const {data:profile,error:readError}=await supabaseClient.from('profiles').select('platforms').eq('id',userId).single();if(readError)throw readError;
+                const saved=profile?.platforms||[],canonical=saved.find(v=>v.toLowerCase()===label.toLowerCase())||label;
+                const platforms=saved.includes(canonical)?saved:[...saved,canonical];
+                const {data,error}=await supabaseClient.from('profiles').update({platforms}).eq('id',userId).select('id').single();if(error||!data?.id)throw error||new Error('Save not confirmed');
+                if(appState.currentUser?.id!==userId)return;
+                appState.profile={...appState.profile,platforms};appState.selectedPlatforms=[...new Set([...(appState.selectedPlatforms||[]),canonical])];
+                populateIncomeSources();renderQuickAddButtons();document.getElementById('income-source').value=canonical;
+                input.value='';message.textContent='';document.getElementById('income-custom-wrap').classList.add('hidden');showToast('Income source saved');
+            } catch(error) {message.textContent='Could not save. Your text is still here; please retry.';}
+            finally {appState.savingIncomeSource=false;btn.disabled=false;}
         }
 
         function expenseCategoryOptions(all=false) {
@@ -2750,6 +2799,7 @@
             const goal=Number(saved.goal);
             const prefs={goal:Number.isFinite(goal)&&goal>=1&&goal<=1000000?goal:null,reminderEnabled:saved.reminderEnabled===true,
                 reminderTime:/^([01]\d|2[0-3]):[0-5]\d$/.test(saved.reminderTime||'')?saved.reminderTime:'21:00',
+                mileageEnabled:typeof saved.mileageEnabled==='boolean'?saved.mileageEnabled:null,
                 dismissedOn:typeof saved.dismissedOn==='string'?saved.dismissedOn:'',reviews:saved.reviews&&typeof saved.reviews==='object'?saved.reviews:{}};
             appState.dashboardPreferenceKey=key;appState.dashboardPreferences=prefs;return prefs;
         }
@@ -2757,6 +2807,22 @@
             const key=dashboardPreferenceKey();if(!key)return false;
             appState.dashboardPreferences=prefs;appState.dashboardPreferenceKey=key;
             try{window.localStorage.setItem(key,JSON.stringify(prefs));return true;}catch{return false;}
+        }
+        function mileageEnabled(){
+            const choice=readDashboardPreferences().mileageEnabled;
+            if(typeof choice==='boolean')return choice;
+            return incomeServiceRoles().some(r=>r.category==='driving'||r.label==='Driving instructor');
+        }
+        function setMileageEnabled(enabled){
+            const prefs=readDashboardPreferences();prefs.mileageEnabled=!!enabled;
+            const saved=writeDashboardPreferences(prefs);renderUI();
+            showToast(saved?'Mileage preference saved on this device':'Mileage preference kept for this visit');
+        }
+        function renderMileageVisibility(){
+            const enabled=mileageEnabled();
+            document.querySelectorAll('[data-mileage-control]').forEach(el=>el.classList.toggle('hidden',!enabled));
+            const toggle=document.getElementById('profile-mileage-enabled');if(toggle)toggle.checked=enabled;
+            const help=document.getElementById('daily-entry-help');if(help)help.textContent=enabled?'Add Income starts your daily record: income → expenses → mileage. You can skip a step.':'Add Income starts your daily record: income → expenses. You can skip a step.';
         }
         function dashboardPeriodSummary(period){
             const bounds=getDashboardPeriodBounds(period),activity=getRangeActivity(bounds.start,bounds.end);
@@ -2837,9 +2903,9 @@
             document.getElementById('dash-goal-text').textContent=prefs.goal?'£'+weekly.profit.toFixed(2)+' of your £'+prefs.goal.toFixed(2)+' weekly profit goal':'Choose a goal that suits your week. It is optional.';
             document.getElementById('dash-goal-message').textContent=!prefs.goal?'':weekly.partial?'Goal progress uses recorded amounts; review the full catch-up period for missing totals.':weekly.profit>=prefs.goal?'Weekly goal reached — nice work.': '£'+Math.max(0,prefs.goal-weekly.profit).toFixed(2)+' remaining. Go at your own pace.';
             document.getElementById('dash-reminder-status').textContent=prefs.reminderEnabled?'App-open shift reminder: '+prefs.reminderTime+' UK time':'Shift reminder off';
-            const review=weeklyReviewState(weekly);let completed=0;
-            ['income','expenses','mileage'].forEach(item=>{const checked=review[item]===true;document.getElementById('weekly-review-'+item).checked=checked;if(checked)completed++;});
-            document.getElementById('weekly-review-status').textContent=completed===3?'Your records are reviewed through '+formatUkDate(weekly.end)+'. Nice work.':completed+' of 3 checked. New records or a new day reset the review.';
+            const review=weeklyReviewState(weekly);let completed=0;const reviewItems=mileageEnabled()?['income','expenses','mileage']:['income','expenses'];
+            reviewItems.forEach(item=>{const checked=review[item]===true;document.getElementById('weekly-review-'+item).checked=checked;if(checked)completed++;});
+            document.getElementById('weekly-review-status').textContent=completed===reviewItems.length?'Your records are reviewed through '+formatUkDate(weekly.end)+'. Nice work.':completed+' of '+reviewItems.length+' checked. New records or a new day reset the review.';
             renderDashboardWeekChart();
             checkShiftReminder();
         }
@@ -2944,6 +3010,7 @@
         // Render UI Calculations & Lists
         function renderUI() {
             ensureBatchFeatures();
+            renderMileageVisibility();
             const today = isoDate(new Date());
             const todayActivity=getDayActivity(today);
             const todayRecurring=getRecurringCostShare(today,today).total;
@@ -3055,8 +3122,8 @@
             const incomeBox = document.getElementById('income-shortcuts');
             const expenseBox = document.getElementById('expense-shortcuts');
             if (incomeBox) {
-                const sources = [...new Set([...(appState.selectedPlatforms || []), 'Other'])].slice(0, 6);
-                incomeBox.innerHTML = sources.map(v => `<button type="button" onclick="quickOpenIncome('${v.replace(/'/g,"\\'")}')" class="px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold">${v}</button>`).join('');
+                const sources = incomeSourceOptions().slice(0,6);
+                incomeBox.replaceChildren(...sources.map(v=>{const b=document.createElement('button');b.type='button';b.textContent=v;b.className='px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold';b.onclick=()=>quickOpenIncome(v);return b;}));
             }
             if (expenseBox) {
                 const cats = [...new Set([...(appState.selectedExpenses || []), 'Other'])].slice(0, 8);
@@ -3345,6 +3412,7 @@ function openAccountModal() {
             appState.selectedProfessions=profileProfessions(p);
             mountProfessionPicker('profile');
             renderProfilePreferenceChips();
+            renderMileageVisibility();
             renderRegularCostLists();
             refreshAvatarPreview();
             document.getElementById('account-modal')?.classList.remove('hidden');
@@ -4481,7 +4549,7 @@ function renderRegularCostLists() {
                         <p class="text-[9px] uppercase font-bold text-slate-400">True Business Profit</p>
                         <p class="text-lg font-extrabold text-white mt-1">£${profit.toFixed(2)}</p>
                     </div>
-                    <div class="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-3">
+                    <div class="${mileageEnabled()||a.mileage>0?'':'hidden'} bg-blue-500/10 border border-blue-500/20 rounded-2xl p-3">
                         <p class="text-[9px] uppercase font-bold text-blue-300">Mileage</p>
                         <p class="text-lg font-extrabold text-blue-400 mt-1">${a.mileage.toFixed(1).replace('.0','')} mi</p>
                     </div>
@@ -4993,8 +5061,8 @@ function renderRegularCostLists() {
             const eb = document.getElementById('expense-submit-btn');
             const mb = document.getElementById('mileage-submit-btn');
 
-            if (it) it.textContent = appState.editingIncomeId ? 'Edit Income' : (appState.dailyEntryMode ? 'Step 1 of 3 · Income' : 'Add Income');
-            if (et) et.textContent = appState.editingExpenseId ? 'Edit Expense' : (appState.dailyEntryMode ? 'Step 2 of 3 · Expense' : 'Add Expense');
+            if (it) it.textContent = appState.editingIncomeId ? 'Edit Income' : (appState.dailyEntryMode ? 'Step 1 of '+(mileageEnabled()?3:2)+' · Income' : 'Add Income');
+            if (et) et.textContent = appState.editingExpenseId ? 'Edit Expense' : (appState.dailyEntryMode ? 'Step 2 of '+(mileageEnabled()?3:2)+' · Expense' : 'Add Expense');
             if (mt) mt.textContent = appState.editingMileageId ? 'Edit Mileage' : (appState.dailyEntryMode ? 'Step 3 of 3 · Mileage' : 'Add Mileage');
 
             if (ib) ib.textContent = appState.editingIncomeId ? 'Update & continue to expenses' : 'Save & continue to expenses';
@@ -5020,6 +5088,7 @@ function renderRegularCostLists() {
         }
 
         function openDailyMileageStep() {
+            if(!mileageEnabled()){finishDailyEntry();return;}
             document.getElementById('expense-modal')?.classList.add('hidden');
             openMileageModal();
             setDailyEntryButtons('mileage');
@@ -5085,6 +5154,7 @@ function renderRegularCostLists() {
         }
 
         function openIncomeModal() {
+            populateIncomeSources();renderQuickAddButtons();
             const date = document.getElementById('income-date')?.value || appState.dailyEntryDate || isoDate(new Date());
             setDateField('income-date','income-date-label',date);
             document.getElementById('income-modal').classList.remove('hidden');
