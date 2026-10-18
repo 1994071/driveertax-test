@@ -1647,7 +1647,12 @@
         }
 
         async function finishOnboarding() {
-            if (!appState.currentUser || !appState.selectedProfessions?.length || appState.savingOnboarding) return;
+            if (!appState.currentUser || appState.savingOnboarding) return;
+            if (!appState.selectedProfessions?.length) {
+                showOnboardingStep(1);
+                showToast('Please select your profession, then continue to finish setup.');
+                return;
+            }
             appState.savingOnboarding=true;
             const btn=document.getElementById('finish-onboarding-btn'); btn.disabled=true;btn.textContent='Saving...';
             try {
@@ -1904,10 +1909,14 @@
                 appState.recurringExpenses = recurringRes.data || [];
                 appState.profile = profileRes.data || null;
                 appState.taxProfile = taxProfileRes.data || null;
-                appState.selectedWorkType = profileRes.data?.primary_work_type || '';
-                appState.selectedProfessions = profileProfessions(profileRes.data || {});
-                appState.selectedPlatforms = profileRes.data?.platforms || [];
-                appState.selectedExpenses = profileRes.data?.usual_expenses || [];
+                // Regular-cost refreshes must not discard the unfinished setup choices.
+                const onboardingOpen = !document.getElementById('onboarding-screen').classList.contains('hidden');
+                if (!onboardingOpen) {
+                    appState.selectedWorkType = profileRes.data?.primary_work_type || '';
+                    appState.selectedProfessions = profileProfessions(profileRes.data || {});
+                    appState.selectedPlatforms = profileRes.data?.platforms || [];
+                    appState.selectedExpenses = profileRes.data?.usual_expenses || [];
+                }
                 const displayName=profileRes.data?.full_name || appState.currentUser?.user_metadata?.full_name || appState.currentUser?.email?.split('@')[0] || 'Driver';
                 const nameEl=document.getElementById('user-display-name'); if(nameEl) nameEl.textContent=displayName;
                 populateIncomeSources();
