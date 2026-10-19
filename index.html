@@ -6,6 +6,7 @@
     <title>DriverTax - Driver Expense & Tax Tracker</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <div id="runtime-recovery" role="alert" class="hidden fixed top-4 inset-x-4 z-[200] max-w-md mx-auto bg-slate-900 border border-amber-400 rounded-2xl p-4 text-xs text-white"><p>Something went wrong. Check whether your last save completed before trying again. Reloading discards unsaved entries.</p><button type="button" onclick="location.reload()" class="font-bold text-emerald-300 p-2">Reload app</button><button type="button" onclick="document.getElementById('runtime-recovery').classList.add('hidden')" class="p-2">Dismiss</button></div>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -1054,6 +1055,16 @@
                     <div class="flex items-center justify-between"><div><h3 class="text-xs font-bold text-white">Regular Costs</h3><p class="text-[9px] text-slate-500">Monthly and yearly costs</p></div><button type="button" onclick="openRecurringExpenseModal()" class="bg-violet-500/10 border border-violet-500/30 text-violet-300 px-3 py-2 rounded-xl text-[10px] font-bold">+ Add</button></div>
                     <div id="account-regular-cost-list" class="space-y-2"></div>
                 </div>
+                <section class="bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3" aria-labelledby="privacy-title">
+                    <h3 id="privacy-title" class="text-sm font-bold text-white">Your data</h3>
+                    <p class="text-xs text-slate-300">Download your saved records. Original receipt images and PDFs are available separately under Evidence. Technical fault codes are linked to your account to help monitor reliability; these reports exclude receipt contents and amounts.</p>
+                    <button id="privacy-export" type="button" onclick="exportAccountData()" class="w-full bg-slate-800 border border-slate-600 rounded-xl p-3 text-xs font-bold text-white">Download my account data</button>
+                    <p class="text-xs text-slate-300">Account deletion is reviewed first. This button records a request; it does not immediately erase your account or tax evidence. Save any copies you need.</p>
+                    <label class="block text-xs text-slate-300">Type DELETE to request account deletion<input id="privacy-confirm" oninput="syncDeletionRequestButton()" autocomplete="off" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white"></label>
+                    <button id="privacy-request" disabled type="button" onclick="requestAccountDeletion()" class="w-full border border-rose-500/40 text-rose-300 rounded-xl p-3 text-xs font-bold">Request account deletion</button>
+                    <button id="privacy-cancel" type="button" onclick="cancelAccountDeletion()" class="hidden w-full border border-slate-600 rounded-xl p-3 text-xs text-white">Cancel deletion request</button>
+                    <p id="privacy-status" role="status" class="text-xs text-slate-300"></p>
+                </section>
                 <button type="button" onclick="openClearRecords()" class="w-full border border-rose-500/30 bg-slate-900 text-rose-300 font-bold py-3 rounded-xl text-xs">Clear selected records / start fresh</button>
                 <button type="button" onclick="signOutUser()" class="w-full border border-rose-500/25 bg-rose-500/10 text-rose-300 font-bold py-3 rounded-xl text-xs"><i class="fa-solid fa-right-from-bracket mr-1"></i> Sign Out</button>
             </div>
@@ -1294,6 +1305,91 @@
         };}
         let appState = newAppState();
         let accountGeneration = 0;
+        const ACCOUNT_EXPORT_TABLES = [{"table":"profiles","owner":"id","order":["id"]},{"table":"income","owner":"user_id","order":["id"]},{"table":"expenses","owner":"user_id","order":["id"]},{"table":"receipts","owner":"user_id","order":["id"]},{"table":"mileage","owner":"user_id","order":["id"]},{"table":"tax_reserve","owner":"user_id","order":["id"]},{"table":"period_entries","owner":"user_id","order":["id"]},{"table":"recurring_expenses","owner":"user_id","order":["id"]},{"table":"tax_profiles","owner":"user_id","order":["user_id"]},{"table":"invoice_counters","owner":"user_id","order":["user_id"]},{"table":"invoices","owner":"user_id","order":["id"]},{"table":"vat_profiles","owner":"user_id","order":["user_id"]},{"table":"invoice_drafts","owner":"user_id","order":["id"]},{"table":"invoice_credits","owner":"user_id","order":["invoice_id"]},{"table":"vat_purchases","owner":"user_id","order":["expense_id"]},{"table":"vat_classifications","owner":"user_id","order":["id"]},{"table":"vat_return_reviews","owner":"user_id","order":["id"]},{"table":"receipt_cleanup_queue","owner":"user_id","order":["user_id","file_path"]},{"table":"bank_import_batches","owner":"user_id","order":["id"]},{"table":"bank_import_rows","owner":"user_id","order":["id"]},{"table":"tax_year_accounts","owner":"user_id","order":["user_id","tax_year"]},{"table":"tax_payment_records","owner":"user_id","order":["id"]},{"table":"account_deletion_requests","owner":"user_id","order":["id"]}];
+        let privacyBusy=false;
+        function samePrivacyAccount(uid,generation){return appState.currentUser?.id===uid&&accountGeneration===generation;}
+        async function exportAccountData(){
+            if(privacyBusy||!appState.currentUser)return;
+            const uid=appState.currentUser.id,generation=accountGeneration,email=appState.currentUser.email||'';
+            const button=document.getElementById('privacy-export'),message=document.getElementById('privacy-status');
+            privacyBusy=true;button.disabled=true;message.textContent='Preparing your download… Keep this page open.';
+            try{
+                const records={};
+                for(const spec of ACCOUNT_EXPORT_TABLES){
+                    const rows=[];
+                    for(let offset=0;;offset+=500){
+                        let query=supabaseClient.from(spec.table).select('*').eq(spec.owner,uid);
+                        for(const key of spec.order)query=query.order(key,{ascending:true});
+                        const {data,error}=await query.range(offset,offset+499);
+                        if(!samePrivacyAccount(uid,generation))throw new Error('Account changed');
+                        if(error||!Array.isArray(data))throw error||new Error('Export incomplete');
+                        rows.push(...data);if(data.length<500)break;
+                    }
+                    records[spec.table]=rows;
+                }
+                if(!samePrivacyAccount(uid,generation))return;
+                const payload={format:'earnavik-account-export-v1',exported_at:new Date().toISOString(),account:{id:uid,email},notes:['Contains saved account records and receipt file references. Original images/PDFs must be downloaded separately from Evidence.','Records can change while this export is running. This is a personal download, not a server backup or tax return.'],records};
+                downloadBlob(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),'earnavik-account-'+driverToday()+'.json');
+                message.textContent='Download prepared. Keep it private. Download original receipt images/PDFs separately from Evidence.';
+            }catch{
+                if(samePrivacyAccount(uid,generation))message.textContent='Download could not be completed. Nothing was deleted. Reconnect and try again.';
+            }finally{privacyBusy=false;button.disabled=false;}
+        }
+        function syncDeletionRequestButton(){document.getElementById('privacy-request').disabled=privacyBusy||!appState.deletionStatusLoaded||!!appState.deletionRequest||document.getElementById('privacy-confirm').value!=='DELETE';}
+        async function loadDeletionRequest(){
+            const uid=appState.currentUser?.id,generation=accountGeneration;if(!uid)return;
+            const message=document.getElementById('privacy-status');
+            appState.deletionStatusLoaded=false;syncDeletionRequestButton();
+            try{
+                const {data,error}=await supabaseClient.from('account_deletion_requests').select('id,requested_at,cancelled_at,processing_at,completed_at').eq('user_id',uid).is('cancelled_at',null).is('completed_at',null).maybeSingle();
+                if(!samePrivacyAccount(uid,generation))return;
+                if(error)throw error;
+                appState.deletionRequest=data;appState.deletionStatusLoaded=true;
+                syncDeletionRequestButton();
+                document.getElementById('privacy-cancel').classList.toggle('hidden',!data||!!data.processing_at);
+                document.getElementById('privacy-confirm').value='';syncDeletionRequestButton();
+                message.textContent=data?(data.processing_at?'Your deletion request is being reviewed.':'Your account deletion request is recorded and awaiting review. Your account and records have not been deleted.'):'Download your data or request account deletion below.';
+            }catch{if(samePrivacyAccount(uid,generation)){document.getElementById('privacy-request').disabled=true;document.getElementById('privacy-cancel').classList.add('hidden');message.textContent='Could not load deletion request status. Close and reopen Profile when connected.';}}
+        }
+        async function requestAccountDeletion(){
+            if(privacyBusy||!appState.currentUser||!appState.deletionStatusLoaded||appState.deletionRequest||document.getElementById('privacy-confirm').value!=='DELETE')return;
+            const uid=appState.currentUser.id,generation=accountGeneration;
+            privacyBusy=true;document.getElementById('privacy-request').disabled=true;
+            try{
+                const {data,error}=await supabaseClient.from('account_deletion_requests').insert({user_id:uid}).select('id').single();
+                if(!samePrivacyAccount(uid,generation))return;
+                if(error||!data?.id)throw error||new Error('Not confirmed');
+                await loadDeletionRequest();
+            }catch{if(samePrivacyAccount(uid,generation)){document.getElementById('privacy-status').textContent='Could not confirm the request. Reopen Profile to check its status before retrying.';}}
+            finally{privacyBusy=false;syncDeletionRequestButton();}
+        }
+        async function cancelAccountDeletion(){
+            if(privacyBusy||!appState.currentUser||!appState.deletionRequest)return;
+            const uid=appState.currentUser.id,generation=accountGeneration,id=appState.deletionRequest.id;
+            privacyBusy=true;document.getElementById('privacy-cancel').disabled=true;
+            try{
+                const {data,error}=await supabaseClient.from('account_deletion_requests').update({cancelled_at:new Date().toISOString()}).eq('user_id',uid).eq('id',id).is('processing_at',null).is('completed_at',null).select('id').single();
+                if(!samePrivacyAccount(uid,generation))return;
+                if(error||!data?.id)throw error||new Error('Not confirmed');
+                await loadDeletionRequest();
+            }catch{if(samePrivacyAccount(uid,generation))document.getElementById('privacy-status').textContent='Cancellation was not confirmed. Reopen Profile to check the latest status.';}
+            finally{privacyBusy=false;document.getElementById('privacy-cancel').disabled=false;syncDeletionRequestButton();}
+        }
+        // Send only a fixed event code. Never pass Error objects, URLs or user data.
+        const healthSent=new Map();
+        function reportAppHealth(code){
+            const allowed=['runtime_error','unhandled_rejection','cloud_load_failed','receipt_scan_failed','invoice_email_failed','slow_scan'];
+            if(!appState.currentUser||!allowed.includes(code)||!supabaseClient?.functions?.invoke)return;
+            const key=appState.currentUser.id+':'+code,now=Date.now();
+            if(healthSent.has(key)&&now-healthSent.get(key)<60000)return;
+            healthSent.set(key,now);
+            try{Promise.resolve(supabaseClient.functions.invoke('report-app-health',{body:{code}})).catch(()=>{});}catch{}
+        }
+        function showRuntimeRecovery(code){
+            reportAppHealth(code);
+            document.getElementById('runtime-recovery')?.classList.remove('hidden');
+        }
+
 
         // Set default date inputs to today
         document.addEventListener('DOMContentLoaded', async () => {
@@ -1994,6 +2090,7 @@
                 ]);
 
                 if(accountGeneration!==generation||appState.currentUser?.id!==userId||appState.userDataLoadVersion!==version)return false;
+                reportAppHealth('cloud_load_failed');
                 if (profileRes.error) throw profileRes.error;
                 if (taxProfileRes.error) throw taxProfileRes.error;
                 if (incomeRes.error) throw incomeRes.error;
@@ -2089,6 +2186,7 @@
             } catch (err) {
                 console.error("Error fetching user data:", err);
                 if(accountGeneration!==generation||appState.currentUser?.id!==userId||appState.userDataLoadVersion!==version)return false;
+                reportAppHealth('cloud_load_failed');
                 const message=document.getElementById('account-data-message');if(message)message.textContent='Your account could not be loaded. Check your connection and retry. Records from another account are not shown.';
                 document.getElementById('data-sync-warning')?.classList.remove('hidden');
                 showToast("Failed to load cloud data. Please retry.");
@@ -2858,7 +2956,7 @@
                 const {data,error}=await supabaseClient.functions.invoke('email-tax-report',{body:{to,subject:'Invoice '+inv.invoice_number+' from '+(inv.trading_name||inv.seller_name),text:'Please find invoice '+inv.invoice_number+' attached.\nTotal: £'+Number(inv.total).toFixed(2)+'\nDue: '+formatUkDate(inv.due_date)+'\nFrom: '+inv.seller_name,attachments:[{filename:file.name,content}]}});
                 if(error)throw error;if(data?.ok!==true||!data?.id)throw new Error(data?.error||'The provider did not confirm acceptance');
                 note.textContent='Accepted for sending to '+to+'. Check delivery with the recipient.';
-            }catch(err){let message=err.message||'Could not send invoice';try{const body=await err?.context?.json();if(body?.error)message=body.error;}catch{}note.textContent=message+' You can still download and share the PDF.';}
+            }catch(err){reportAppHealth('invoice_email_failed');let message=err.message||'Could not send invoice';try{const body=await err?.context?.json();if(body?.error)message=body.error;}catch{}note.textContent=message+' You can still download and share the PDF.';}
             finally{appState.invoiceEmailing=false;button.disabled=false;}
         }
         function openInvoicePayment(){
@@ -3548,6 +3646,7 @@ function openAccountModal() {
             renderMileageVisibility();
             renderRegularCostLists();
             refreshAvatarPreview();
+            loadDeletionRequest();
             document.getElementById('account-modal')?.classList.remove('hidden');
         }
 
@@ -4090,9 +4189,11 @@ function openAccountModal() {
                 if(appState.pendingReceiptSaveId!==requestId)return;
                 if(scanImage)evidence=uploadReceiptEvidence(file,path,requestId,timings);
                 timings.review_ms=Math.round(performance.now()-started);
+                if(timings.review_ms>5000)reportAppHealth('slow_scan');
                 recordReceiptTimings(timings,started,scanResponse?.timings);
 
                 if(scanError || !scanResponse?.data){
+                    reportAppHealth('receipt_scan_failed');
                     console.error('Receipt AI scan error',scanError,scanResponse);
                     status.innerHTML='<i class="fa-solid fa-triangle-exclamation text-amber-400 mr-2"></i>AI could not read this receipt automatically. The image is safe — enter or correct the fields below.';
                     confidenceEl.textContent='Manual review';
@@ -4125,6 +4226,7 @@ function openAccountModal() {
                 if(appState.pendingReceiptExactMatch||possible)showReceiptDuplicateWarning(merchant,receiptDate,amount,appState.pendingReceiptExactMatch);
             }catch(err){
                 console.error(err);
+                reportAppHealth('receipt_scan_failed');
                 status.textContent='Could not check or upload this receipt. Please retry.';
                 appState.pendingReceiptPath=null;
                 recordReceiptTimings(timings,started);
@@ -5970,10 +6072,12 @@ function renderRegularCostLists() {
             }, 2500);
         }
 
+        window.addEventListener('unhandledrejection', () => showRuntimeRecovery('unhandled_rejection'));
         window.addEventListener('error', (event) => {
+            showRuntimeRecovery('runtime_error');
             const diag = document.getElementById('auth-diagnostic');
             if (diag) {
-                diag.textContent = 'App error: ' + (event.message || 'Unknown error');
+                diag.textContent = 'An app error occurred. Reload if needed; check whether your last save completed.';
                 diag.className = 'text-[10px] text-rose-400 text-center';
             }
         });
