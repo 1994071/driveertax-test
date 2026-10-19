@@ -1,0 +1,16 @@
+{
+  "name": "earnavik-checks",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node scripts/run-checks.cjs",
+    "test:browser": "node scripts/run-checks.cjs --browser"
+  },
+  "devDependencies": {
+    "jspdf": "3.0.4",
+    "linkedom": "0.18.12",
+    "playwright": "1.62.1",
+    "tailwindcss": "3.4.17",
+    "typescript": "5.9.3"
+  }
+}
