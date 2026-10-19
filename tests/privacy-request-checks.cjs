@@ -1,0 +1,13 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),{parseHTML}=require('linkedom');
+const html=fs.readFileSync(__dirname+'/../index.html','utf8'),{window}=parseHTML(html),doc=window.document;
+let saved=null,fail=false,insertions=0,updates=0,filters=[],columns;
+const client={from(table){assert.equal(table,'account_deletion_requests');let action='select';const q={select:()=>q,eq:(k,v)=>{filters.push([k,v]);return q;},is:()=>q,insert:data=>{assert.equal(Object.keys(data).join(','),'user_id');assert.equal(data.user_id,'owner');action='insert';return q;},update:data=>{columns=Object.keys(data);action='update';return q;},single:()=>q,maybeSingle:()=>q,then(resolve){if(fail)return resolve({error:Error('offline')});if(action==='insert'){insertions++;saved={id:'request',requested_at:'2026-10-19'};}if(action==='update'){updates++;saved=null;}resolve({data:action==='select'?saved:{id:'request'},error:null});}};return q;}};
+window.supabase={createClient:()=>client};const ctx=vm.createContext({window,document:doc,console,Date,setTimeout:()=>0});const source=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x=>x[1]).find(x=>x.includes('let appState'));vm.runInContext(source,ctx);const run=s=>vm.runInContext(s,ctx);
+(async()=>{
+ run("appState.currentUser={id:'owner'}");await run('loadDeletionRequest()');assert.equal(doc.getElementById('privacy-request').disabled,true);await run('requestAccountDeletion()');assert.equal(insertions,0);
+ doc.getElementById('privacy-confirm').value='DELETE';run('syncDeletionRequestButton()');assert.equal(doc.getElementById('privacy-request').disabled,false);
+ await run('requestAccountDeletion()');assert.equal(insertions,1);assert.match(doc.getElementById('privacy-status').textContent,/awaiting review/);assert.equal(doc.getElementById('privacy-request').disabled,true);assert.equal(doc.getElementById('privacy-cancel').classList.contains('hidden'),false);
+ await run('requestAccountDeletion()');assert.equal(insertions,1);await run('cancelAccountDeletion()');assert.equal(updates,1);assert.equal(columns.join(','),'cancelled_at');assert.ok(filters.some(([k,v])=>k==='user_id'&&v==='owner'));assert.ok(filters.some(([k,v])=>k==='id'&&v==='request'));
+ fail=true;await run('loadDeletionRequest()');assert.equal(doc.getElementById('privacy-request').disabled,true);assert.match(doc.getElementById('privacy-status').textContent,/Could not load/);
+ console.log('PASS: deletion request requires confirmed status and typed confirmation; prevents repeat request; owner-scoped cancellation; failed status blocks unconfirmed actions. No live account deleted.');
+})().catch(e=>{console.error(e);process.exit(1)});
