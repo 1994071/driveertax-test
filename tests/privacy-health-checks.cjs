@@ -1,0 +1,25 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),{parseHTML}=require('linkedom'),{webcrypto}=require('node:crypto'),ts=require('typescript');
+const html=fs.readFileSync(__dirname+'/../index.html','utf8'),{window}=parseHTML(html),doc=window.document;
+let calls=[],downloads=[],failure=false,delayResolve=null,delay=false,reportCalls=[];
+const client={functions:{invoke:async(name,body)=>{reportCalls.push({name,...body});return {data:{ok:true}};}},from(table){let offset=0,owner=null;const q={select:()=>q,eq:(key,v)=>{if(key==='user_id'||key==='id')owner=v;return q;},order:()=>q,range:(a,b)=>{offset=a;calls.push({table,owner,offset:a,end:b});return q;},then(resolve){if(delay){delayResolve=()=>resolve({data:[],error:null});return;}resolve(failure&&table==='expenses'?{error:Error('offline')}:{data:table==='income'?(offset===0?Array.from({length:500},(_,id)=>({id,user_id:owner})):offset===500?[{id:500,user_id:owner}]:[]):[],error:null});}};return q;}};
+window.supabase={createClient:()=>client};const ctx=vm.createContext({window,document:doc,console,Date,Blob,File,URL,URLSearchParams,crypto:webcrypto,setTimeout:()=>0});
+const source=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x=>x[1]).find(x=>x.includes('let appState'));vm.runInContext(source,ctx);const run=s=>vm.runInContext(s,ctx);
+ctx.capture=(blob,name)=>downloads.push({blob,name});run("downloadBlob=capture;appState.currentUser={id:'owner',email:'owner@example.test'};");
+(async()=>{
+ await run('exportAccountData()');assert.equal(downloads.length,1);const exported=JSON.parse(await downloads[0].blob.text());assert.equal(exported.records.income.length,501);assert.ok(exported.records.tax_payment_records);assert.ok(exported.records.bank_import_rows);assert.equal(exported.records.api_request_windows,undefined);assert.equal(exported.account.email,'owner@example.test');assert.ok(calls.every(c=>c.owner==='owner'));assert.ok(calls.some(c=>c.table==='income'&&c.offset===500));assert.ok(!exported.access_token);
+ failure=true;await run('exportAccountData()');assert.equal(downloads.length,1);assert.match(doc.getElementById('privacy-status').textContent,/could not/);failure=false;
+ delay=true;const exporting=run('exportAccountData()');await Promise.resolve();run("setCurrentAccount({id:'different'});");delayResolve();await exporting;assert.equal(downloads.length,1);delay=false;
+ run("appState.currentUser={id:'owner'};reportAppHealth('receipt_scan_failed');reportAppHealth('receipt_scan_failed');reportAppHealth('secret customer message');");await Promise.resolve();assert.equal(reportCalls.length,1);assert.equal(JSON.stringify(reportCalls[0].body),'{"code":"receipt_scan_failed"}');
+ run("appState.currentUser=null;reportAppHealth('runtime_error');");assert.equal(reportCalls.length,1);
+ let handler,user=true,allowed=true,count=0,emails=0,extraRpc=[],alertConfigured=false,claimed=true;
+ const raw=fs.readFileSync(__dirname+'/../supabase/functions/report-app-health/index.ts','utf8').replace(/^import .*;\s*$/gm,'');
+ const js=ts.transpileModule(raw,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
+ const edge={Request,Response,TextDecoder,Uint8Array,Set,Object,JSON,AbortSignal,console,fetch:async()=>{emails++;return new Response('{}');},Deno:{serve:f=>handler=f,env:{get:key=>key==='APP_ALERT_EMAIL'?(alertConfigured?'operator@example.test':undefined):'test-only'}},createClient:()=>({auth:{getUser:async()=>({data:{user:user?{id:'verified-owner'}:null},error:null})},rpc:async(name,args)=>{extraRpc.push({name,args});if(name==='consume_api_request')return {data:allowed};if(name==='claim_app_health_alert')return {data:claimed};count++;return {data:1};}})};vm.createContext(edge);vm.runInContext(js,edge);
+ const post=body=>handler(new Request('https://example.test',{method:'POST',headers:{Authorization:'Bearer fake'},body:typeof body==='string'?body:JSON.stringify(body)}));
+ user=false;assert.equal((await post({code:'runtime_error'})).status,401);assert.equal(count,0);user=true;
+ assert.equal((await post({code:'runtime_error',message:'private'})).status,400);assert.equal((await post({code:'not-allowed'})).status,400);assert.equal((await post('x'.repeat(513))).status,413);assert.equal(count,0);
+ allowed=false;assert.equal((await post({code:'runtime_error'})).status,429);assert.equal(count,0);allowed=true;
+ assert.equal((await post({code:'runtime_error'})).status,200);assert.equal(count,1);assert.equal(emails,0);assert.equal(extraRpc.find(x=>x.name==='record_app_health').args.p_user_id,'verified-owner');
+ alertConfigured=true;claimed=false;await post({code:'runtime_error'});assert.equal(emails,0);claimed=true;await post({code:'runtime_error'});assert.equal(emails,1);
+ console.log('PASS: complete paginated owner export; failed/in-flight account-change export blocked; fixed-code telemetry/dedup; endpoint auth, payload/size/quota checks; optional operator alert globally gated. All network calls mocked.');
+})().catch(e=>{console.error(e);process.exit(1)});
