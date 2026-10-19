@@ -6,7 +6,6 @@
     <title>DriverTax - Driver Expense & Tax Tracker</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <div id="runtime-recovery" role="alert" class="hidden fixed top-4 inset-x-4 z-[200] max-w-md mx-auto bg-slate-900 border border-amber-400 rounded-2xl p-4 text-xs text-white"><p>Something went wrong. Check whether your last save completed before trying again. Reloading discards unsaved entries.</p><button type="button" onclick="location.reload()" class="font-bold text-emerald-300 p-2">Reload app</button><button type="button" onclick="document.getElementById('runtime-recovery').classList.add('hidden')" class="p-2">Dismiss</button></div>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -35,6 +34,7 @@
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 flex items-center justify-center min-h-screen p-0 sm:p-4">
+    <div id="runtime-recovery" role="alert" class="hidden fixed top-4 inset-x-4 z-[200] max-w-md mx-auto bg-slate-900 border border-amber-400 rounded-2xl p-4 text-xs text-white"><p>Something went wrong. Check whether your last save completed before trying again. Reloading discards unsaved entries.</p><button type="button" onclick="location.reload()" class="font-bold text-emerald-300 p-2">Reload app</button><button type="button" onclick="document.getElementById('runtime-recovery').classList.add('hidden')" class="p-2">Dismiss</button></div>
 
     <div class="w-full sm:max-w-[400px] h-[100vh] sm:h-[844px] bg-darkBg sm:rounded-[48px] sm:border-[8px] sm:border-slate-800 shadow-2xl flex flex-col relative overflow-hidden">
         
@@ -2061,8 +2061,19 @@
             showToast("Signed out");
         }
 
-        async function fetchAllUserRows(table,userId){
-            const rows=[];for(let offset=0;;offset+=1000){const {data,error}=await supabaseClient.from(table).select('*').eq('user_id',userId).order('id').range(offset,offset+999);if(error)return {error};rows.push(...data);if(data.length<1000)return {data:rows};}
+        async function fetchAllUserRows(table,userId,options={}){
+            const rows=[],pageSize=500,generation=accountGeneration;
+            const orders=options.orders||[[options.key||'id',true]];
+            for(let offset=0;;offset+=pageSize){
+                if(appState.currentUser?.id!==userId||accountGeneration!==generation)return {error:new Error('Account changed')};
+                let query=supabaseClient.from(table).select('*').eq('user_id',userId);
+                for(const [column,ascending] of orders)query=query.order(column,{ascending});
+                const {data,error}=await query.range(offset,offset+pageSize-1);
+                if(appState.currentUser?.id!==userId||accountGeneration!==generation)return {error:new Error('Account changed')};
+                if(error)return {error};
+                if(!Array.isArray(data))return {error:new Error('Cloud response was incomplete')};
+                rows.push(...data);if(data.length<pageSize)return {data:rows};
+            }
         }
         async function fetchUserData(userId) {
             if(!userId||appState.currentUser?.id!==userId)return false;
@@ -2075,22 +2086,21 @@
                     supabaseClient.from('tax_profiles').select('*').eq('user_id', userId).maybeSingle(),
                     fetchAllUserRows('income',userId),
                     fetchAllUserRows('expenses',userId),
-                    supabaseClient.from('mileage').select('*').eq('user_id', userId).order('trip_date', { ascending: false }),
-                    supabaseClient.from('tax_reserve').select('*').eq('user_id', userId).order('saved_on', { ascending: false }),
+                    fetchAllUserRows('mileage',userId,{orders:[['trip_date',false],['id',true]]}),
+                    fetchAllUserRows('tax_reserve',userId,{orders:[['saved_on',false],['id',true]]}),
                     fetchAllUserRows('period_entries',userId),
-                    supabaseClient.from('recurring_expenses').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+                    fetchAllUserRows('recurring_expenses',userId,{orders:[['created_at',false],['id',true]]}),
                     fetchAllUserRows('receipts',userId),
-                    supabaseClient.from('invoices').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
-                    supabaseClient.from('invoice_drafts').select('*').eq('user_id', userId).order('updated_at', { ascending: false }),
+                    fetchAllUserRows('invoices',userId,{orders:[['created_at',false],['id',true]]}),
+                    fetchAllUserRows('invoice_drafts',userId,{orders:[['updated_at',false],['id',true]]}),
                     supabaseClient.from('vat_profiles').select('*').eq('user_id', userId).maybeSingle(),
-                    supabaseClient.from('vat_purchases').select('*').eq('user_id', userId),
-                    supabaseClient.from('invoice_credits').select('*').eq('user_id', userId),
-                    supabaseClient.from('vat_classifications').select('*').eq('user_id', userId),
-                    supabaseClient.from('vat_return_reviews').select('*').eq('user_id', userId).order('period_start', {ascending:false})
+                    fetchAllUserRows('vat_purchases',userId,{key:'expense_id'}),
+                    fetchAllUserRows('invoice_credits',userId,{key:'invoice_id'}),
+                    fetchAllUserRows('vat_classifications',userId),
+                    fetchAllUserRows('vat_return_reviews',userId,{orders:[['period_start',false],['id',true]]})
                 ]);
 
                 if(accountGeneration!==generation||appState.currentUser?.id!==userId||appState.userDataLoadVersion!==version)return false;
-                reportAppHealth('cloud_load_failed');
                 if (profileRes.error) throw profileRes.error;
                 if (taxProfileRes.error) throw taxProfileRes.error;
                 if (incomeRes.error) throw incomeRes.error;
@@ -3509,10 +3519,11 @@
             return {account,payments,paid,onAccount,confirmed,bill,remaining,changed,settled:confirmed&&remaining===0&&!changed,deadline:(year+2)+'-01-31'};
         }
         async function refreshTaxPayments(){
-            const user=appState.currentUser?.id;if(!user)return;
+            const user=appState.currentUser?.id,generation=accountGeneration;if(!user)return;
+            const version=(appState.taxPaymentLoadVersion||0)+1;appState.taxPaymentLoadVersion=version;
             if(appState.taxPaymentsUser!==user){appState.taxPayments=[];appState.taxYearAccounts=[];appState.taxPaymentsLoaded=false;appState.taxPaymentsUser=user;appState.pendingTaxPayment=null;}
             const [a,p]=await Promise.all([fetchAllUserRows('tax_payment_records',user),supabaseClient.from('tax_year_accounts').select('*').eq('user_id',user)]);
-            if(appState.currentUser?.id!==user)return;
+            if(appState.currentUser?.id!==user||accountGeneration!==generation||appState.taxPaymentLoadVersion!==version)return;
             if(a.error||p.error)throw a.error||p.error;
             appState.taxPayments=a.data;appState.taxYearAccounts=p.data;appState.taxPaymentsLoaded=true;renderTaxDueCards();renderDashboardYearSummary();
         }
