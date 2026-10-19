@@ -600,6 +600,20 @@
             </div>
         </div>
 
+        <div id="data-sync-warning" role="status" class="hidden fixed top-2 left-3 right-3 z-[144] bg-amber-950 border border-amber-500 rounded-xl p-3 text-xs text-amber-100">Could not refresh your records. Showing previously loaded figures. <button type="button" onclick="fetchUserData(appState.currentUser?.id)" class="font-bold underline">Retry refresh</button></div>
+        <div id="account-data-gate" role="status" class="hidden fixed inset-0 bg-slate-950 z-[145] flex items-center justify-center p-5"><div class="max-w-md space-y-4 text-center"><h2 class="text-lg font-bold text-white">Loading your account</h2><p id="account-data-message" class="text-xs text-slate-300">Please wait while your saved records load.</p><button type="button" onclick="fetchUserData(appState.currentUser?.id)" class="bg-emerald-400 text-slate-950 rounded-xl p-3 text-xs font-bold">Retry loading</button><button type="button" onclick="signOutUser()" class="block w-full text-xs text-slate-300 p-2">Sign out</button></div></div>
+        <div id="password-recovery-modal" role="dialog" aria-modal="true" aria-labelledby="password-recovery-title" class="hidden fixed inset-0 bg-slate-950 z-[150] flex items-center justify-center p-5">
+            <form onsubmit="saveRecoveryPassword(event)" class="w-full max-w-md space-y-4 bg-slate-900 border border-slate-700 rounded-2xl p-5">
+                <h2 id="password-recovery-title" class="text-lg font-bold text-white">Choose a new password</h2>
+                <p class="text-xs text-slate-300">Use the latest reset link sent to your email. Your password is saved securely by our login provider.</p>
+                <label class="block text-xs text-slate-200" for="recovery-password">New password</label><input id="recovery-password" type="password" autocomplete="new-password" minlength="8" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white">
+                <label class="block text-xs text-slate-200" for="recovery-password-confirm">Repeat new password</label><input id="recovery-password-confirm" type="password" autocomplete="new-password" minlength="8" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white">
+                <p id="recovery-password-message" role="status" class="text-xs text-amber-200"></p>
+                <button id="recovery-password-save" type="submit" class="w-full bg-emerald-400 text-slate-950 rounded-xl p-3 text-xs font-bold disabled:opacity-50">Save new password</button>
+                <button type="button" onclick="leavePasswordRecovery()" class="w-full text-xs text-slate-300 p-2">Back to sign in / request another link</button>
+            </form>
+        </div>
+
         <!-- Add Mileage Modal -->
         <div id="mileage-modal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div class="bg-slate-900 border border-slate-800 w-full sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
@@ -1167,6 +1181,7 @@
             <div class="grid grid-cols-2 gap-2 mt-4"><button type="button" onclick="shareInvoice('download')" class="bg-blue-400 text-slate-950 rounded-xl p-3 text-xs font-bold">Download PDF</button><button type="button" onclick="shareInvoice('whatsapp')" class="bg-emerald-500/15 text-emerald-200 border border-emerald-400/30 rounded-xl p-3 text-xs font-bold">WhatsApp / Share</button></div>
             <div id="invoice-share-fallback" class="hidden bg-slate-900 border border-slate-700 rounded-xl p-3 mt-3 space-y-2 text-xs text-slate-300"></div>
             <div class="grid grid-cols-2 gap-2 mt-4"><button id="invoice-mark-paid-btn" type="button" onclick="openInvoicePayment()" class="bg-emerald-400 text-slate-950 rounded-xl p-3 text-xs font-bold">Mark paid</button><button id="invoice-cancel-btn" type="button" onclick="cancelInvoice()" class="bg-slate-800 text-slate-200 rounded-xl p-3 text-xs font-bold">Cancel invoice</button></div>
+            <button id="invoice-undo-payment-btn" type="button" onclick="undoInvoicePayment()" class="hidden w-full mt-3 bg-amber-500/10 border border-amber-400/30 text-amber-200 rounded-xl p-3 text-xs font-bold">Undo recorded payment</button>
             <button id="invoice-archive-btn" type="button" onclick="toggleInvoiceArchive()" class="w-full mt-3 bg-slate-800 text-white rounded-xl p-3 text-xs font-bold">Archive invoice</button><button id="invoice-credit-pdf-btn" type="button" onclick="downloadInvoiceCredit()" class="hidden w-full mt-3 text-blue-200 text-xs font-bold">Download full credit note PDF</button>
             <p id="invoice-action-error" role="alert" class="hidden text-xs text-amber-200 mt-3"></p><p class="text-[10px] text-slate-400 mt-4 pb-6">Issued details are kept as a record. To correct an unpaid invoice, cancel it and create a replacement. Payments are recorded in full; partial payments are not supported yet.</p>
         </div>
@@ -1232,7 +1247,7 @@
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // Application State
-        let appState = {
+        function newAppState(){return {
             currentUser: null,
             todayEarnings: 0.00,
             todayExpenses: 0.00,
@@ -1276,7 +1291,9 @@
             activeFilter: 'all',
             recordsFilter: 'all',
             authMode: 'signin'
-        };
+        };}
+        let appState = newAppState();
+        let accountGeneration = 0;
 
         // Set default date inputs to today
         document.addEventListener('DOMContentLoaded', async () => {
@@ -1300,16 +1317,21 @@
             if (mileageDate) setDateField('mileage-date','mileage-date-label',todayIso);
             if (reserveDate) setDateField('reserve-date','reserve-date-label',todayIso);
 
-            supabaseClient.auth.onAuthStateChange(async (event, session) => {
+            supabaseClient.auth.onAuthStateChange((event, session) => {
+                if(event==='PASSWORD_RECOVERY'){setCurrentAccount(session?.user||null);openPasswordRecovery();return;}
                 if (session?.user) {
-                    appState.currentUser = session.user;
+                    setCurrentAccount(session.user);
                     document.getElementById('auth-screen').classList.add('hidden');
                     document.getElementById('user-display-name').textContent = session.user.email?.split('@')[0] || 'Driver';
-                    await fetchUserData(session.user.id);
-                    await checkAndShowOnboarding(session.user.id);
-                    maybeOpenHomeCalendar();
+                    setTimeout(async()=>{
+                        if(appState.currentUser?.id!==session.user.id||appState.passwordRecovery)return;
+                        await fetchUserData(session.user.id);
+                        if(appState.currentUser?.id!==session.user.id)return;
+                        await checkAndShowOnboarding(session.user.id);
+                        maybeOpenHomeCalendar();
+                    },0);
                 } else if (event === 'SIGNED_OUT') {
-                    appState.currentUser = null;appState.taxPayments=[];appState.taxYearAccounts=[];appState.taxPaymentsLoaded=false;appState.taxPaymentsUser=null;appState.pendingTaxPayment=null;
+                    setCurrentAccount(null);appState.taxPayments=[];appState.taxYearAccounts=[];appState.taxPaymentsLoaded=false;appState.taxPaymentsUser=null;appState.pendingTaxPayment=null;
                     appState.dashboardPeriod='week';appState.dashboardPreferences=null;appState.dashboardPreferenceKey=null;appState.homeCalendarOpened=false;
                     document.getElementById('shift-reminder-banner').classList.add('hidden');
                     closeDashboardSettings();closeInvoiceScreens();appState.invoices=[];appState.invoiceDrafts=[];appState.vatProfile=null;appState.vatPurchases=[];appState.invoiceCredits=[];appState.vatClassifications=[];appState.vatReturnReviews=[];appState.vatRawTransactions=null;
@@ -1322,8 +1344,9 @@
 
         async function checkAuthSession() {
             const { data: { session } } = await supabaseClient.auth.getSession();
+            if(appState.passwordRecovery||new URLSearchParams(window.location.search).get('recover')==='1'){setCurrentAccount(session?.user||null);openPasswordRecovery();return;}
             if (session && session.user) {
-                appState.currentUser = session.user;
+                setCurrentAccount(session.user);
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('user-display-name').textContent = session.user.email.split('@')[0];
                 await fetchUserData(session.user.id);
@@ -1332,6 +1355,47 @@
             } else {
                 document.getElementById('auth-screen').classList.remove('hidden');
             }
+        }
+
+        function setCurrentAccount(user){
+            if(appState.currentUser?.id!==user?.id){
+                const timer=appState.driverReminderTimer;appState=newAppState();appState.driverReminderTimer=timer;accountGeneration++;
+                document.querySelectorAll('[id$="-modal"]').forEach(el=>el.classList.add('hidden'));
+                const gate=document.getElementById('account-data-gate');if(gate)gate.classList.toggle('hidden',!user);
+                const message=document.getElementById('account-data-message');if(message)message.textContent='Please wait while your saved records load.';
+            }
+            appState.currentUser=user||null;
+        }
+        function openPasswordRecovery(){
+            appState.passwordRecovery=true;
+            document.getElementById('password-recovery-modal').classList.remove('hidden');
+            document.getElementById('onboarding-screen').classList.add('hidden');
+        }
+        function clearRecoveryUrl(){
+            const url=new URL(window.location.href);url.searchParams.delete('recover');url.hash='';window.history.replaceState(null,'',url.pathname+url.search);
+        }
+        async function leavePasswordRecovery(){
+            if(appState.savingRecoveryPassword)return;
+            try{await supabaseClient.auth.signOut({scope:'local'});}catch{}
+            appState.passwordRecovery=false;clearRecoveryUrl();
+            document.getElementById('password-recovery-modal').classList.add('hidden');document.getElementById('auth-screen').classList.remove('hidden');switchAuthMode('signin');
+        }
+        async function saveRecoveryPassword(event){
+            event.preventDefault();if(appState.savingRecoveryPassword)return;
+            const password=document.getElementById('recovery-password').value,repeat=document.getElementById('recovery-password-confirm').value;
+            const message=document.getElementById('recovery-password-message'),button=document.getElementById('recovery-password-save');
+            if(password.length<8||password!==repeat){message.textContent=password.length<8?'Use at least 8 characters.':'The passwords do not match.';return;}
+            appState.savingRecoveryPassword=true;button.disabled=true;message.textContent='Saving…';
+            try{
+                const {data:auth,error:authError}=await supabaseClient.auth.getUser();
+                if(authError||!auth?.user)throw new Error('This reset link has expired or is invalid. Request a new link from the sign-in screen.');
+                const {error}=await supabaseClient.auth.updateUser({password});if(error)throw error;
+                document.getElementById('recovery-password').value='';document.getElementById('recovery-password-confirm').value='';
+                const {error:signOutError}=await supabaseClient.auth.signOut({scope:'global'});
+                if(signOutError){message.textContent='Password changed. Sign-out could not be confirmed; use Back to sign in to finish.';return;}
+                appState.passwordRecovery=false;clearRecoveryUrl();document.getElementById('password-recovery-modal').classList.add('hidden');document.getElementById('auth-screen').classList.remove('hidden');switchAuthMode('signin');showAuthSuccess('Password changed. Sign in with your new password.');
+            }catch(err){message.textContent=err.message||'Could not change your password. Please retry.';}
+            finally{appState.savingRecoveryPassword=false;button.disabled=false;}
         }
 
         // Auth Mode Switcher
@@ -1412,7 +1476,7 @@
                     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
                     if (error) throw error;
                     if (!data?.user) throw new Error('No user session returned.');
-                    appState.currentUser = data.user;
+                    setCurrentAccount(data.user);
                     document.getElementById('auth-screen').classList.add('hidden');
                     document.getElementById('user-display-name').textContent = data.user.email?.split('@')[0] || 'Driver';
                     await fetchUserData(data.user.id);
@@ -1433,7 +1497,7 @@
                     if (error) throw error;
 
                     if (data?.session?.user) {
-                        appState.currentUser = data.session.user;
+                        setCurrentAccount(data.session.user);
                         document.getElementById('auth-screen').classList.add('hidden');
                         document.getElementById('user-display-name').textContent = fullName || email.split('@')[0];
                         await fetchUserData(data.session.user.id);
@@ -1446,7 +1510,7 @@
                         throw new Error('Signup did not return a user.');
                     }
                 } else if (appState.authMode === 'forgot') {
-                    const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+                    const { error } = await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname+'?recover=1'});
                     if (error) throw error;
                     showAuthSuccess('Password reset email sent.');
                 }
@@ -1581,7 +1645,7 @@
 
         async function checkAndShowOnboarding(userId) {
             const { data, error } = await supabaseClient.from('profiles').select('*').eq('id', userId).single();
-            if (error) return;
+            if (error||appState.currentUser?.id!==userId) return;
             appState.profile = data;
             if (!data?.onboarding_completed) {
                 appState.selectedWorkType = data?.primary_work_type || '';
@@ -1891,8 +1955,9 @@
         }
 
         async function signOutUser() {
-            await supabaseClient.auth.signOut();
-            appState.currentUser = null;appState.taxPayments=[];appState.taxYearAccounts=[];appState.taxPaymentsLoaded=false;appState.taxPaymentsUser=null;appState.pendingTaxPayment=null;
+            const {error}=await supabaseClient.auth.signOut();
+            if(error){showToast('Could not sign out. Please check your connection and retry.');return;}
+            setCurrentAccount(null);appState.taxPayments=[];appState.taxYearAccounts=[];appState.taxPaymentsLoaded=false;appState.taxPaymentsUser=null;appState.pendingTaxPayment=null;
                     appState.dashboardPeriod='week';appState.dashboardPreferences=null;appState.dashboardPreferenceKey=null;appState.homeCalendarOpened=false;
                     document.getElementById('shift-reminder-banner').classList.add('hidden');
                     closeDashboardSettings();closeInvoiceScreens();appState.invoices=[];appState.invoiceDrafts=[];appState.vatProfile=null;appState.vatPurchases=[];appState.invoiceCredits=[];appState.vatClassifications=[];appState.vatReturnReviews=[];appState.vatRawTransactions=null;
@@ -1904,6 +1969,8 @@
             const rows=[];for(let offset=0;;offset+=1000){const {data,error}=await supabaseClient.from(table).select('*').eq('user_id',userId).order('id').range(offset,offset+999);if(error)return {error};rows.push(...data);if(data.length<1000)return {data:rows};}
         }
         async function fetchUserData(userId) {
+            if(!userId||appState.currentUser?.id!==userId)return false;
+            const generation=accountGeneration,version=(appState.userDataLoadVersion||0)+1;appState.userDataLoadVersion=version;
             try {
                 const todayIso = isoDate(new Date());
 
@@ -1926,6 +1993,7 @@
                     supabaseClient.from('vat_return_reviews').select('*').eq('user_id', userId).order('period_start', {ascending:false})
                 ]);
 
+                if(accountGeneration!==generation||appState.currentUser?.id!==userId||appState.userDataLoadVersion!==version)return false;
                 if (profileRes.error) throw profileRes.error;
                 if (taxProfileRes.error) throw taxProfileRes.error;
                 if (incomeRes.error) throw incomeRes.error;
@@ -2015,10 +2083,16 @@
                 renderRegularCostLists();
 
                 renderUI();
+                document.getElementById('account-data-gate')?.classList.add('hidden');
+                document.getElementById('data-sync-warning')?.classList.add('hidden');
                 refreshTaxPayments().catch(()=>{appState.taxPaymentsLoaded=false;renderTaxDueCards();});
             } catch (err) {
                 console.error("Error fetching user data:", err);
-                showToast("Failed to load cloud data");
+                if(accountGeneration!==generation||appState.currentUser?.id!==userId||appState.userDataLoadVersion!==version)return false;
+                const message=document.getElementById('account-data-message');if(message)message.textContent='Your account could not be loaded. Check your connection and retry. Records from another account are not shown.';
+                document.getElementById('data-sync-warning')?.classList.remove('hidden');
+                showToast("Failed to load cloud data. Please retry.");
+                return false;
             }
         }
 
@@ -2705,10 +2779,11 @@
         function openInvoiceDetail(id){
             const inv=invoiceById(id);if(!inv){showToast('Refresh to load your invoice');return;}appState.selectedInvoiceId=id;
             document.getElementById('invoice-detail-title').textContent=inv.invoice_number;
-            const lines=(inv.items||[]).map(i=>'<div class="flex justify-between gap-3 border-b border-slate-700 py-2"><div><b>'+escapeHtml(i.description)+'</b><p class="text-[10px] text-slate-400">'+i.quantity+' × £'+Number(i.unit_price).toFixed(2)+(inv.vat_enabled?' · VAT '+i.vat_rate+'% · net £'+Number(i.net_total).toFixed(2):'')+'</p></div><span>£'+Number(i.line_total).toFixed(2)+'</span></div>').join('');
+            const lines=(inv.items||[]).map(i=>'<div class="flex justify-between gap-3 border-b border-slate-700 py-2"><div><b>'+escapeHtml(i.description)+'</b><p class="text-[10px] text-slate-400">'+Number(i.quantity)+' × £'+Number(i.unit_price).toFixed(2)+(inv.vat_enabled?' · VAT '+Number(i.vat_rate)+'% · net £'+Number(i.net_total).toFixed(2):'')+'</p></div><span>£'+Number(i.line_total).toFixed(2)+'</span></div>').join('');
             const escapedLines=value=>escapeHtml(value||'').replaceAll('\n','<br>');
             document.getElementById('invoice-detail-content').innerHTML='<div class="bg-slate-900 rounded-xl p-3 space-y-2"><p class="font-bold text-white">'+escapeHtml(inv.status.toUpperCase())+' · £'+Number(inv.total).toFixed(2)+'</p><p>Invoice '+formatUkDate(inv.invoice_date)+' · Service '+formatUkDate(inv.supply_date)+' · Due '+formatUkDate(inv.due_date)+'</p>'+(inv.status==='paid'?'<p>Paid '+formatUkDate(inv.paid_on)+' · '+(inv.payment_mode==='existing'?'Linked to existing income':'Income added')+'</p>':'')+'</div><div class="bg-slate-900 rounded-xl p-3"><p class="text-[10px] text-slate-400">FROM</p><b>'+escapeHtml(inv.seller_name)+'</b><p>'+escapedLines(inv.trading_name)+'</p><p>'+escapedLines(inv.seller_address)+'</p><p>'+escapeHtml(inv.seller_contact)+'</p></div><div class="bg-slate-900 rounded-xl p-3"><p class="text-[10px] text-slate-400">BILL TO</p><b>'+escapeHtml(inv.customer_name)+'</b><p>'+escapedLines(inv.customer_address)+'</p></div><div>'+lines+'</div><p class="text-lg text-emerald-300 font-bold">Total £'+Number(inv.total).toFixed(2)+'</p><p>'+ (inv.vat_enabled?'VAT number '+escapeHtml(inv.vat_number)+' · Net £'+Number(inv.subtotal).toFixed(2)+' · VAT £'+Number(inv.vat_total).toFixed(2)+' · Tax point '+formatUkDate(inv.tax_point):'No VAT charged.') +'</p><p>'+escapedLines(inv.payment_details)+'</p><p>'+escapedLines(inv.notes)+'</p>';
             document.getElementById('invoice-archive-btn').textContent=inv.archived?'Restore from archive':'Archive invoice';document.getElementById('invoice-credit-pdf-btn').classList.toggle('hidden',!(inv.vat_enabled&&inv.status==='cancelled'));
+            document.getElementById('invoice-undo-payment-btn').classList.toggle('hidden',inv.status!=='paid');
             document.getElementById('invoice-send-email').value=inv.customer_email||'';
             document.getElementById('invoice-email-status').textContent='Send the invoice PDF by email.';
             ['invoice-mark-paid-btn','invoice-cancel-btn'].forEach(id=>document.getElementById(id).classList.toggle('hidden',inv.status!=='unpaid'));
@@ -2817,6 +2892,22 @@
                 await fetchUserData(appState.currentUser.id);document.getElementById('invoice-payment-modal').classList.add('hidden');openInvoiceDetail(inv.id);showToast(choice==='new'?'Invoice paid and income added':'Invoice paid; existing income linked');
             }catch(err){error.textContent=err.message==='invoice_possible_duplicate_income'?'Matching income now exists. Close this payment form, refresh your records and link the existing income.':err.message||'Could not record payment';error.classList.remove('hidden');}
             finally{appState.invoicePaying=false;button.disabled=false;}
+        }
+        async function undoInvoicePayment(){
+            const inv=invoiceById();if(!inv||inv.status!=='paid'||appState.invoiceUndoing)return;
+            const message=inv.payment_mode==='new'?'Undo this recorded payment? The invoice becomes unpaid. Only its unchanged automatically generated income will be removed; other income is kept.':'Undo this recorded payment? The invoice becomes unpaid. The existing income record will stay saved.';
+            if(!confirm(message+' Review any VAT return affected by this correction. This does not refund the customer.'))return;
+            const userId=appState.currentUser?.id;if(!userId)return;
+            const error=document.getElementById('invoice-action-error'),button=document.getElementById('invoice-undo-payment-btn');
+            appState.invoiceUndoing=true;button.disabled=true;error.classList.add('hidden');
+            try{
+                const {data,error:saveError}=await supabaseClient.rpc('undo_driver_invoice_payment',{p_id:inv.id});
+                if(saveError)throw saveError;if(data?.status!=='unpaid')throw new Error('The correction could not be confirmed. Refresh before retrying.');
+                if(appState.currentUser?.id!==userId)return;
+                await fetchUserData(userId);if(appState.currentUser?.id!==userId)return;
+                openInvoiceDetail(inv.id);showToast(data.income_removed?'Payment undone; generated income removed':data.already_undone?'Payment was already undone':'Payment undone; existing income retained');
+            }catch(err){error.textContent=err.message||'Could not undo payment. Refresh before retrying.';error.classList.remove('hidden');}
+            finally{appState.invoiceUndoing=false;button.disabled=false;}
         }
         async function cancelInvoice(){
             const inv=invoiceById();if(!inv||inv.status!=='unpaid'||appState.invoiceCancelling)return;
@@ -3138,7 +3229,7 @@
                                 <i class="fa-solid fa-road"></i>
                             </div>
                             <div>
-                                <h4 class="text-xs font-bold text-white">${t.purpose || 'Business journey'}</h4>
+                                <h4 class="text-xs font-bold text-white">${escapeHtml(t.purpose || 'Business journey')}</h4>
                                 <span class="text-[10px] text-slate-400">${t.trip_date} • ${Number(t.business_miles || 0).toFixed(1).replace('.0','')} miles</span>
                             </div>
                         </div>
@@ -4090,10 +4181,11 @@ function openAccountModal() {
 
                 await fetchUserData(appState.currentUser.id);
                 const suggestedItems=appState.pendingReceiptItems||[];
+                const splitAfterSave=!!document.getElementById('receipt-split-after')?.checked;
                 cancelReceiptReview();
                 showToast('Receipt confirmed and expense saved');
                 switchTab('dashboard');
-                if(document.getElementById('receipt-split-after')?.checked)openItemSplit(savedId,suggestedItems);
+                if(splitAfterSave)openItemSplit(savedId,suggestedItems);
             }catch(err){
                 console.error('Receipt save error',err);
                 validation.textContent='Could not confirm the save. Please retry; duplicate checks will run again.';
@@ -4909,7 +5001,7 @@ function renderRegularCostLists() {
             appState.mileageTrips.filter(t => t.trip_date === dateStr).forEach(t => items.push(`
                 <div class="flex justify-between items-center text-xs bg-slate-950/50 rounded-xl p-2.5 gap-3">
                     <div class="min-w-0">
-                        <p class="text-slate-300 font-semibold truncate">${t.purpose || 'Mileage'}</p>
+                        <p class="text-slate-300 font-semibold truncate">${escapeHtml(t.purpose || 'Mileage')}</p>
                         <p class="text-[9px] text-slate-600">Mileage record</p>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
@@ -4997,6 +5089,8 @@ function renderRegularCostLists() {
         function editIncomeRecord(id) {
             const t = appState.transactions.find(x => x.id === id && x.type === 'income');
             if (!t) return;
+            const linkedInvoice=(appState.invoices||[]).find(inv=>inv.status==='paid'&&inv.income_id===id);
+            if(linkedInvoice){openInvoiceDetail(linkedInvoice.id);showToast('This income belongs to a paid invoice. Use Undo recorded payment to correct a mistake.');return;}
             resetEditState();
             appState.editingIncomeId = id;
             appState.dailyEntryMode = false;
