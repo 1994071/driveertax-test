@@ -158,6 +158,18 @@
 
                 <div id="onboarding-step-4" class="hidden space-y-3">
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                        <label for="onboarding-paye-choice" class="block text-sm font-bold text-white">Do you also have a job paid through PAYE?</label>
+                        <select id="onboarding-paye-choice" onchange="toggleOnboardingEmployment()" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white"><option value="later">I'll add employment details later</option><option value="no">No employed job</option><option value="yes">Yes — I also have an employed job</option></select>
+                        <div id="onboarding-paye-fields" class="hidden space-y-2">
+                            <p class="text-[11px] text-slate-300">Employment tax profile: <strong>6 April 2026 to 5 April 2027</strong>. Include jobs you left during this tax year.</p>
+                            <label for="onboarding-paye-pay" class="block text-xs text-slate-200">Total annual taxable pay from all jobs, before tax (£)</label>
+                            <input id="onboarding-paye-pay" type="number" min="0" max="100000000" step="0.01" inputmode="decimal" placeholder="e.g. 16000" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white">
+                            <p class="text-[11px] text-slate-400">Use expected taxable pay for the whole tax year, not monthly or take-home pay. Add all jobs together. Salary stays separate from business turnover.</p>
+                            <p class="text-[11px] text-slate-400">After setup, review your tax residence, tax already deducted, pensions and student loans in Tax Profile. You can update these later under Tax.</p>
+                        </div>
+                        <p id="onboarding-paye-error" role="alert" class="hidden text-xs text-rose-300"></p>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
                         <div>
                             <h3 class="text-sm font-bold text-white">Regular monthly or yearly costs</h3>
                             <p class="text-[11px] text-slate-400 mt-1">Optional. Add costs you pay repeatedly so DriverTax can include them in true business profit.</p>
@@ -899,9 +911,10 @@
                         <div class="grid grid-cols-2 gap-2">
                             <div><label class="text-[10px] font-bold text-slate-500">Personal pension payments (£)</label><input id="taxp-pension-contrib" aria-describedby="taxp-relief-help" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
                             <div><label class="text-[10px] font-bold text-slate-500">Gift Aid donations paid (£)</label><input id="taxp-gift-aid" aria-describedby="taxp-relief-help" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
-                            <div><label class="text-[10px] font-bold text-slate-500">Tax already deducted (£)</label><input id="taxp-tax-deducted" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+                            <div><label class="text-[10px] font-bold text-slate-500">Income Tax already deducted: all jobs / other income (£)</label><input id="taxp-tax-deducted" aria-describedby="taxp-deductions-help" type="number" min="0" step="0.01" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
                             <div><label class="text-[10px] font-bold text-slate-500">Marriage Allowance</label><select id="taxp-marriage" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"><option value="none">None</option><option value="receiving">I receive it</option><option value="transferring">I transfer it</option></select></div>
                         </div>
+                        <p id="taxp-deductions-help" class="text-[11px] text-slate-400">Tax profile for 2026/27. Record Income Tax already deducted separately from your taxable pay; exclude National Insurance, pension and student-loan deductions. This is a record of tax paid, not an expense. The dashboard shows the extra estimated reserve from this business, assumes PAYE covers employment correctly, and does not deduct this figure again.</p>
                         <p id="taxp-relief-help" class="text-[11px] leading-relaxed text-slate-400">Enter amounts you actually paid this tax year, before any top-up. Pension payments must qualify for the provider’s 20% tax top-up (relief at source). Exclude employer payments, salary sacrifice and payments taken from salary before tax. Enter only eligible amounts within your pension limits. We add the top-up for the calculation and apply relief using your selected tax residence.</p>
                         <label class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-xl px-3 py-3 text-xs text-slate-200">Blind Person’s Allowance<input id="taxp-blind" type="checkbox" class="accent-emerald-500"></label>
                     </div>
@@ -1576,6 +1589,9 @@
                 appState.selectedPlatforms = data?.platforms || [];
                 appState.selectedExpenses = data?.usual_expenses || [];
                 document.getElementById('onboarding-screen').classList.remove('hidden');
+                const employmentChoice=document.getElementById('onboarding-paye-choice');if(employmentChoice)employmentChoice.value='later';
+                const employmentPay=document.getElementById('onboarding-paye-pay');if(employmentPay)employmentPay.value='';
+                toggleOnboardingEmployment();
                 showOnboardingStep(1);
             } else {
                 document.getElementById('onboarding-screen').classList.add('hidden');
@@ -1656,6 +1672,20 @@
             renderExpensePreferenceOptions();
         }
 
+        function toggleOnboardingEmployment(){
+            const yes=document.getElementById('onboarding-paye-choice')?.value==='yes';
+            document.getElementById('onboarding-paye-fields')?.classList.toggle('hidden',!yes);
+            document.getElementById('onboarding-paye-error')?.classList.add('hidden');
+            const input=document.getElementById('onboarding-paye-pay');
+            if(yes&&input&&input.value===''&&Number(appState.taxProfile?.paye_income)>0)input.value=appState.taxProfile.paye_income;
+        }
+        function onboardingEmploymentPay(){
+            if(document.getElementById('onboarding-paye-choice')?.value!=='yes')return null;
+            const raw=document.getElementById('onboarding-paye-pay')?.value?.trim()||'';
+            const amount=Number(raw);
+            if(!raw||!Number.isFinite(amount)||amount<0||amount>100000000)throw new Error('Enter your expected annual taxable pay from all jobs, or choose to add it later.');
+            return Math.round(amount*100)/100;
+        }
         async function finishOnboarding() {
             if (!appState.currentUser || appState.savingOnboarding) return;
             if (!appState.selectedProfessions?.length) {
@@ -1663,15 +1693,27 @@
                 showToast('Please select your profession, then continue to finish setup.');
                 return;
             }
+            let employmentPay;
+            try{employmentPay=onboardingEmploymentPay();}
+            catch(error){showOnboardingStep(4);const el=document.getElementById('onboarding-paye-error');if(el){el.textContent=error.message;el.classList.remove('hidden');}document.getElementById('onboarding-paye-pay')?.focus();return;}
+            const userId=appState.currentUser.id;
             appState.savingOnboarding=true;
             const btn=document.getElementById('finish-onboarding-btn'); btn.disabled=true;btn.textContent='Saving...';
             try {
+                if(employmentPay!==null){
+                    const {data:taxProfile,error:taxError}=await supabaseClient.from('tax_profiles').upsert({user_id:userId,paye_income:employmentPay,updated_at:new Date().toISOString()},{onConflict:'user_id'}).select('*').single();
+                    if(taxError||taxProfile?.user_id!==userId)throw taxError||new Error('Employment pay could not be confirmed');
+                    if(appState.currentUser?.id!==userId)return;
+                    appState.taxProfile=taxProfile;
+                }
                 const fields={...professionProfileFields(),platforms:[...appState.selectedPlatforms],usual_expenses:appState.selectedExpenses.length?[...appState.selectedExpenses]:['Other'],onboarding_completed:true};
-                const {data,error}=await supabaseClient.from('profiles').update(fields).eq('id',appState.currentUser.id).select('id').single();
+                const {data,error}=await supabaseClient.from('profiles').update(fields).eq('id',userId).select('id').single();
                 if(error||!data)throw error||new Error('Profile was not saved');
+                if(appState.currentUser?.id!==userId)return;
                 appState.profile={...appState.profile,...fields};
                 document.getElementById('onboarding-screen').classList.add('hidden');
-                await fetchUserData(appState.currentUser.id);appState.homeCalendarOpened=false;maybeOpenHomeCalendar();showToast('Setup complete');
+                await fetchUserData(userId);if(appState.currentUser?.id!==userId)return;appState.homeCalendarOpened=false;maybeOpenHomeCalendar();showToast(employmentPay!==null?'Setup complete — review your Tax Profile':'Setup complete');
+                if(employmentPay!==null)openTaxProfileModal();
             } catch(error) { showToast('Could not save setup. Your choices are still here; please retry.'); }
             finally {appState.savingOnboarding=false;btn.disabled=false;btn.textContent='Finish Setup';}
         }
