@@ -55,6 +55,11 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Invalid receipt path" }), { status: 400, headers: cors });
     }
 
+    if(path.split("/").some(part=>part===".."||part==="."))return new Response(JSON.stringify({error:"Invalid receipt path"}),{status:400,headers:cors});
+    const quotaClient=createClient(supabaseUrl,serviceKey);
+    const {data:allowed,error:quotaError}=await quotaClient.rpc("consume_api_request",{p_user_id:user.id,p_service:"receipt_scan"});
+    if(quotaError)return new Response(JSON.stringify({error:"Scanning is temporarily unavailable. Please retry shortly."}),{status:503,headers:cors});
+    if(!allowed)return new Response(JSON.stringify({error:"Too many scan requests. Please wait a minute and try again."}),{status:429,headers:{...cors,"Retry-After":"60"}});
     const downloadStarted = Date.now();
     let dataUrl: string;
     if (body?.image !== undefined) {
@@ -122,6 +127,7 @@ Rules:
     const aiStarted = Date.now();
     const aiResponse = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
+      signal: AbortSignal.timeout(45000),
       headers: {
         "Authorization": `Bearer ${openaiKey}`,
         "Content-Type": "application/json",
@@ -155,7 +161,7 @@ Rules:
     try {
       parsed = JSON.parse(cleanJsonText(outputText));
     } catch {
-      console.error("Could not parse model output", outputText);
+      console.error("Could not parse receipt model output");
       return new Response(JSON.stringify({ error: "AI result needs manual entry", code: "PARSE_ERROR" }), { status: 422, headers: cors });
     }
 
@@ -177,4 +183,5 @@ Rules:
     return new Response(JSON.stringify({ error: "Receipt scan failed. You can still enter the receipt manually." }), { status: 500, headers: cors });
   }
 });
+
 
