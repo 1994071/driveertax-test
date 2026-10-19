@@ -1,0 +1,32 @@
+name: App availability
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['index.html', '.github/workflows/availability.yml']
+permissions: {}
+concurrency:
+  group: availability
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check website and authentication service
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          const start=Date.now();
+          const site=await fetch('https://earnavik.com/',{signal:AbortSignal.timeout(20000),cache:'no-store'});
+          if(!site.ok)throw new Error('Website HTTP '+site.status);
+          const html=await site.text();
+          if(!html.includes('id="account-modal"')||!html.includes('function newAppState'))throw new Error('Expected application was not served');
+          const key=html.match(/SUPABASE_ANON_KEY\s*=\s*['"]([^'"]+)['"]/i)?.[1];
+          if(!key)throw new Error('Public application configuration not found');
+          const auth=await fetch('https://hhrhcajywexgpxrjndto.supabase.co/auth/v1/health',{headers:{apikey:key},signal:AbortSignal.timeout(15000)});
+          if(!auth.ok)throw new Error('Authentication health HTTP '+auth.status);
+          console.log('Website and authentication health passed in '+(Date.now()-start)+' ms.');
+          JS
