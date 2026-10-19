@@ -1,7 +1,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const html=fs.readFileSync(__dirname+'/../index.html','utf8');
 const refresh=html.slice(html.indexOf('                // Regular-cost refreshes'),html.indexOf('                const displayName=profileRes'));
-const finish=html.slice(html.indexOf('        async function finishOnboarding()'),html.indexOf('        function populateIncomeSources()'));
+const finish=html.slice(html.indexOf('        function toggleOnboardingEmployment()'),html.indexOf('        const tradeIncomeServices'));
 let hidden=false,saved,step;
 const btn={};const screen={classList:{contains:()=>hidden,add:()=>{hidden=true;}}};
 const state={currentUser:{id:'test'},selectedWorkType:'Hairdresser',selectedProfessions:[{id:'hair',label:'Hairdresser',category:'beauty'}],selectedPlatforms:['Salon'],selectedExpenses:['Salon rent']};
