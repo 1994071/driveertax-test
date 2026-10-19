@@ -1,6 +1,6 @@
 # DriverTax master launch checklist
 
-Reviewed: 15 October 2026. This is the working checklist for the next sessions.
+Reviewed: 19 October 2026. Email configuration and release references updated. Older dated observations below remain historical where superseded.
 
 ## Evidence and limits
 
@@ -10,7 +10,7 @@ Status meanings: **Built/live** means code was released; **tested** names the ch
 
 ## Launch priorities — do in this order
 
-- [ ] **L01 — Finish outgoing email.** Live read-only `email-tax-report` status check on 15 October returned `configured:false`, `providerConfigured:false`, `senderConfigured:false`. Configure the provider API key and verified sender/domain; no secrets in the browser or chat. Then verify a real invoice PDF and tax-report PDF/CSV reach intended inboxes, including attachment opening, spam/bounce/failure handling. No email was sent by this audit. Signup/password-reset mail is a separate flow and needs its own delivery test. A business mailbox is also separate from the transactional sending service.
+- [ ] **L01 — Complete email acceptance.** Update 18 October: earnavik.com sender verified, invoice email and signup confirmation reported working by Yohan; password recovery UI added in the 19 October audit. Still test recovery links, attachments/bounces and devices. Historical baseline: live read-only `email-tax-report` status check on 15 October returned `configured:false`, `providerConfigured:false`, `senderConfigured:false`. Configure the provider API key and verified sender/domain; no secrets in the browser or chat. Then verify a real invoice PDF and tax-report PDF/CSV reach intended inboxes, including attachment opening, spam/bounce/failure handling. No email was sent by this audit. Signup/password-reset mail is a separate flow and needs its own delivery test. A business mailbox is also separate from the transactional sending service.
 - [ ] **L02 — Run real-phone receipt acceptance.** Camera capture is coded, alongside image upload, AI extraction, edit/confirm, duplicate Cancel/Save anyway, item splitting and evidence storage. Recent scanner/item tests used mocked AI; they do not prove live end-to-end extraction. Test iPhone Safari and Android Chrome: camera permission allowed/denied, photo library choice, clear/blurred/long receipts, rotated images, HEIC, >10 MB, interruption/offline, review/save, refresh, private evidence access and duplicate override. HEIC is advertised; no explicit conversion/compression implementation was found. Confirm supported types or convert before promising them. Native camera capture behavior is browser-dependent.
 - [ ] **L03 — Independently verify supported tax calculations.** 2026/27 has PAYE-aware incremental business estimates; 96 Scottish/relief regression checks plus other tax tests passed. This is not independent accountant sign-off. Verify thresholds/boundaries, PAYE + business, all supported residence/loan choices, pensions/Gift Aid, allowance taper, Marriage/Blind Person's Allowance, eligible expense treatment and VAT interactions against a trusted reference. Do not present the business reserve as a complete HMRC settlement balance.
 - [ ] **L04 — Complete year-specific tax profiles.** 2025/26 currently uses a provisional business-only estimate with saved residence and standard allowance; employment income, other income, reliefs and loans for that year are excluded. 2026/27's Tax Profile is one current-year record, not a year-indexed history. Add separately saved employment/other-income settings for each supported year, or clearly restrict historical estimates. Do not reuse this year's salary for a previous year. Both years need complete dashboard/export/breakdown consistency.
@@ -57,7 +57,7 @@ Status meanings: **Built/live** means code was released; **tested** names the ch
 | Invoice paid/unpaid and reminders | Paid/unpaid/overdue dashboard counts/status built | Automatic background invoice due notifications/email/SMS are not built; app-open alerts are not push notifications |
 | VAT invoicing, Flat Rate and return review | VAT rates/basis, recorded classifications, Flat Rate logic and reviewed return preview exist | Limited supported ordinary UK scope; no HMRC VAT filing. Split-item VAT unsupported; advanced/import/export/reverse-charge/partial-exemption etc excluded. Independent review and full regression rerun required |
 | Tax/report PDF/CSV | Export code exists and earlier tests/releases cover parts | Historical dashboard selection is not the same as export year selection; current tax-summary export uses current year. Audit historical-year export, catch-up data, splits and payment history completeness |
-| Email invoices/tax reports | UI + deployed `email-tax-report` function exist | CONFIRMED NOT CONFIGURED, not merely unverified: L01 |
+| Email invoices/tax reports | UI + deployed `email-tax-report` function exist | Domain earnavik.com and Resend sender configured; Yohan confirmed delivery on 18 October. Bounce/attachment and real-phone regression remain; see current audit |
 | WhatsApp sharing | Native file-share path and explicit download/manual-attachment fallback built | Real iOS/Android/desktop testing; cannot guarantee direct attachment on unsupported browsers |
 | Upload bank statement | GBP CSV column mapping/review/approval/dedupe/safe undo built | PDF/text/OCR statements, stronger receipt/invoice matching, statement balance reconciliation and richer categorisation remain |
 | Live bank connection | Provider outreach/quotes, no live connection feature | Choose viable AIS provider, commercial/regulatory arrangement, sandbox, consent/onboarding/import matching and production approval; no bank provider contract confirmed |
@@ -67,7 +67,7 @@ Status meanings: **Built/live** means code was released; **tested** names the ch
 | Crash prevention/error alerts | Field validation, operation errors and some retry/atomic writes built | Remote monitoring, runtime recovery and resilience not finished (L07) |
 | HMRC tax filing/payment | Enquiry sent in earlier session; no integration deployed | Developer response, correct access route, sandbox/OAuth, production requirements and filing tests. Recording payment is not making payment; estimates are not HMRC calculations |
 | Subscriptions/pricing | Deliberately postponed by Yohan | Implement billing, entitlements, cancellation/refunds and store-related rules only when core app is ready |
-| Marketing/branding/launch date | Ideas discussed; no executed launch plan established | Final brand/domain, audience, supported-scope messaging, pilot feedback and marketing assets |
+| Marketing/branding/launch date | Ideas discussed; no executed launch plan established | Earnavik domain connected; in-app brand cleanup, audience, supported-scope messaging, pilot feedback and marketing assets remain |
 
 ## Backlog hygiene
 
@@ -82,7 +82,7 @@ Invoice bank entry, account-number validation, drafts and archiving are present 
 
 ## Evidence references
 
-- Current implementation: `index.html`; scanner function `supabase/functions/scan-receipt/index.ts` (live v3); email function inspected live v4.
+- Current implementation: `index.html`; scanner function `supabase/functions/scan-receipt/index.ts` (live v11 after this audit); email function v8 with manual auth and request limits.
 - Bookkeeping release notes: `docs/bookkeeping-batch-oct15.md`.
 - Tax scope limitations: `docs/tax-by-trade-review.md` (historical note; its “current-year only” statement predates the new basic 2025/26 calculation).
 - Regression evidence: `tests/bookkeeping-batch-*`, `tests/scottish-relief-checks.cjs`, `tests/tax-history-checks.cjs`, `tests/expense-tax-*`, `tests/tax-payment-*`, `tests/delete-summary-*`, `tests/historical-catchup-browser.cjs`.
