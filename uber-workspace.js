@@ -53,7 +53,7 @@ function uberTaxiProfile(profile){
  async function disconnectUber(){
   if(busy||!confirm('Disconnect Uber? Your existing income and expenses will stay unchanged.'))return;
   const user=appState.currentUser?.id,token=version;setBusy(true);
-  try{const data=await call('disconnect');if(!same(user,token))return;sessionStorage.removeItem(pendingKey);el('uber-driver-preview').replaceChildren();el('uber-driver-consent').checked=false;await loadUberConnection();if(same(user,token))el('uber-driver-status').textContent=data.revoked?'Uber disconnected. Your books are unchanged.':'Disconnected in Earnavik. Uber revocation could not be confirmed; remove Earnavik under Connected apps in your Uber account too.';}catch(e){if(same(user,token))el('uber-driver-status').textContent=e.message;}finally{if(same(user,token))setBusy(false);}
+  try{const data=await call('disconnect');if(!same(user,token))return;sessionStorage.removeItem(pendingKey);el('uber-driver-preview').replaceChildren();el('uber-driver-consent').checked=false;paint({available,status:'disconnected'});if(same(user,token))el('uber-driver-status').textContent=data.revoked?'Uber disconnected. Your books are unchanged.':'Disconnected in Earnavik. Uber revocation could not be confirmed; remove Earnavik under Connected apps in your Uber account too.';}catch(e){if(same(user,token))el('uber-driver-status').textContent=e.message;}finally{if(same(user,token))setBusy(false);}
  }
  async function previewUberPayments(){
   if(busy||!uberTaxiProfile(appState.profile))return;
