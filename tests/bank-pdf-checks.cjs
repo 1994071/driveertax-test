@@ -23,3 +23,15 @@ assert.equal((await request(Buffer.from(fixtures.empty,'base64'))).status,200);a
 complete='incomplete';assert.equal((await request(bytes)).status,422);complete='completed';modelData={...sample,complete:false};assert.equal((await request(bytes)).status,422);modelData=sample;aiStatus=429;assert.equal((await request(bytes)).status,429);aiStatus=200;key=false;assert.equal((await request(bytes)).status,503);
 console.log('PASS bank PDF validation, exact-penny reconciliation, real PDF page validation, file limits, authentication/quota fail-closed, structured provider payload, incomplete-output rejection and preview-only response. AI mocked.');
 })().catch(e=>{console.error(e);process.exit(1)});
+
+// Merchant analysis is local; grouping must never net income against expenses or
+// fold warned rows into a one-click approval group.
+{
+ const source=fs.readFileSync('bank-pdf-workspace.js','utf8').replace('Object.assign(window,{resetBankStatement','Object.assign(window,{statementMerchant,statementGroups,statementIcon,resetBankStatement');
+ const context={window:{},appState:{bankDraft:[]},document:{getElementById(){return null}}};vm.runInNewContext(source,context);
+ const {statementMerchant:merchant,statementGroups:groups,statementIcon:icon}=context.window;
+ assert.equal(merchant('CARD SHELL CANNOCK 1234'),'Shell');assert.equal(merchant('Shell Birmingham'),'Shell');assert.equal(merchant('Shell Energy bill'),'Shell Energy bill');assert.equal(merchant('UBER *EATS payout'),'Uber Eats');assert.equal(merchant('Unknown shop 123'),'Unknown shop 123');
+ context.appState.bankDraft=[{description:'Shell Cannock',direction:'out',kind:'expense',category:'Fuel'},{description:'Shell Birmingham',direction:'out',kind:'expense',category:'Fuel'},{description:'Shell refund',direction:'in',kind:'skip',category:'Other',reason:'Refund'},{description:'Shell payment',direction:'out',kind:'expense',category:'Equipment'},{description:'Shell old payment',direction:'out',kind:'skip',category:'Fuel',reason:'Possible existing record'}];
+ const result=groups();assert.equal(result.length,4);assert.equal(result.find(g=>g.section==='expenses'&&g.category==='Fuel').items.length,2);assert.equal(result.filter(g=>g.section==='review').length,2);assert.equal(icon('Fuel','out'),'⛽');assert.equal(icon('Phone & Internet','out'),'📱');assert.equal(icon('Other','in'),'💷');
+ console.log('PASS merchant normalisation, independent directions/categories/review groups and category icons.');
+}
