@@ -9,6 +9,7 @@
   "devDependencies": {
     "jspdf": "3.0.4",
     "linkedom": "0.18.12",
+    "pdf-lib": "1.17.1",
     "playwright": "1.62.1",
     "tailwindcss": "3.4.17",
     "typescript": "5.9.3"
