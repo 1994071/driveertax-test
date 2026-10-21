@@ -1430,7 +1430,7 @@
                     setCurrentAccount(null);appState.taxPayments=[];appState.taxYearAccounts=[];appState.taxPaymentsLoaded=false;appState.taxPaymentsUser=null;appState.pendingTaxPayment=null;
                     appState.dashboardPeriod='week';appState.dashboardPreferences=null;appState.dashboardPreferenceKey=null;appState.homeCalendarOpened=false;
                     document.getElementById('shift-reminder-banner').classList.add('hidden');
-                    closeDashboardSettings();closeInvoiceScreens();appState.invoices=[];appState.invoiceDrafts=[];appState.vatProfile=null;appState.vatPurchases=[];appState.invoiceCredits=[];appState.vatClassifications=[];appState.vatReturnReviews=[];appState.vatRawTransactions=null;
+                    closeDashboardSettings();closeInvoiceScreens();if(window.resetInvoicePreferences)resetInvoicePreferences();appState.invoices=[];appState.invoiceDrafts=[];appState.vatProfile=null;appState.vatPurchases=[];appState.invoiceCredits=[];appState.vatClassifications=[];appState.vatReturnReviews=[];appState.vatRawTransactions=null;
                     document.getElementById('auth-screen').classList.remove('hidden');
                 }
             });
@@ -2056,7 +2056,7 @@
             setCurrentAccount(null);appState.taxPayments=[];appState.taxYearAccounts=[];appState.taxPaymentsLoaded=false;appState.taxPaymentsUser=null;appState.pendingTaxPayment=null;
                     appState.dashboardPeriod='week';appState.dashboardPreferences=null;appState.dashboardPreferenceKey=null;appState.homeCalendarOpened=false;
                     document.getElementById('shift-reminder-banner').classList.add('hidden');
-                    closeDashboardSettings();closeInvoiceScreens();appState.invoices=[];appState.invoiceDrafts=[];appState.vatProfile=null;appState.vatPurchases=[];appState.invoiceCredits=[];appState.vatClassifications=[];appState.vatReturnReviews=[];appState.vatRawTransactions=null;
+                    closeDashboardSettings();closeInvoiceScreens();if(window.resetInvoicePreferences)resetInvoicePreferences();appState.invoices=[];appState.invoiceDrafts=[];appState.vatProfile=null;appState.vatPurchases=[];appState.invoiceCredits=[];appState.vatClassifications=[];appState.vatReturnReviews=[];appState.vatRawTransactions=null;
             document.getElementById('auth-screen').classList.remove('hidden');
             showToast("Signed out");
         }
@@ -2664,8 +2664,8 @@
             const coverage=document.getElementById('dash-vat-coverage');coverage.classList.toggle('hidden',!appState.vatProfile?.registered);coverage.textContent='Profit separates classified VAT. Flat Rate figures use a provisional limited-cost rate until the VAT period review is saved. Check unclassified records.';
             document.getElementById('invoice-list-summary').textContent=unpaid.length+' unpaid · £'+outstanding.toFixed(2)+' outstanding, including archived invoices. Unpaid invoices are not income.';
             const filter=document.getElementById('invoice-list-filter').value||'all';renderInvoiceSelectionTools();
-            if(filter==='drafts'){document.getElementById('invoice-list').innerHTML=(appState.invoiceDrafts||[]).map(d=>'<div class="bg-slate-900 border border-slate-700 rounded-xl p-3">'+invoiceSelectionCheckbox(d)+'<button type="button" onclick="openInvoiceDraft(\''+d.id+'\')" class="w-full text-left"><b class="text-white">Draft · '+escapeHtml(d.data.customer_name||'Unnamed customer')+'</b><p class="text-xs text-slate-300">Intended date '+(d.data.invoice_date?formatUkDate(d.data.invoice_date):'Not set')+' · No invoice number yet</p></button><button type="button" onclick="deleteInvoiceDraft(\''+d.id+'\')" class="text-xs text-rose-200 mt-2">Delete draft</button></div>').join('')||'<p class="text-xs text-slate-300">No saved drafts.</p>';return;}
-            document.getElementById('invoice-list').innerHTML=invoices.filter(i=>filter==='archived'?i.archived:!i.archived&&(filter==='all'||i.status===filter)).map(i=>{
+            if(filter==='drafts'){document.getElementById('invoice-list').innerHTML=visibleInvoiceSelectionRows().map(d=>'<div class="bg-slate-900 border border-slate-700 rounded-xl p-3">'+invoiceSelectionCheckbox(d)+'<button type="button" onclick="openInvoiceDraft(\''+d.id+'\')" class="w-full text-left"><b class="text-white">Draft · '+escapeHtml(d.data.customer_name||'Unnamed customer')+'</b><p class="text-xs text-slate-300">Intended date '+(d.data.invoice_date?formatUkDate(d.data.invoice_date):'Not set')+' · No invoice number yet</p></button><button type="button" onclick="deleteInvoiceDraft(\''+d.id+'\')" class="text-xs text-rose-200 mt-2">Delete draft</button></div>').join('')||'<p class="text-xs text-slate-300">No saved drafts.</p>';return;}
+            document.getElementById('invoice-list').innerHTML=visibleInvoiceSelectionRows().map(i=>{
                 const overdue=i.status==='unpaid'&&i.due_date<today;
                 return '<div>'+invoiceSelectionCheckbox(i)+'<button type="button" onclick="openInvoiceDetail(\''+i.id+'\')" class="w-full text-left bg-slate-900 border border-slate-700 rounded-xl p-3"><div class="flex justify-between gap-2"><b class="text-white">'+escapeHtml(i.invoice_number)+'</b><b class="text-emerald-300">£'+Number(i.total).toFixed(2)+'</b></div><p class="text-xs text-slate-300 mt-1">'+escapeHtml(i.customer_name)+'</p><p class="text-[10px] '+(overdue?'text-amber-200':'text-slate-400')+' mt-1">'+(i.archived?'Archived · ':'')+(overdue?'Overdue':i.status==='paid'?'Paid':i.status==='cancelled'?'Cancelled':'Unpaid')+' · Due '+formatUkDate(i.due_date)+'</p></button></div>';
             }).join('')||'<p class="text-xs text-slate-300 py-4">No invoices here yet.</p>';
@@ -2890,6 +2890,7 @@
             const lines=(inv.items||[]).map(i=>'<div class="flex justify-between gap-3 border-b border-slate-700 py-2"><div><b>'+escapeHtml(i.description)+'</b><p class="text-[10px] text-slate-400">'+Number(i.quantity)+' × £'+Number(i.unit_price).toFixed(2)+(inv.vat_enabled?' · VAT '+Number(i.vat_rate)+'% · net £'+Number(i.net_total).toFixed(2):'')+'</p></div><span>£'+Number(i.line_total).toFixed(2)+'</span></div>').join('');
             const escapedLines=value=>escapeHtml(value||'').replaceAll('\n','<br>');
             document.getElementById('invoice-detail-content').innerHTML='<div class="bg-slate-900 rounded-xl p-3 space-y-2"><p class="font-bold text-white">'+escapeHtml(inv.status.toUpperCase())+' · £'+Number(inv.total).toFixed(2)+'</p><p>Invoice '+formatUkDate(inv.invoice_date)+' · Service '+formatUkDate(inv.supply_date)+' · Due '+formatUkDate(inv.due_date)+'</p>'+(inv.status==='paid'?'<p>Paid '+formatUkDate(inv.paid_on)+' · '+(inv.payment_mode==='existing'?'Linked to existing income':'Income added')+'</p>':'')+'</div><div class="bg-slate-900 rounded-xl p-3"><p class="text-[10px] text-slate-400">FROM</p><b>'+escapeHtml(inv.seller_name)+'</b><p>'+escapedLines(inv.trading_name)+'</p><p>'+escapedLines(inv.seller_address)+'</p><p>'+escapeHtml(inv.seller_contact)+'</p></div><div class="bg-slate-900 rounded-xl p-3"><p class="text-[10px] text-slate-400">BILL TO</p><b>'+escapeHtml(inv.customer_name)+'</b><p>'+escapedLines(inv.customer_address)+'</p></div><div>'+lines+'</div><p class="text-lg text-emerald-300 font-bold">Total £'+Number(inv.total).toFixed(2)+'</p><p>'+ (inv.vat_enabled?'VAT number '+escapeHtml(inv.vat_number)+' · Net £'+Number(inv.subtotal).toFixed(2)+' · VAT £'+Number(inv.vat_total).toFixed(2)+' · Tax point '+formatUkDate(inv.tax_point):'No VAT charged.') +'</p><p>'+escapedLines(inv.payment_details)+'</p><p>'+escapedLines(inv.notes)+'</p>';
+            if(Number(inv.discount_amount)>0)document.getElementById('invoice-detail-content').insertAdjacentHTML('beforeend','<p>Discount '+(inv.discount_type==='percent'?Number(inv.discount_value)+'%':'fixed')+' · £'+Number(inv.discount_amount).toFixed(2)+'</p>');
             document.getElementById('invoice-archive-btn').textContent=inv.archived?'Restore from archive':'Archive invoice';document.getElementById('invoice-credit-pdf-btn').classList.toggle('hidden',!(inv.vat_enabled&&inv.status==='cancelled'));
             document.getElementById('invoice-undo-payment-btn').classList.toggle('hidden',inv.status!=='paid');
             document.getElementById('invoice-send-email').value=inv.customer_email||'';
@@ -2908,10 +2909,10 @@
             const ensure=h=>{if(y+h>275)newPage();};
             const block=(value,size=10,bold=false)=>{const lines=wrap(value,174,size,bold);for(const text of lines){ensure(6);line(text,18,y,size,bold);y+=6;}};
             // Company banner and compact invoice metadata.
-            const heading=wrap(inv.trading_name||inv.seller_name,166,21,true),bannerHeight=14+heading.length*9;
+            const hasLogo=!!inv.logo_data,heading=wrap(inv.trading_name||inv.seller_name,hasLogo?125:166,21,true),bannerHeight=Math.max(hasLogo?44:0,14+heading.length*9);
             doc.setFillColor(235,242,255);doc.roundedRect(18,14,174,bannerHeight,2,2,'F');y=25;
-            heading.forEach(t=>{line(t,22,y,21,true);y+=9;});y=14+bannerHeight+14;
-            line(inv.document_type==='credit'?'CREDIT NOTE':inv.status==='cancelled'?'CANCELLED INVOICE':inv.vat_enabled?'VAT INVOICE':'INVOICE',18,y,19,true);line(inv.invoice_number,192,y,12,true,'right');y+=10;
+            heading.forEach(t=>{line(t,22,y,21,true);y+=9;});if(hasLogo){const props=doc.getImageProperties(inv.logo_data),scale=Math.min(32/props.width,32/props.height);doc.addImage(inv.logo_data,'JPEG',155,19,props.width*scale,props.height*scale);}y=14+bannerHeight+14;
+            line(inv.document_type==='draft'?'DRAFT - NOT ISSUED':inv.document_type==='credit'?'CREDIT NOTE':inv.status==='cancelled'?'CANCELLED INVOICE':inv.vat_enabled?'VAT INVOICE':'INVOICE',18,y,19,true);line(inv.invoice_number,192,y,12,true,'right');y+=10;
             block((inv.document_type==='credit'?'Credit date: ':'Invoice date: ')+formatUkDate(inv.invoice_date)+'     Service date: '+formatUkDate(inv.supply_date),9);
             if(inv.document_type==='credit')block('Full reversal of invoice: '+inv.original_invoice_number,10,true);else block('Payment due: '+formatUkDate(inv.due_date),9);
             if(inv.vat_enabled){block('VAT number: GB'+inv.vat_number+'     Tax point: '+formatUkDate(inv.tax_point),9);block('Prices '+(inv.price_basis==='inclusive'?'including':'excluding')+' VAT'+(inv.document_type==='credit'?' — amounts below are fully credited.':''),9);}
@@ -2924,7 +2925,7 @@
             const tableHeader=()=>{ensure(12);doc.setFillColor(235,242,255);doc.rect(18,y-5,174,10,'F');line('Description',21,y,9,true);line('Qty',137,y,9,true,'right');line(inv.vat_enabled?'Unit ex VAT':'Unit price',162,y,9,true,'right');line('Total GBP',189,y,9,true,'right');y+=10;};
             tableHeader();
             inv.items.forEach((item,index)=>{
-                const description=item.description+(inv.vat_enabled?'\nVAT '+item.vat_rate+'% | net GBP '+Number(item.net_total).toFixed(2)+' | VAT GBP '+Number(item.vat_total).toFixed(2):'');const lines=wrap(description,101,10);let printed=false;
+                const description=item.description+(Number(item.discount_amount)>0?'\nDiscount '+(inv.price_basis==='inclusive'?'inc VAT ':'before VAT ')+'GBP '+Number(item.discount_amount).toFixed(2):'')+(inv.vat_enabled?'\nVAT '+item.vat_rate+'% | net GBP '+Number(item.net_total).toFixed(2)+' | VAT GBP '+Number(item.vat_total).toFixed(2):'');const lines=wrap(description,101,10);let printed=false;
                 for(let n=0;n<lines.length;n++){
                     if(y+8>275){newPage();tableHeader();}
                     if(index%2===0){doc.setFillColor(248,250,252);doc.rect(18,y-4.5,174,6,'F');}
@@ -2934,6 +2935,7 @@
                 }
                 y+=3;doc.setDrawColor(226,232,240);doc.line(18,y-2,192,y-2);
             });
+            if(Number(inv.discount_amount)>0){ensure(20);y+=6;block('Discount '+(inv.discount_type==='percent'?Number(inv.discount_value)+'%':'fixed')+' - GBP '+Number(inv.discount_amount).toFixed(2)+(inv.price_basis==='inclusive'?' (including VAT)':' (before VAT)'),10,true);}
             if(inv.vat_enabled){ensure(42);y+=6;line('Net GBP '+Number(inv.subtotal).toFixed(2),189,y,10,false,'right');y+=7;line('VAT GBP '+Number(inv.vat_total).toFixed(2),189,y,10,false,'right');y+=2;}
             ensure(26);y+=8;line(inv.document_type==='credit'?'CREDIT GBP':'TOTAL GBP',132,y,12,true,'right');line('£'+Number(inv.total).toFixed(2),189,y,16,true,'right');y+=8;if(!inv.vat_enabled)line('No VAT charged. Non-VAT invoice.',189,y,9,false,'right');y+=14;
             if(inv.payment_details&&inv.document_type!=='credit'){ensure(18);block('PAYMENT DETAILS',10,true);block(inv.payment_details,10);y+=3;}
@@ -6093,5 +6095,6 @@ function renderRegularCostLists() {
             }
         });
     </script>
+<script src="invoice-workspace.js"></script>
 </body>
 </html>
