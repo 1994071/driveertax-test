@@ -53,7 +53,7 @@ declare
  quantity numeric;rate numeric;line_total numeric;amount numeric:=0;
  issued date:=(p_invoice->>'invoice_date')::date;supply date:=(p_invoice->>'supply_date')::date;due date:=(p_invoice->>'due_date')::date;
  vat boolean:=coalesce((p_invoice->>'vat_enabled')::boolean,false);profile public.vat_profiles%rowtype;basis text:=coalesce(p_invoice->>'price_basis','exclusive');vat_rate numeric;net numeric;tax numeric;net_sum numeric:=0;tax_sum numeric:=0;taxpoint date;
- today date:=(now() at time zone 'Europe/London')::date;calc jsonb;dtype text:=coalesce(p_invoice->>'discount_type','none');dvalue numeric:=coalesce((p_invoice->>'discount_value')::numeric,0);logo text:=coalesce(p_invoice->>'logo_data','');
+ today date:=(now() at time zone 'Europe/London')::date;calc jsonb;dtype text:=coalesce(p_invoice->>'discount_type','none');dvalue numeric:=coalesce((p_invoice->>'discount_value')::numeric,0);logo text:=coalesce(p_invoice->>'logo_data','');prefix text;
 begin
  if driver is null then raise exception 'Sign in to create an invoice' using errcode='42501';end if;
  if p_request_id is null then raise exception 'Missing save request';end if;
@@ -78,11 +78,12 @@ begin
  if amount<=0 or amount>10000000 then raise exception 'Enter a positive total of no more than 10000000';end if;
  if nullif(btrim(p_invoice->>'seller_name'),'') is null or nullif(btrim(p_invoice->>'seller_address'),'') is null or nullif(btrim(p_invoice->>'seller_contact'),'') is null
    or nullif(btrim(p_invoice->>'customer_name'),'') is null or nullif(btrim(p_invoice->>'customer_address'),'') is null then raise exception 'Add your name, address and contact, plus customer name and address';end if;
+ select data->>'number_prefix' into prefix from public.invoice_preferences where user_id=driver;prefix:=coalesce(nullif(prefix,''),'DT');if prefix !~ '^[A-Z0-9_-]{1,12}$' then raise exception 'Check the saved invoice prefix';end if;
  insert into public.invoice_counters(user_id,last_number) values(driver,1)
  on conflict(user_id) do update set last_number=public.invoice_counters.last_number+1 returning last_number into seq;
  insert into public.invoices(user_id,request_id,invoice_number,seller_name,trading_name,seller_address,seller_contact,customer_name,customer_address,customer_email,
  invoice_date,supply_date,due_date,items,total,payment_details,notes,vat_enabled,vat_number,vat_scheme,price_basis,subtotal,vat_total,tax_point,flat_rate,flat_discount_eligible,flat_registration_date,flat_start_date,capital_sale,logo_data,discount_type,discount_value,discount_amount)
- values(driver,p_request_id,'DT-'||to_char(issued,'YYYY')||'-'||lpad(seq::text,greatest(4,length(seq::text)),'0'),btrim(p_invoice->>'seller_name'),coalesce(btrim(p_invoice->>'trading_name'),''),
+ values(driver,p_request_id,prefix||'-'||to_char(issued,'YYYY')||'-'||lpad(seq::text,greatest(4,length(seq::text)),'0'),btrim(p_invoice->>'seller_name'),coalesce(btrim(p_invoice->>'trading_name'),''),
  btrim(p_invoice->>'seller_address'),btrim(p_invoice->>'seller_contact'),btrim(p_invoice->>'customer_name'),btrim(p_invoice->>'customer_address'),coalesce(btrim(p_invoice->>'customer_email'),''),
  issued,supply,due,clean_items,amount,coalesce(p_invoice->>'payment_details',''),coalesce(p_invoice->>'notes',''),vat,case when vat then profile.vat_number else '' end,case when vat then profile.scheme else 'none' end,basis,net_sum,tax_sum,case when vat then taxpoint else null end,case when vat and profile.scheme like 'flat_%' then profile.flat_rate else null end,case when vat and profile.scheme like 'flat_%' then profile.flat_discount_eligible else false end,case when vat and profile.scheme like 'flat_%' then profile.registration_date else null end,case when vat and profile.scheme like 'flat_%' then profile.flat_start_date else null end,coalesce((p_invoice->>'capital_sale')::boolean,false),logo,dtype,dvalue,(calc->>'discount_amount')::numeric) returning id into result;
  return result;
