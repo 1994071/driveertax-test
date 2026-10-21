@@ -50,7 +50,7 @@
  }
  function invalidatePdfReview(){appState.bankPdfChecked=false;appState.bankDraft=null;el('bank-review')?.replaceChildren();if(el('bank-pdf-confirm'))el('bank-pdf-confirm').checked=false;}
  function renderPdfFields(){
-  const fields=el('bank-pdf-fields');fields.innerHTML='<details><summary class="cursor-pointer font-bold py-3">Check / correct extracted dates, amounts and balances</summary><p class="font-bold">'+extracted.rows.length+' transactions · '+extracted.pages+' pages read</p><p>Positive amounts are money in; negative amounts are money out. Balances are checks, not transactions.</p><div class="grid grid-cols-2 gap-2">'+['opening','closing'].map(k=>'<label>'+k[0].toUpperCase()+k.slice(1)+' balance (£)<input id="bank-pdf-'+k+'" inputmode="decimal" value="'+escapeHtml(extracted[k+'_balance']??'')+'" placeholder="Not shown" class="'+batchInput+'"></label>').join('')+'</div><div id="bank-pdf-row-list" class="space-y-2">'+extracted.rows.map((r,i)=>'<div class="rounded-xl border border-slate-700 p-3 space-y-2"><label>Date<input type="date" data-pdf-date="'+i+'" value="'+escapeHtml(r.date)+'" class="'+batchInput+'"></label><label>Description<input data-pdf-description="'+i+'" maxlength="500" value="'+escapeHtml(r.description)+'" class="'+batchInput+'"></label><label>Signed amount (£)<input data-pdf-amount="'+i+'" inputmode="decimal" value="'+escapeHtml(r.amount)+'" class="'+batchInput+'"></label></div>').join('')+'</div></details><p id="bank-pdf-balance" role="status" class="text-amber-200"></p><label class="flex gap-2"><input id="bank-pdf-confirm" type="checkbox">I checked all pages, dates, descriptions, amounts and the transaction count against my statement.</label><button id="bank-pdf-review" type="button" class="'+batchButton+' w-full">Check and review transactions</button>';
+  const fields=el('bank-pdf-fields');el('bank-pdf-read').hidden=true;fields.innerHTML='<details><summary class="cursor-pointer font-bold py-3">Check / correct extracted dates, amounts and balances</summary><p class="font-bold">'+extracted.rows.length+' transactions · '+extracted.pages+' pages read</p><p>Positive amounts are money in; negative amounts are money out. Balances are checks, not transactions.</p><div class="grid grid-cols-2 gap-2">'+['opening','closing'].map(k=>'<label>'+k[0].toUpperCase()+k.slice(1)+' balance (£)<input id="bank-pdf-'+k+'" inputmode="decimal" value="'+escapeHtml(extracted[k+'_balance']??'')+'" placeholder="Not shown" class="'+batchInput+'"></label>').join('')+'</div><div id="bank-pdf-row-list" class="space-y-2">'+extracted.rows.map((r,i)=>'<div class="rounded-xl border border-slate-700 p-3 space-y-2"><label>Date<input type="date" data-pdf-date="'+i+'" value="'+escapeHtml(r.date)+'" class="'+batchInput+'"></label><label>Description<input data-pdf-description="'+i+'" maxlength="500" value="'+escapeHtml(r.description)+'" class="'+batchInput+'"></label><label>Signed amount (£)<input data-pdf-amount="'+i+'" inputmode="decimal" value="'+escapeHtml(r.amount)+'" class="'+batchInput+'"></label></div>').join('')+'</div><button id="bank-pdf-review" type="button" class="'+batchButton+' w-full">Apply corrections</button></details><p id="bank-pdf-balance" role="status" class="text-amber-200"></p><label class="flex gap-2"><input id="bank-pdf-confirm" type="checkbox">I checked all pages, dates, descriptions, amounts and the transaction count against my statement.</label>';
   fields.querySelectorAll('input:not([type="checkbox"])').forEach(input=>input.addEventListener('input',invalidatePdfReview));el('bank-pdf-review').onclick=reviewPdfTransactions;el('bank-pdf-confirm').onchange=()=>{appState.bankPdfChecked=el('bank-pdf-confirm').checked;};
   updatePdfBalance(extracted.rows.map(r=>Number(r.amount)));
  }
@@ -80,24 +80,62 @@
    const found=rules.find(([re])=>re.test(r.description));if(found)r.category=found[1];
   }
  }
- function captureStatementChoices(){for(const [i,r] of (appState.bankDraft||[]).entries()){const box=document.querySelector('[data-bank-approve="'+i+'"]');if(box){r.approved=box.checked;r.kind=document.querySelector('[data-bank-kind="'+i+'"]').value;r.category=document.querySelector('[data-bank-category="'+i+'"]').value;}}}
- function updateStatementSelection(){captureStatementChoices();const rows=(appState.bankDraft||[]).filter(r=>r.approved&&r.kind!=='skip');const out=rows.filter(r=>r.kind==='expense').reduce((s,r)=>s+Math.round(r.amount*100),0),inc=rows.filter(r=>r.kind==='income').reduce((s,r)=>s+Math.round(r.amount*100),0);el('bank-selected-total').textContent=rows.length+' selected · Expenses £'+(out/100).toFixed(2)+' · Income £'+(inc/100).toFixed(2);}
- function renderStatementReview(){
-  appState.bankReviewFilter='all';appState.bankReviewGrouping='day';
-  const review=el('bank-review');review.innerHTML='<h3 class="text-lg font-bold">Statement transactions</h3><p>Tick the business payments you want to add. Unticked payments are not saved. Check mixed personal/business spending and any regular costs already recorded.</p><div class="grid grid-cols-2 gap-2"><label>Show<select id="bank-view-filter" class="'+batchInput+'"><option value="all">All transactions</option><option value="out">Paid out</option><option value="in">Paid in</option></select></label><label>Group by<select id="bank-view-group" class="'+batchInput+'"><option value="day">Day</option><option value="week">Week (Monday–Sunday)</option></select></label></div><p id="bank-selected-total" role="status" class="font-bold text-emerald-200"></p><div id="bank-transaction-list" class="space-y-3"></div><button type="button" id="bank-save" onclick="saveBankImport()" class="'+batchButton+' w-full">Save selected transactions</button>';
-  el('bank-view-filter').onchange=()=>{captureStatementChoices();appState.bankReviewFilter=el('bank-view-filter').value;renderStatementRows();};
-  el('bank-view-group').onchange=()=>{captureStatementChoices();appState.bankReviewGrouping=el('bank-view-group').value;renderStatementRows();};renderStatementRows();
+ // Match known payment brands only. Unknown merchants retain their full description.
+ // Direction, review warnings and category remain part of the group identity.
+ function statementMerchant(description){
+  const text=String(description).replace(/\s+/g,' ').trim();
+  const names=[[/\bshell\b(?!\s*energy)/i,'Shell'],[/\besso\b/i,'Esso'],[/\btexaco\b/i,'Texaco'],[/\bbp\s+(petrol|connect|service|sf|garage)\b/i,'BP'],[/\bvodafone\b/i,'Vodafone'],[/\bgiffgaff\b/i,'giffgaff'],[/\bo2\b/i,'O2'],[/\bringgo\b/i,'RingGo'],[/\bpaybyphone\b/i,'PayByPhone'],[/\bkwik[ -]?fit\b/i,'Kwik Fit'],[/\bdeliveroo\b/i,'Deliveroo'],[/\bjust[ -]?eat\b/i,'Just Eat'],[/\buber[\s*.-]*eats\b/i,'Uber Eats'],[/\buber\b/i,'Uber'],[/\bbolt\b/i,'Bolt'],[/\bzego\b/i,'Zego']];
+  return names.find(([pattern])=>pattern.test(text))?.[1]||text;
  }
- function renderStatementRows(){
+ function statementIcon(category,direction){
+  if(direction==='in')return '💷';const x=String(category).toLowerCase();
+  if(/fuel|petrol|diesel/.test(x))return '⛽';if(/maintenance|repair|garage/.test(x))return '🔧';
+  if(/phone|internet|mobile/.test(x))return '📱';if(/parking|toll/.test(x))return '🅿️';
+  if(/insurance/.test(x))return '🛡️';if(/clean|wash/.test(x))return '🧽';
+  if(/licen/.test(x))return '🪪';if(/equipment|tool/.test(x))return '🧰';return '🧾';
+ }
+ function statementIconHtml(category,direction,review=false){
+  const icon=review?'?':statementIcon(category,direction),paths={
+   '⛽':'M4 21V4h10v17M3 21h12M6 7h6M6 10h6M14 11h2a2 2 0 0 1 2 2v4a2 2 0 0 0 4 0V8l-3-3M19 8h3',
+   '🔧':'M14 6a5 5 0 0 0-6 6L2 18a3 3 0 0 0 4 4l6-6a5 5 0 0 0 6-6l-3 3-4-4 3-3Z',
+   '📱':'M7 2h10a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1ZM10 18h4',
+   '💷':'M2 5h20v14H2ZM12 8v8M15 9c-1-2-6-1-6 1s6 1 6 3-5 3-6 1',
+   '🅿️':'M4 3h16v18H4ZM9 17V7h4a3 3 0 0 1 0 6H9',
+   '🛡️':'M12 2 3 6v6c0 5 9 10 9 10s9-5 9-10V6L12 2ZM8 12l3 3 5-6',
+   '?':'M9 9a3 3 0 1 1 4 3v3M12 18h.01',
+   'default':'M5 2h14v20l-3-2-4 2-4-2-3 2V2ZM8 7h8M8 11h8M8 15h5'};
+  return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(paths[icon]||paths.default)+'"/></svg>';
+ }
+ function statementGroups(){
   const groups=new Map();
-  (appState.bankDraft||[]).map((r,i)=>({r,i})).sort((a,b)=>b.r.date.localeCompare(a.r.date)).forEach(({r,i})=>{
-   let key=r.date;if(appState.bankReviewGrouping==='week'){const d=new Date(key+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-(d.getUTCDay()+6)%7);key=d.toISOString().slice(0,10);}
-   if(!groups.has(key))groups.set(key,[]);groups.get(key).push({r,i});
-  });
-  el('bank-transaction-list').innerHTML=[...groups].map(([date,items])=>'<section><h4 class="text-slate-300 font-bold py-2">'+(appState.bankReviewGrouping==='week'?'Week starting ':'')+escapeHtml(formatUkDate(date))+'</h4>'+items.map(({r,i})=>{
-   return '<div data-statement-row="'+i+'" '+(appState.bankReviewFilter!=='all'&&r.direction!==appState.bankReviewFilter?'hidden':'')+' class="bg-slate-950 rounded-xl border border-slate-700 p-3 mb-2 space-y-2"><div class="flex items-start gap-3"><input type="checkbox" data-bank-approve="'+i+'" '+(r.approved?'checked':'')+' aria-label="Select '+escapeHtml(r.description)+' on '+escapeHtml(r.date)+'" class="mt-1 w-5 h-5 shrink-0"><div class="min-w-0 flex-1"><p class="font-bold break-words">'+escapeHtml(r.description)+'</p><p class="text-slate-400">'+escapeHtml(formatUkDate(r.date))+'</p></div><strong class="shrink-0 '+(r.direction==='in'?'text-emerald-300':'text-rose-300')+'">'+(r.direction==='in'?'+':'−')+'£'+r.amount.toFixed(2)+'</strong></div>'+(r.reason?'<p class="text-amber-200">'+escapeHtml(r.reason)+'</p>':'')+'<div class="grid grid-cols-2 gap-2"><label>Record as<select data-bank-kind="'+i+'" class="'+batchInput+'"><option value="skip" '+(r.kind==='skip'?'selected':'')+'>Personal / skip</option><option value="income" '+(r.kind==='income'?'selected':'')+'>Business income</option><option value="expense" '+(r.kind==='expense'?'selected':'')+'>Business expense</option></select></label><label>Suggested category<input data-bank-category="'+i+'" maxlength="80" value="'+escapeHtml(r.category)+'" class="'+batchInput+'"></label></div></div>';
-  }).join('')+'</section>').join('');
-  el('bank-transaction-list').querySelectorAll('input,select').forEach(input=>input.onchange=()=>{const i=input.dataset.bankApprove;if(i!==undefined&&input.checked){const r=appState.bankDraft[Number(i)],kind=document.querySelector('[data-bank-kind="'+i+'"]');if(kind.value==='skip'&&!r.reason)kind.value=r.direction==='in'?'income':'expense';}updateStatementSelection();});updateStatementSelection();
+  (appState.bankDraft||[]).forEach((r,i)=>{const merchant=statementMerchant(r.description),section=r.reason||r.kind==='skip'?'review':r.direction==='in'?'income':'expenses',key=JSON.stringify([section,r.direction,merchant.toLowerCase(),r.category]);
+   if(!groups.has(key))groups.set(key,{merchant,section,direction:r.direction,category:r.category,items:[]});groups.get(key).items.push({r,i});
+  });return [...groups.values()].sort((a,b)=>a.merchant.localeCompare(b.merchant));
+ }
+ function captureStatementChoices(){for(const [i,r] of (appState.bankDraft||[]).entries()){const box=document.querySelector('[data-bank-approve="'+i+'"]');if(box){r.approved=box.checked;r.kind=document.querySelector('[data-bank-kind="'+i+'"]').value;r.category=document.querySelector('[data-bank-category="'+i+'"]').value;}}}
+ function updateStatementSelection(){
+  captureStatementChoices();const rows=(appState.bankDraft||[]).filter(r=>r.approved&&r.kind!=='skip');
+  const sum=kind=>rows.filter(r=>r.kind===kind).reduce((s,r)=>s+Math.round(r.amount*100),0)/100;
+  el('bank-selected-total').textContent=rows.length+' payments selected · Expenses £'+sum('expense').toFixed(2)+' · Income £'+sum('income').toFixed(2);
+  document.querySelectorAll('[data-bank-group-toggle]').forEach(box=>{const indices=JSON.parse(box.dataset.bankIndices),eligible=indices.map(i=>appState.bankDraft[i]).filter(r=>!r.reason&&r.kind!=='skip'),count=eligible.filter(r=>r.approved).length;box.checked=eligible.length>0&&count===eligible.length;box.indeterminate=count>0&&count<eligible.length;});
+ }
+ function renderStatementReview(){
+  appState.bankReviewFilter='all';
+  el('bank-review').innerHTML='<h3 class="text-lg font-bold">Choose business payments</h3><p>One line per merchant. Tick a group or open it to choose individual payments. Each payment keeps its original date.</p><label class="block">Show<select id="bank-view-filter" class="'+batchInput+'"><option value="all">All payments</option><option value="out">Expenses / paid out</option><option value="in">Income / paid in</option></select></label><p id="bank-selected-total" role="status" class="font-bold text-emerald-200"></p><div id="bank-transaction-list" class="space-y-3"></div><button type="button" id="bank-save" onclick="saveBankImport()" class="'+batchButton+' w-full">Save selected payments</button>';
+  el('bank-view-filter').onchange=()=>{captureStatementChoices();appState.bankReviewFilter=el('bank-view-filter').value;renderStatementRows();};renderStatementRows();
+ }
+ function statementPaymentRow(r,i){return '<div data-statement-row="'+i+'" class="border-t border-slate-700 pt-3 mt-3 space-y-2"><div class="flex gap-2 items-start"><input type="checkbox" data-bank-approve="'+i+'" '+(r.approved?'checked':'')+' aria-label="Select '+escapeHtml(r.description)+' on '+escapeHtml(r.date)+'" class="mt-1 w-5 h-5 shrink-0"><span aria-hidden="true">'+statementIconHtml(r.category,r.direction)+'</span><div class="min-w-0 flex-1"><p class="break-words">'+escapeHtml(r.description)+'</p><p class="text-slate-400">'+escapeHtml(formatUkDate(r.date))+'</p></div><strong class="shrink-0">£'+r.amount.toFixed(2)+'</strong></div>'+(r.reason?'<p class="text-amber-200">'+escapeHtml(r.reason)+'</p>':'')+'<div class="grid grid-cols-2 gap-2"><label>Record as<select data-bank-kind="'+i+'" class="'+batchInput+'"><option value="skip" '+(r.kind==='skip'?'selected':'')+'>Personal / skip</option><option value="income" '+(r.kind==='income'?'selected':'')+'>Business income</option><option value="expense" '+(r.kind==='expense'?'selected':'')+'>Business expense</option></select></label><label>Category<input data-bank-category="'+i+'" maxlength="80" value="'+escapeHtml(r.category)+'" class="'+batchInput+'"></label></div></div>';}
+ function renderStatementRows(){
+  const groups=statementGroups(),filter=appState.bankReviewFilter;
+  el('bank-transaction-list').innerHTML=['expenses','income','review'].map(section=>{
+   const subset=groups.map((g,id)=>({g,id})).filter(({g})=>g.section===section),visible=subset.some(({g})=>filter==='all'||g.direction===filter);
+   return '<section '+(!visible?'hidden':'')+'><h4 class="font-bold text-slate-300 pt-3 pb-2">'+({expenses:'Expenses',income:'Income',review:'Needs checking / personal'})[section]+'</h4>'+subset.map(({g,id})=>{
+    const indices=g.items.map(x=>x.i),eligible=g.items.filter(({r})=>!r.reason&&r.kind!=='skip'),total=g.items.reduce((s,{r})=>s+Math.round(r.amount*100),0)/100;
+    return '<div data-merchant-group="'+id+'" '+(filter!=='all'&&g.direction!==filter?'hidden':'')+' class="rounded-xl border border-slate-700 bg-slate-950 p-3"><div class="flex items-start gap-3"><input type="checkbox" data-bank-group-toggle="'+id+'" data-bank-indices=\''+JSON.stringify(indices)+'\' '+(!eligible.length?'disabled':'')+' aria-label="Select '+escapeHtml(g.merchant)+' group" class="mt-1 w-5 h-5 shrink-0"><span aria-hidden="true" class="w-8 h-8 rounded-lg bg-slate-800 text-blue-200 flex items-center justify-center shrink-0">'+statementIconHtml(g.category,g.direction,section==='review')+'</span><div class="min-w-0 flex-1"><p class="font-bold break-words">'+escapeHtml(g.merchant)+'</p><p class="text-slate-400">'+g.items.length+' payment'+(g.items.length===1?'':'s')+' · '+escapeHtml(g.category)+'</p></div><strong class="shrink-0 '+(g.direction==='in'?'text-emerald-300':'text-rose-300')+'">'+(g.direction==='in'?'+':'−')+'£'+total.toFixed(2)+'</strong></div>'+(section==='review'?'<p class="text-amber-200 mt-2">Open and check these payments individually.</p>':'')+'<details class="mt-2"><summary class="cursor-pointer py-2 text-blue-200">View / edit '+g.items.length+' payment'+(g.items.length===1?'':'s')+'</summary>'+g.items.map(({r,i})=>statementPaymentRow(r,i)).join('')+'</details></div>';
+   }).join('')+'</section>';
+  }).join('');
+  el('bank-transaction-list').querySelectorAll('[data-bank-group-toggle]').forEach(box=>box.onchange=()=>{for(const i of JSON.parse(box.dataset.bankIndices)){const r=appState.bankDraft[i];if(r.reason||r.kind==='skip')continue;document.querySelector('[data-bank-approve="'+i+'"]').checked=box.checked;}updateStatementSelection();});
+  el('bank-transaction-list').querySelectorAll('[data-bank-approve],[data-bank-kind],[data-bank-category]').forEach(input=>input.onchange=updateStatementSelection);updateStatementSelection();
  }
 
  Object.assign(window,{resetBankStatement,readBankStatementFile,suggestStatementCategories,renderStatementReview});
