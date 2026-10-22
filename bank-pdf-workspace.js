@@ -74,10 +74,28 @@
  }
  // All suggestions remain editable. Supermarkets and unidentified payments stay Other.
  function suggestStatementCategories(){
+  const rules=[
+   [/\b(shell(?!\s+energy)|esso|texaco|gulf|applegreen|jet petrol|mfg|motor fuel group|bp (petrol|connect|service|garage)|petrol|diesel|fuel|pay at pump|pfs)\b/i,'Fuel'],
+   [/\b(kwik[ -]?fit|halfords autocentre|ats euromaster|national tyres|euro car parts|tyres?|garage|mechanic|vehicle service|car service|mot test|brakes?|vehicle repair|oil change)\b/i,'Vehicle maintenance'],
+   [/\b(ringgo|paybyphone|justpark|ncp|apcoa|parking|toll|dart charge|dartford|congestion charge|clean air zone|ulez)\b/i,'Parking & tolls'],
+   [/\b(vodafone|giffgaff|lebara|lycamobile|ee limited|ee ltd|o2 mobile|three mobile|phone bill|broadband|internet|virgin media|bt broadband)\b/i,'Phone & internet'],
+   [/\b(zego|vehicle insurance|car insurance|hire.reward insurance|public liability insurance|business insurance)\b/i,'Insurance'],
+   [/\b(car wash|valeting|cleaning supply|cleaning chemicals|janitorial)\b/i,'Cleaning & supplies'],
+   [/\b(taxi licence|private hire licence|driver badge|operator licence)\b/i,'Licensing'],
+   [/\b(toolstation|screwfix|wickes|builders merchant|building materials|trade materials)\b/i,'Materials & tools'],
+   [/\b(delivery bag|thermal bag|work equipment|equipment hire)\b/i,'Equipment'],
+   [/\b(uber fee|bolt fee|platform fee|marketplace fee|commission|stripe fee|paypal fee)\b/i,'Platform & processing fees'],
+   [/\b(royal mail|parcel force|parcelforce|evri|dpd|postage|shipping labels|packaging)\b/i,'Postage & packaging'],
+   [/\b(advertising|google ads|meta ads|facebook ads|marketing)\b/i,'Marketing'],
+   [/\b(accountant|accountancy|bookkeeping|xero|quickbooks)\b/i,'Accounting & software'],
+   [/\b(chair rental|salon rent|workspace rent|commercial rent|office rent)\b/i,'Rent & workspace']
+  ];
   for(const r of appState.bankDraft||[]){
    if(r.direction==='in'||r.reason)continue;
-   const rules=[[/\b(fuel|petrol|diesel|shell|esso|texaco|bp petrol|bp connect|gulf petrol)\b/i,'Fuel'],[/\b(garage|garages|mot|tyres?|kwik.?fit|halfords autocentre|servicing|vehicle repair)\b/i,'Maintenance'],[/\b(ringgo|paybyphone|parking|toll|dart charge|congestion charge)\b/i,'Parking & Tolls'],[/\b(vodafone|giffgaff|lebara|lycamobile|ee limited|ee ltd|o2|three mobile|phone bill|broadband|internet)\b/i,'Phone & Internet'],[/\b(zego|vehicle insurance|car insurance|hire.reward insurance)\b/i,'Insurance'],[/\b(car wash|valeting)\b/i,'Cleaning'],[/\b(taxi licence|private hire licence|driver badge)\b/i,'Licensing'],[/\b(delivery bag|thermal bag|work equipment)\b/i,'Equipment'],[/\b(uber fee|bolt fee|platform fee|commission)\b/i,'Platform Fees']];
-   const found=rules.find(([re])=>re.test(r.description));if(found)r.category=found[1];
+   const description=String(r.description||'');
+   const found=rules.find(([re])=>re.test(description));
+   if(found)r.category=found[1];
+   // A supermarket, bank transfer, restaurant or ambiguous generic merchant is not automatically a business expense.
   }
  }
  // Match known payment brands only. Unknown merchants retain their full description.
@@ -108,9 +126,15 @@
  }
  function statementGroups(){
   const groups=new Map();
-  (appState.bankDraft||[]).forEach((r,i)=>{const merchant=statementMerchant(r.description),section=r.reason||r.kind==='skip'?'review':r.direction==='in'?'income':'expenses',key=JSON.stringify([section,r.direction,merchant.toLowerCase(),r.category]);
-   if(!groups.has(key))groups.set(key,{merchant,section,direction:r.direction,category:r.category,items:[]});groups.get(key).items.push({r,i});
-  });return [...groups.values()].sort((a,b)=>a.merchant.localeCompare(b.merchant));
+  (appState.bankDraft||[]).forEach((r,i)=>{
+   const section=r.reason||r.kind==='skip'?'review':r.direction==='in'?'income':'expenses';
+   const category=section==='review'?'Needs review':r.direction==='in'?(r.category||'Income'):(r.category||'Other');
+   const key=JSON.stringify([section,r.direction,category.toLowerCase()]);
+   if(!groups.has(key))groups.set(key,{merchant:category,section,direction:r.direction,category,items:[]});
+   groups.get(key).items.push({r,i});
+  });
+  const weight={expenses:0,income:1,review:2};
+  return [...groups.values()].sort((a,b)=>weight[a.section]-weight[b.section]||b.items.reduce((s,x)=>s+x.r.amount,0)-a.items.reduce((s,x)=>s+x.r.amount,0));
  }
  function captureStatementChoices(){for(const [i,r] of (appState.bankDraft||[]).entries()){const box=document.querySelector('[data-bank-approve="'+i+'"]');if(box){r.approved=box.checked;r.kind=document.querySelector('[data-bank-kind="'+i+'"]').value;r.category=document.querySelector('[data-bank-category="'+i+'"]').value;}}}
  function updateStatementSelection(){
@@ -123,7 +147,7 @@
  }
  function renderStatementReview(){
   appState.bankReviewFilter='all';
-  el('bank-review').innerHTML='<div class="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-700 p-4 space-y-3"><div class="flex items-center justify-between"><div><p class="text-[10px] uppercase tracking-widest text-emerald-400 font-bold">Step 2 · Review</p><h3 class="text-xl font-black text-white">Your transactions</h3></div><span class="rounded-xl bg-emerald-500/15 px-3 py-2 text-emerald-300 text-xs font-bold">🔒 Private</span></div><p class="text-xs text-slate-300">Review each payment before it reaches your books. We suggest categories, but you decide what is business-related. Payments keep their original dates.</p><div id="bank-selected-total" role="status" aria-live="polite"></div><div class="grid grid-cols-3 gap-2" id="bank-filter-pills"><button type="button" data-bank-filter="all" aria-pressed="true" class="rounded-xl border border-emerald-500 bg-emerald-500/15 text-emerald-200 text-xs font-bold p-2">All</button><button type="button" data-bank-filter="out" aria-pressed="false" class="rounded-xl border border-slate-700 bg-slate-900 text-slate-300 text-xs font-bold p-2">Expenses</button><button type="button" data-bank-filter="in" aria-pressed="false" class="rounded-xl border border-slate-700 bg-slate-900 text-slate-300 text-xs font-bold p-2">Income</button></div></div><div class="flex items-center justify-between gap-2"><p class="text-xs text-slate-400">Select a merchant group, or expand it to edit individual payments.</p><span class="text-[10px] text-amber-200">Review suggested tax categories</span></div><div id="bank-transaction-list" class="space-y-3"></div><div class="sticky bottom-0 z-10 rounded-2xl border border-slate-700 bg-slate-900/95 backdrop-blur p-3 space-y-2"><p class="text-[10px] text-slate-400">Unselected and personal transactions are not saved. Duplicate warnings need checking.</p><button type="button" id="bank-save" onclick="saveBankImport()" class="'+batchButton+' w-full">Save selected payments</button></div>';
+  el('bank-review').innerHTML='<div class="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-700 p-4 space-y-3"><div class="flex items-center justify-between"><div><p class="text-[10px] uppercase tracking-widest text-emerald-400 font-bold">Step 2 · Review</p><h3 class="text-xl font-black text-white">Your transactions</h3></div><span class="rounded-xl bg-emerald-500/15 px-3 py-2 text-emerald-300 text-xs font-bold">🔒 Private</span></div><p class="text-xs text-slate-300">Review each payment before it reaches your books. We suggest categories, but you decide what is business-related. Payments keep their original dates.</p><div id="bank-selected-total" role="status" aria-live="polite"></div><div class="grid grid-cols-3 gap-2" id="bank-filter-pills"><button type="button" data-bank-filter="all" aria-pressed="true" class="rounded-xl border border-emerald-500 bg-emerald-500/15 text-emerald-200 text-xs font-bold p-2">All</button><button type="button" data-bank-filter="out" aria-pressed="false" class="rounded-xl border border-slate-700 bg-slate-900 text-slate-300 text-xs font-bold p-2">Expenses</button><button type="button" data-bank-filter="in" aria-pressed="false" class="rounded-xl border border-slate-700 bg-slate-900 text-slate-300 text-xs font-bold p-2">Income</button></div></div><div class="flex items-center justify-between gap-2"><p class="text-xs text-slate-400">Payments are grouped by expense type across different merchants. Expand to check each payment.</p><span class="text-[10px] text-amber-200">Review suggested tax categories</span></div><div id="bank-transaction-list" class="space-y-3"></div><div class="sticky bottom-0 z-10 rounded-2xl border border-slate-700 bg-slate-900/95 backdrop-blur p-3 space-y-2"><p class="text-[10px] text-slate-400">Unselected and personal transactions are not saved. Duplicate warnings need checking.</p><button type="button" id="bank-save" onclick="saveBankImport()" class="'+batchButton+' w-full">Save selected payments</button></div>';
   el('bank-filter-pills').querySelectorAll('[data-bank-filter]').forEach(button=>button.onclick=()=>{
     captureStatementChoices();appState.bankReviewFilter=button.dataset.bankFilter;
     el('bank-filter-pills').querySelectorAll('[data-bank-filter]').forEach(b=>{
@@ -141,7 +165,7 @@
    const subset=groups.map((g,id)=>({g,id})).filter(({g})=>g.section===section),visible=subset.some(({g})=>filter==='all'||g.direction===filter);
    return '<section '+(!visible?'hidden':'')+'><h4 class="font-bold text-slate-300 pt-3 pb-2">'+({expenses:'Expenses',income:'Income',review:'Needs checking / personal'})[section]+'</h4>'+subset.map(({g,id})=>{
     const indices=g.items.map(x=>x.i),eligible=g.items.filter(({r})=>!r.reason&&r.kind!=='skip'),total=g.items.reduce((s,{r})=>s+Math.round(r.amount*100),0)/100;
-    return '<div data-merchant-group="'+id+'" '+(filter!=='all'&&g.direction!==filter?'hidden':'')+' class="rounded-xl border border-slate-700 bg-slate-950 p-3"><div class="flex items-start gap-3"><input type="checkbox" data-bank-group-toggle="'+id+'" data-bank-indices=\''+JSON.stringify(indices)+'\' '+(!eligible.length?'disabled':'')+' aria-label="Select '+escapeHtml(g.merchant)+' group" class="mt-1 w-5 h-5 shrink-0"><span aria-hidden="true" class="w-8 h-8 rounded-lg bg-slate-800 text-blue-200 flex items-center justify-center shrink-0">'+statementIconHtml(g.category,g.direction,section==='review')+'</span><div class="min-w-0 flex-1"><p class="font-bold break-words">'+escapeHtml(g.merchant)+'</p><p class="text-slate-400">'+g.items.length+' payment'+(g.items.length===1?'':'s')+' · '+escapeHtml(g.category)+'</p></div><strong class="shrink-0 '+(g.direction==='in'?'text-emerald-300':'text-rose-300')+'">'+(g.direction==='in'?'+':'−')+'£'+total.toFixed(2)+'</strong></div>'+(section==='review'?'<p class="text-amber-200 mt-2">Open and check these payments individually.</p>':'')+'<details class="mt-2"><summary class="cursor-pointer py-2 text-blue-200">View / edit '+g.items.length+' payment'+(g.items.length===1?'':'s')+'</summary>'+g.items.map(({r,i})=>statementPaymentRow(r,i)).join('')+'</details></div>';
+    return '<div data-merchant-group="'+id+'" '+(filter!=='all'&&g.direction!==filter?'hidden':'')+' class="rounded-xl border border-slate-700 bg-slate-950 p-3"><div class="flex items-start gap-3"><input type="checkbox" data-bank-group-toggle="'+id+'" data-bank-indices=\''+JSON.stringify(indices)+'\' '+(!eligible.length?'disabled':'')+' aria-label="Select '+escapeHtml(g.merchant)+' group" class="mt-1 w-5 h-5 shrink-0"><span aria-hidden="true" class="w-8 h-8 rounded-lg bg-slate-800 text-blue-200 flex items-center justify-center shrink-0">'+statementIconHtml(g.category,g.direction,section==='review')+'</span><div class="min-w-0 flex-1"><p class="font-bold break-words">'+escapeHtml(g.merchant)+'</p><p class="text-slate-400">'+g.items.length+' payment'+(g.items.length===1?'':'s')+' · across '+new Set(g.items.map(x=>statementMerchant(x.r.description))).size+' merchant(s)'+'</p></div><strong class="shrink-0 '+(g.direction==='in'?'text-emerald-300':'text-rose-300')+'">'+(g.direction==='in'?'+':'−')+'£'+total.toFixed(2)+'</strong></div>'+(section==='review'?'<p class="text-amber-200 mt-2">Open and check these payments individually.</p>':'')+'<details class="mt-2"><summary class="cursor-pointer py-2 text-blue-200">View merchants & edit '+g.items.length+' payment'+(g.items.length===1?'':'s')+'</summary>'+g.items.map(({r,i})=>statementPaymentRow(r,i)).join('')+'</details></div>';
    }).join('')+'</section>';
   }).join('');
   el('bank-transaction-list').querySelectorAll('[data-bank-group-toggle]').forEach(box=>box.onchange=()=>{for(const i of JSON.parse(box.dataset.bankIndices)){const r=appState.bankDraft[i];if(r.reason||r.kind==='skip')continue;document.querySelector('[data-bank-approve="'+i+'"]').checked=box.checked;}updateStatementSelection();});
