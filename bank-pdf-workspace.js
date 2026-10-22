@@ -1,7 +1,7 @@
 /* PDF extraction is a draft: the existing bank-import transaction remains the only save path. */
 (()=>{
  const el=id=>document.getElementById(id);let selected=null,owner=null,generation=0,version=0,loading=false,extracted=null;
- function resetBankStatement(clearPicker=true){selected=null;owner=null;generation=0;version++;loading=false;extracted=null;appState.bankFileHash=null;appState.bankPdfChecked=false;appState.bankPdfSource=false;appState.bankDraft=null;appState.bankCsv=null;if(el('bank-file')){el('bank-file').disabled=false;if(clearPicker)el('bank-file').value='';}for(const id of ['bank-review','bank-mapping','bank-pdf-fields'])el(id)?.replaceChildren();}
+ function resetBankStatement(clearPicker=true){el('bank-processing-overlay')?.remove();selected=null;owner=null;generation=0;version++;loading=false;extracted=null;appState.bankFileHash=null;appState.bankPdfChecked=false;appState.bankPdfSource=false;appState.bankDraft=null;appState.bankCsv=null;if(el('bank-file')){el('bank-file').disabled=false;if(clearPicker)el('bank-file').value='';}for(const id of ['bank-review','bank-mapping','bank-pdf-fields'])el(id)?.replaceChildren();}
  function stillCurrent(user,g,token){return appState.currentUser?.id===user&&accountGeneration===g&&version===token;}
  function unlock(){loading=false;if(el('bank-file'))el('bank-file').disabled=false;if(el('bank-pdf-read'))el('bank-pdf-read').disabled=false;}
  async function readBankStatementFile(){
@@ -36,16 +36,33 @@
   }catch(e){if(stillCurrent(owner,generation,token)){appState.bankCsv=null;appState.bankDraft=null;el('bank-mapping').replaceChildren();el('bank-message').textContent=e.message;}}
  }
  function statementProcessingBanner(state,message){
-  const host=el('bank-mapping');if(!host)return;
-  let panel=el('bank-process-progress');
-  if(!panel){panel=document.createElement('div');panel.id='bank-process-progress';panel.setAttribute('role','status');panel.setAttribute('aria-live','polite');panel.className='rounded-2xl border border-teal-500/40 bg-slate-900 p-4 my-3';host.prepend(panel);}
-  panel.replaceChildren();
-  const title=document.createElement('p');title.className='font-bold text-white text-sm';
-  title.textContent=state==='processing'?'✨ We’re organising your statement':state==='ready'?'✅ Your statement is ready to review':'Statement needs attention';
-  const detail=document.createElement('p');detail.className='text-xs text-slate-300 mt-2';detail.textContent=message;
-  panel.append(title,detail);
-  if(state==='processing'){const note=document.createElement('p');note.className='text-xs text-amber-200 mt-2';note.textContent='Keep this page open until extraction finishes. No transactions are saved yet.';panel.append(note);}
-}
+  let overlay=el('bank-processing-overlay');
+  if(!overlay){
+   overlay=document.createElement('div');overlay.id='bank-processing-overlay';
+   overlay.className='fixed inset-0 z-[250] bg-slate-950/95 flex items-center justify-center p-5';
+   overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
+   overlay.setAttribute('aria-label','Bank statement processing status');
+   document.body.appendChild(overlay);
+  }
+  overlay.replaceChildren();
+  const card=document.createElement('div');card.className='w-full max-w-sm bg-slate-900 border border-slate-700 rounded-3xl p-7 text-center shadow-2xl space-y-4';
+  const icon=document.createElement('div');icon.className='mx-auto w-16 h-16 rounded-2xl bg-teal-500/15 text-teal-300 flex items-center justify-center text-3xl';
+  icon.textContent=state==='processing'?'✨':state==='ready'?'✓':'!';
+  const title=document.createElement('h2');title.className='text-xl font-extrabold text-white';title.textContent=state==='processing'?'We’re organising your statement':state==='ready'?'Your statement is ready!':'We couldn’t finish reading your statement';
+  const body=document.createElement('p');body.className='text-sm text-slate-300 leading-relaxed';body.textContent=message;
+  card.append(icon,title,body);
+  if(state==='processing'){
+   const spinner=document.createElement('div');spinner.className='mx-auto w-8 h-8 border-4 border-slate-700 border-t-teal-400 rounded-full animate-spin';
+   const note=document.createElement('p');note.className='text-xs text-amber-200';note.textContent='Keep Earnavik open until this finishes. Nothing has been saved yet.';
+   card.append(spinner,note);
+  }else{
+   const button=document.createElement('button');button.type='button';button.className='w-full rounded-2xl bg-teal-500 text-slate-950 py-3 font-bold';
+   button.textContent=state==='ready'?'Review transactions':'Back to statement';
+   button.addEventListener('click',()=>{overlay.remove();if(state==='ready')el('bank-review')?.scrollIntoView({behavior:'smooth',block:'start'});});
+   card.append(button);button.focus();
+  }
+  overlay.appendChild(card);
+ }
  async function readPdfStatement(){
   if(loading||!selected||owner!==appState.currentUser?.id||generation!==accountGeneration)return;
   const user=owner,g=generation,token=version,file=selected;invalidatePdfReview();loading=true;el('bank-file').disabled=true;el('bank-pdf-read').disabled=true;el('bank-message').textContent='Sorting your transactions…';statementProcessingBanner('processing','We’re finding your income, combining similar merchants and organising expenses to make bookkeeping easier.');
