@@ -124,6 +124,42 @@
    'default':'M5 2h14v20l-3-2-4 2-4-2-3 2V2ZM8 7h8M8 11h8M8 15h5'};
   return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(paths[icon]||paths.default)+'"/></svg>';
  }
+ function statementBrandAvatar(description,category,direction){
+  const text=String(description||'');
+  const brands=[
+   [/\buber[\s*.-]*eats\b/i,'Uber Eats','ubereats.com'],
+   [/\buber\b/i,'Uber','uber.com'],
+   [/\bvodafone\b/i,'Vodafone','vodafone.co.uk'],
+   [/\bshell\b(?!\s*energy)/i,'Shell','shell.com'],
+   [/\bbp\s*(connect|petrol|service|garage)?\b/i,'BP','bp.com'],
+   [/\besso\b/i,'Esso','esso.co.uk'],
+   [/\btexaco\b/i,'Texaco','texaco.co.uk'],
+   [/\bbolt\b/i,'Bolt','bolt.eu'],
+   [/\bdeliveroo\b/i,'Deliveroo','deliveroo.co.uk'],
+   [/\bjust[ -]?eat\b/i,'Just Eat','just-eat.co.uk'],
+   [/\bfreenow\b|\bfree now\b/i,'FREENOW','free-now.com'],
+   [/\b(three mobile|three uk)\b/i,'Three','three.co.uk'],
+   [/\b(o2 mobile|o2 uk)\b/i,'O2','o2.co.uk'],
+   [/\bgiffgaff\b/i,'giffgaff','giffgaff.com'],
+   [/\blebara\b/i,'Lebara','lebara.co.uk'],
+   [/\btesco\b/i,'Tesco','tesco.com'],
+   [/\bsainsburys?\b/i,"Sainsbury's",'sainsburys.co.uk'],
+   [/\bmorrisons\b/i,'Morrisons','morrisons.com'],
+   [/\bhalford(s)?\b/i,'Halfords','halfords.com'],
+   [/\bkwik[ -]?fit\b/i,'Kwik Fit','kwik-fit.com'],
+   [/\bringgo\b/i,'RingGo','ringgo.co.uk'],
+   [/\bamazon\b/i,'Amazon','amazon.co.uk'],
+   [/\bpaypal\b/i,'PayPal','paypal.com'],
+   [/\bstripe\b/i,'Stripe','stripe.com'],
+   [/\bzego\b/i,'Zego','zego.com']
+  ];
+  const brand=brands.find(([re])=>re.test(text));
+  const fallback='<span class="w-10 h-10 shrink-0 rounded-xl bg-slate-800 text-blue-200 flex items-center justify-center">'+statementIconHtml(category,direction)+'</span>';
+  if(!brand)return fallback;
+  const title=escapeHtml(brand[1]),domain=brand[2];
+  // Only known, allowlisted domains; if the external favicon fails, show the category icon.
+  return '<span class="w-10 h-10 shrink-0 rounded-xl bg-white flex items-center justify-center overflow-hidden border border-slate-700" title="'+title+'"><img loading="lazy" decoding="async" referrerpolicy="no-referrer" src="https://www.google.com/s2/favicons?domain='+domain+'&amp;sz=64" alt="'+title+' logo" class="w-8 h-8 object-contain" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><span class="hidden w-full h-full items-center justify-center bg-slate-800 text-blue-200">'+statementIconHtml(category,direction)+'</span></span>';
+ }
  function statementIncomePayer(description){
   const raw=String(description||'').replace(/\s+/g,' ').trim();
   const known=[[/\buber[\s*.-]*eats\b/i,'Uber Eats'],[/\buber\b/i,'Uber'],[/\bbolt\b/i,'Bolt'],[/\bdeliveroo\b/i,'Deliveroo'],[/\bjust[ -]?eat\b/i,'Just Eat'],[/\bfreenow\b|\bfree now\b/i,'FREENOW'],[/\bamazon\b/i,'Amazon'],[/\bstripe\b/i,'Stripe'],[/\bpaypal\b/i,'PayPal'],[/\bsumup\b/i,'SumUp'],[/\bsquareup\b|\bsquare payments\b/i,'Square'],[/\betsy\b/i,'Etsy'],[/\bebay\b/i,'eBay'],[/\bshopify\b/i,'Shopify']];
@@ -176,7 +212,7 @@
    return '<section class="space-y-2"><div class="flex items-center justify-between py-2"><h4 class="font-bold text-white">'+({expenses:'Business expenses',income:'Income by payer',review:'Needs checking / personal'})[section]+'</h4><span class="text-xs text-slate-400">'+subset.length+' groups</span></div>'+subset.map(({g,id})=>{
     const indices=g.items.map(x=>x.i),eligible=g.items.filter(({r})=>!r.reason&&r.kind!=='skip'),total=g.items.reduce((s,{r})=>s+Math.round(r.amount*100),0)/100;
     const merchants=new Set(g.items.map(x=>statementMerchant(x.r.description))).size;
-    return '<div data-merchant-group="'+id+'" class="rounded-2xl border border-slate-700/70 bg-slate-900/70 overflow-hidden"><div class="flex items-center gap-3 p-3"><input type="checkbox" data-bank-group-toggle="'+id+'" data-bank-indices=\''+JSON.stringify(indices)+'\' '+(!eligible.length?'disabled':'')+' aria-label="Select '+escapeHtml(g.merchant)+' group" class="w-5 h-5 shrink-0 accent-emerald-500"><span class="w-11 h-11 rounded-2xl bg-slate-800/80 text-emerald-300 flex items-center justify-center shrink-0">'+statementIconHtml(g.category,g.direction,section==='review')+'</span><div class="min-w-0 flex-1"><p class="text-sm font-bold text-white break-words">'+escapeHtml(g.merchant)+'</p><p class="text-[11px] text-slate-400 mt-1">'+g.items.length+' payment'+(g.items.length===1?'':'s')+(section==='expenses'?' · '+merchants+' merchants':'')+'</p></div><p class="font-extrabold text-sm tabular-nums '+(g.direction==='in'?'text-emerald-300':'text-rose-300')+'">'+(g.direction==='in'?'+':'−')+'£'+total.toFixed(2)+'</p></div>'+(section==='review'?'<p class="px-4 text-xs text-amber-200">Review these transactions before including them.</p>':'')+'<details class="border-t border-slate-800"><summary class="cursor-pointer select-none px-4 py-3 text-xs font-bold text-blue-200 hover:bg-slate-800/50">View transactions · '+g.items.length+' <span aria-hidden="true">⌄</span></summary><div class="px-4 pb-4">'+g.items.map(({r,i})=>statementPaymentRow(r,i)).join('')+'</div></details></div>';
+    return '<div data-merchant-group="'+id+'" class="rounded-2xl border border-slate-700/70 bg-slate-900/70 overflow-hidden"><div class="flex items-center gap-3 p-3"><input type="checkbox" data-bank-group-toggle="'+id+'" data-bank-indices=\''+JSON.stringify(indices)+'\' '+(!eligible.length?'disabled':'')+' aria-label="Select '+escapeHtml(g.merchant)+' group" class="w-5 h-5 shrink-0 accent-emerald-500"><span class="w-11 h-11 rounded-2xl bg-slate-800/80 text-emerald-300 flex items-center justify-center shrink-0">'+(new Set(g.items.map(x=>statementMerchant(x.r.description))).size===1?statementBrandAvatar(g.items[0].r.description,g.category,g.direction):statementIconHtml(g.category,g.direction,section==='review'))+'</span><div class="min-w-0 flex-1"><p class="text-sm font-bold text-white break-words">'+escapeHtml(g.merchant)+'</p><p class="text-[11px] text-slate-400 mt-1">'+g.items.length+' payment'+(g.items.length===1?'':'s')+(section==='expenses'?' · '+merchants+' merchants':'')+'</p></div><p class="font-extrabold text-sm tabular-nums '+(g.direction==='in'?'text-emerald-300':'text-rose-300')+'">'+(g.direction==='in'?'+':'−')+'£'+total.toFixed(2)+'</p></div>'+(section==='review'?'<p class="px-4 text-xs text-amber-200">Review these transactions before including them.</p>':'')+'<details class="border-t border-slate-800"><summary class="cursor-pointer select-none px-4 py-3 text-xs font-bold text-blue-200 hover:bg-slate-800/50">View transactions · '+g.items.length+' <span aria-hidden="true">⌄</span></summary><div class="px-4 pb-4">'+g.items.map(({r,i})=>statementPaymentRow(r,i)).join('')+'</div></details></div>';
    }).join('')+'</section>';
   }).join('');
   el('bank-transaction-list').querySelectorAll('[data-bank-group-toggle]').forEach(box=>box.onchange=()=>{for(const i of JSON.parse(box.dataset.bankIndices)){const r=appState.bankDraft[i];if(r.reason||r.kind==='skip')continue;const input=el('bank-transaction-list').querySelector('[data-bank-approve="'+i+'"]');if(input)input.checked=box.checked;}updateStatementSelection();});
