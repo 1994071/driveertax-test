@@ -25,7 +25,7 @@
     if(new TextDecoder().decode(await file.slice(0,5).arrayBuffer())!=='%PDF-')throw Error('This is not a PDF. Renaming a file does not convert it.');
     if(!stillCurrent(owner,generation,token))return;selected=file;appState.bankPdfSource=true;
     el('bank-mapping').innerHTML='<p>PDF selected. Up to 10 pages / 200 transactions. The PDF is sent to OpenAI to extract transactions. Nothing is added to your books until you review and save. Keep your original PDF; this import saves transactions only.</p><button id="bank-pdf-read" type="button" class="'+batchButton+'">Read PDF statement</button><div id="bank-pdf-fields" class="space-y-3"></div>';
-    el('bank-pdf-read').onclick=readPdfStatement;if(!history?.file_seen)await readPdfStatement();
+    el('bank-pdf-read').onclick=()=>{prepareStatementChime();return readPdfStatement();};if(!history?.file_seen){prepareStatementChime();await readPdfStatement();}
    }else{
     if(!/\.csv$/i.test(file.name))throw Error('Choose a bank statement as PDF or CSV.');
     if(!file.size||file.size>2*1024*1024)throw Error('Choose a CSV smaller than 2 MB.');
@@ -34,6 +34,30 @@
     appState.bankCsv=rows;renderBankMapping();const col=k=>el('bank-col-'+k).value;if(col('date')!==''&&col('description')!==''&&(col('amount')!==''||(col('debit')!==''&&col('credit')!=='')))prepareBankReview();else el('bank-message').textContent='Check the column selections, then review the transactions.';if(warning)el('bank-message').textContent=warning;
    }
   }catch(e){if(stillCurrent(owner,generation,token)){appState.bankCsv=null;appState.bankDraft=null;el('bank-mapping').replaceChildren();el('bank-message').textContent=e.message;}}
+ }
+ let statementAudioContext=null;
+ function prepareStatementChime(){
+  try{
+   const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+   if(!AudioContextClass)return;
+   if(!statementAudioContext)statementAudioContext=new AudioContextClass();
+   if(statementAudioContext.state==='suspended')statementAudioContext.resume().catch(()=>{});
+  }catch(_){}
+ }
+ function playStatementReadyChime(){
+  try{
+   const ctx=statementAudioContext;
+   if(!ctx||ctx.state!=='running')return;
+   const start=ctx.currentTime+.02;
+   [660,880].forEach((frequency,index)=>{
+    const osc=ctx.createOscillator(),gain=ctx.createGain(),at=start+index*.16;
+    osc.type='sine';osc.frequency.value=frequency;
+    gain.gain.setValueAtTime(.0001,at);
+    gain.gain.exponentialRampToValueAtTime(.12,at+.015);
+    gain.gain.exponentialRampToValueAtTime(.0001,at+.45);
+    osc.connect(gain);gain.connect(ctx.destination);osc.start(at);osc.stop(at+.47);
+   });
+  }catch(_){}
  }
  function statementProcessingBanner(state,message){
   let overlay=el('bank-processing-overlay');
@@ -51,6 +75,7 @@
   const title=document.createElement('h2');title.className='text-xl font-extrabold text-white';title.textContent=state==='processing'?'We’re organising your statement':state==='ready'?'Your statement is ready!':'We couldn’t finish reading your statement';
   const body=document.createElement('p');body.className='text-sm text-slate-300 leading-relaxed';body.textContent=message;
   card.append(icon,title,body);
+  if(state==='ready')playStatementReadyChime();
   if(state==='processing'){
    const spinner=document.createElement('div');spinner.className='mx-auto w-8 h-8 border-4 border-slate-700 border-t-teal-400 rounded-full animate-spin';
    const note=document.createElement('p');note.className='text-xs text-amber-200';note.textContent='Keep Earnavik open until this finishes. Nothing has been saved yet.';
