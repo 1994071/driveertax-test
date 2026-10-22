@@ -187,18 +187,61 @@
   const sum=kind=>rows.filter(r=>r.kind===kind).reduce((s,r)=>s+Math.round(r.amount*100),0)/100;
   const selected=el('bank-selected-total');
   selected.innerHTML='<div class="grid grid-cols-3 gap-2" aria-label="Selected payment summary"><div class="rounded-xl bg-slate-900 border border-slate-700 p-2"><p class="text-[10px] text-slate-400">Selected</p><p class="text-lg font-extrabold text-white">'+rows.length+'</p></div><div class="rounded-xl bg-rose-500/10 border border-rose-500/25 p-2"><p class="text-[10px] text-rose-200">Expenses</p><p class="text-base font-extrabold text-rose-300">£'+sum('expense').toFixed(2)+'</p></div><div class="rounded-xl bg-emerald-500/10 border border-emerald-500/25 p-2"><p class="text-[10px] text-emerald-200">Income</p><p class="text-base font-extrabold text-emerald-300">£'+sum('income').toFixed(2)+'</p></div></div>';
-  const save=el('bank-save');if(save){save.textContent='Save '+rows.length+' selected payment'+(rows.length===1?'':'s');save.disabled=!rows.length;}
+  const save=el('bank-save');if(save){save.textContent='Save '+rows.length+' verified record'+(rows.length===1?'':'s');save.disabled=!rows.length;}
   document.querySelectorAll('[data-bank-group-toggle]').forEach(box=>{const indices=JSON.parse(box.dataset.bankIndices),eligible=indices.map(i=>appState.bankDraft[i]).filter(r=>!r.reason&&r.kind!=='skip'),count=eligible.filter(r=>r.approved).length;box.checked=eligible.length>0&&count===eligible.length;box.indeterminate=count>0&&count<eligible.length;});
  }
+ function premiumStatementTheme(){
+  const modal=el('bank-import');if(!modal)return;
+  modal.classList.add('premium-statement');
+  if(document.getElementById('premium-statement-style'))return;
+  const style=document.createElement('style');style.id='premium-statement-style';
+  style.textContent=`
+  /* Keep upload/mapping/PDF correction in their original dark accessible palette. */
+  .premium-statement .premium-review{background:#f3f6fa!important;color:#172033!important;border-radius:22px;padding:12px}
+  .premium-statement .premium-review .premium-heading .text-white{color:#142033!important}
+  .premium-statement .premium-review .premium-heading .text-slate-300{color:#475569!important}
+  .premium-statement .premium-review .premium-heading .text-emerald-400{color:#087c6c!important}
+  .premium-statement .premium-review .premium-heading .text-emerald-300{color:#076e61!important}
+  .premium-statement .premium-review .premium-heading .bg-emerald-500\/15{background:#d4f6ec!important}
+  .premium-statement .premium-review > .flex .text-slate-400{color:#475569!important}
+  .premium-statement .premium-review > .flex .text-amber-200{color:#996000!important}
+  .premium-statement .premium-review .premium-heading{background:white;border:1px solid #dee6ee;border-radius:22px;padding:18px;color:#172033}
+  .premium-statement .premium-review .premium-heading h3{color:#101827!important}
+  .premium-statement .premium-review .premium-heading p{color:#64748b!important}
+  .premium-statement .premium-review .premium-heading .premium-step{color:#118b7e!important}
+  .premium-statement .premium-review .premium-filter{background:#e8edf5;border-radius:20px;padding:5px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+  .premium-statement .premium-review .premium-filter button{color:#475569;background:transparent;border:0;border-radius:15px;padding:12px 4px;font-weight:700}
+  .premium-statement .premium-review .premium-filter button[aria-pressed=true]{background:white;color:#111827;box-shadow:0 2px 8px #64748b20}
+  .premium-statement .premium-review [data-merchant-group]{background:white!important;border:1px solid #d9e2ec!important;border-radius:23px!important;box-shadow:0 3px 10px #1323380c!important;color:#142033!important;padding:17px!important;margin:12px 0}
+  .premium-statement .premium-review [data-merchant-group]:has([data-bank-indices]){overflow:hidden}
+  .premium-statement .premium-review [data-merchant-group] p,.premium-statement .premium-review [data-merchant-group] strong{color:inherit}
+  .premium-statement .premium-review [data-merchant-group] .text-white{color:#111827!important}
+  .premium-statement .premium-review [data-merchant-group] .text-slate-400{color:#748296!important}
+  .premium-statement .premium-review [data-merchant-group] .text-rose-300{color:#bb244b!important}
+  .premium-statement .premium-review [data-merchant-group] .text-emerald-300{color:#07876d!important}
+  .premium-statement .premium-review [data-merchant-group] details{border-color:#e2e8f0!important}
+  .premium-statement .premium-review [data-merchant-group] summary{color:#0e8c7e!important}
+  .premium-statement .premium-review [data-statement-row]{border-color:#e2e8f0!important}
+  .premium-statement .premium-review [data-statement-row] input,.premium-statement .premium-review [data-statement-row] select{color:#172033!important;background:#f4f7fb!important;border:1px solid #d6e0e9!important}
+  .premium-statement .premium-review [data-statement-row] p{color:#334155!important}
+  .premium-statement .premium-review [data-bank-group-toggle],.premium-statement .premium-review [data-bank-approve]{accent-color:#0e9283;width:19px;height:19px}
+  .premium-statement .premium-review #bank-selected-total>div>div{background:#fff!important;border:1px solid #e1e7ef!important;border-radius:17px}
+  .premium-statement .premium-review #bank-selected-total p{color:#637188!important}
+  .premium-statement .premium-review #bank-selected-total .text-white{color:#162033!important}
+  .premium-statement .premium-review #bank-transaction-list>section>h4{color:#162033!important;font-size:16px}
+  .premium-statement .premium-review .premium-savebar{position:sticky;bottom:0;background:#fff!important;border:1px solid #e2e8f0!important;box-shadow:0 -5px 18px #10233512}
+  .premium-statement .premium-review .premium-savebar button{background:#108f80!important;color:white!important;border-radius:16px;font-size:13px}
+  .premium-statement .premium-review .premium-savebar p{color:#64748b!important}
+  `;
+  document.head.appendChild(style);
+ }
  function renderStatementReview(){
+  premiumStatementTheme();
   appState.bankReviewFilter='all';
-  el('bank-review').innerHTML='<div class="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-700 p-4 space-y-3"><div class="flex items-center justify-between"><div><p class="text-[10px] uppercase tracking-widest text-emerald-400 font-bold">Step 2 · Review</p><h3 class="text-xl font-black text-white">Your transactions</h3></div><span class="rounded-xl bg-emerald-500/15 px-3 py-2 text-emerald-300 text-xs font-bold">🔒 Private</span></div><p class="text-xs text-slate-300">Review each payment before it reaches your books. We suggest categories, but you decide what is business-related. Payments keep their original dates.</p><div id="bank-selected-total" role="status" aria-live="polite"></div><div class="grid grid-cols-3 gap-2" id="bank-filter-pills"><button type="button" data-bank-filter="all" aria-pressed="true" class="rounded-xl border border-emerald-500 bg-emerald-500/15 text-emerald-200 text-xs font-bold p-2">All</button><button type="button" data-bank-filter="out" aria-pressed="false" class="rounded-xl border border-slate-700 bg-slate-900 text-slate-300 text-xs font-bold p-2">Expenses</button><button type="button" data-bank-filter="in" aria-pressed="false" class="rounded-xl border border-slate-700 bg-slate-900 text-slate-300 text-xs font-bold p-2">Income</button></div></div><div class="flex items-center justify-between gap-2"><p class="text-xs text-slate-400">Expenses are grouped by type; income is grouped by payer or platform. Expand to check each payment.</p><span class="text-[10px] text-amber-200">Review suggested tax categories</span></div><div id="bank-transaction-list" class="space-y-3"></div><div class="sticky bottom-0 z-10 rounded-2xl border border-slate-700 bg-slate-900/95 backdrop-blur p-3 space-y-2"><p class="text-[10px] text-slate-400">Unselected and personal transactions are not saved. Duplicate warnings need checking.</p><button type="button" id="bank-save" onclick="saveBankImport()" class="'+batchButton+' w-full">Save selected payments</button></div>';
+  el('bank-review').innerHTML='<div class="premium-review space-y-4"><div class="premium-heading rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-700 p-4 space-y-3"><div class="flex items-center justify-between"><div><p class="text-[10px] uppercase tracking-widest text-emerald-400 font-bold">Step 2 · Review</p><h3 class="text-xl font-black text-white">Your transactions</h3></div><span class="rounded-xl bg-emerald-500/15 px-3 py-2 text-emerald-300 text-xs font-bold">🔒 Private</span></div><p class="text-xs text-slate-300">Review each payment before it reaches your books. We suggest categories, but you decide what is business-related. Payments keep their original dates.</p><div id="bank-selected-total" role="status" aria-live="polite"></div><div class="premium-filter" id="bank-filter-pills"><button type="button" data-bank-filter="all" aria-pressed="true" class="rounded-xl border border-emerald-500 bg-emerald-500/15 text-emerald-200 text-xs font-bold p-2">All</button><button type="button" data-bank-filter="out" aria-pressed="false" class="rounded-xl border border-slate-700 bg-slate-900 text-slate-300 text-xs font-bold p-2">Expenses</button><button type="button" data-bank-filter="in" aria-pressed="false" class="rounded-xl border border-slate-700 bg-slate-900 text-slate-300 text-xs font-bold p-2">Income</button></div></div><div class="flex items-center justify-between gap-2"><p class="text-xs text-slate-400">Expenses are grouped by type; income is grouped by payer or platform. Expand to check each payment.</p><span class="text-[10px] text-amber-200">Review suggested tax categories</span></div><div id="bank-transaction-list" class="space-y-3"></div><div class="premium-savebar sticky bottom-0 z-10 rounded-2xl border border-slate-700 bg-slate-900/95 backdrop-blur p-3 space-y-2"><p class="text-[10px] text-slate-400">Unselected and personal transactions are not saved. Duplicate warnings need checking.</p><button type="button" id="bank-save" onclick="saveBankImport()" class="'+batchButton+' w-full">Save verified records</button></div></div>';
   el('bank-filter-pills').querySelectorAll('[data-bank-filter]').forEach(button=>button.onclick=()=>{
     captureStatementChoices();appState.bankReviewFilter=button.dataset.bankFilter;
-    el('bank-filter-pills').querySelectorAll('[data-bank-filter]').forEach(b=>{
-      const active=b===button;b.setAttribute('aria-pressed',String(active));
-      b.className='rounded-xl border text-xs font-bold p-2 '+(active?'border-emerald-500 bg-emerald-500/15 text-emerald-200':'border-slate-700 bg-slate-900 text-slate-300');
-    });
+    el('bank-filter-pills').querySelectorAll('[data-bank-filter]').forEach(b=>{b.setAttribute('aria-pressed',String(b===button));});
     renderStatementRows();
   });
   renderStatementRows();
