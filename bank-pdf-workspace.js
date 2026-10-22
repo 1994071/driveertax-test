@@ -196,8 +196,15 @@
   if(document.getElementById('premium-statement-style'))return;
   const style=document.createElement('style');style.id='premium-statement-style';
   style.textContent=`
-  .premium-statement{color:#172033!important}
-  .premium-statement > div,.premium-statement .premium-review{background:#f3f6fa!important;color:#172033!important}
+  /* Keep upload/mapping/PDF correction in their original dark accessible palette. */
+  .premium-statement .premium-review{background:#f3f6fa!important;color:#172033!important;border-radius:22px;padding:12px}
+  .premium-statement .premium-review .premium-heading .text-white{color:#142033!important}
+  .premium-statement .premium-review .premium-heading .text-slate-300{color:#475569!important}
+  .premium-statement .premium-review .premium-heading .text-emerald-400{color:#087c6c!important}
+  .premium-statement .premium-review .premium-heading .text-emerald-300{color:#076e61!important}
+  .premium-statement .premium-review .premium-heading .bg-emerald-500\/15{background:#d4f6ec!important}
+  .premium-statement .premium-review > .flex .text-slate-400{color:#475569!important}
+  .premium-statement .premium-review > .flex .text-amber-200{color:#996000!important}
   .premium-statement .premium-review .premium-heading{background:white;border:1px solid #dee6ee;border-radius:22px;padding:18px;color:#172033}
   .premium-statement .premium-review .premium-heading h3{color:#101827!important}
   .premium-statement .premium-review .premium-heading p{color:#64748b!important}
