@@ -1,0 +1,2 @@
+Earnavik production deployment retry after Netlify credits replenished on 2026-10-22.
+No application behaviour changes.
