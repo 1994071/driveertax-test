@@ -35,17 +35,28 @@
    }
   }catch(e){if(stillCurrent(owner,generation,token)){appState.bankCsv=null;appState.bankDraft=null;el('bank-mapping').replaceChildren();el('bank-message').textContent=e.message;}}
  }
+ function statementProcessingBanner(state,message){
+  const host=el('bank-mapping');if(!host)return;
+  let panel=el('bank-process-progress');
+  if(!panel){panel=document.createElement('div');panel.id='bank-process-progress';panel.setAttribute('role','status');panel.setAttribute('aria-live','polite');panel.className='rounded-2xl border border-teal-500/40 bg-slate-900 p-4 my-3';host.prepend(panel);}
+  panel.replaceChildren();
+  const title=document.createElement('p');title.className='font-bold text-white text-sm';
+  title.textContent=state==='processing'?'✨ We’re organising your statement':state==='ready'?'✅ Your statement is ready to review':'Statement needs attention';
+  const detail=document.createElement('p');detail.className='text-xs text-slate-300 mt-2';detail.textContent=message;
+  panel.append(title,detail);
+  if(state==='processing'){const note=document.createElement('p');note.className='text-xs text-amber-200 mt-2';note.textContent='Keep this page open until extraction finishes. No transactions are saved yet.';panel.append(note);}
+}
  async function readPdfStatement(){
   if(loading||!selected||owner!==appState.currentUser?.id||generation!==accountGeneration)return;
-  const user=owner,g=generation,token=version,file=selected;invalidatePdfReview();loading=true;el('bank-file').disabled=true;el('bank-pdf-read').disabled=true;el('bank-message').textContent='Reading PDF pages… Larger or scanned statements can take longer. Nothing has been saved.';
+  const user=owner,g=generation,token=version,file=selected;invalidatePdfReview();loading=true;el('bank-file').disabled=true;el('bank-pdf-read').disabled=true;el('bank-message').textContent='Sorting your transactions…';statementProcessingBanner('processing','We’re finding your income, combining similar merchants and organising expenses to make bookkeeping easier.');
   try{
    const form=new FormData();form.append('file',file,file.name);
    const {data,error}=await supabaseClient.functions.invoke('parse-bank-statement',{body:form});
    if(!stillCurrent(user,g,token))return;
    if(error){let message='Could not read the PDF. Retry, or use a bank CSV.';try{message=(await error.context.json()).error||message;}catch{}throw Error(message);}
    if(!data?.preview_only||!Array.isArray(data.rows)||!data.rows.length||data.rows.length>200)throw Error('The PDF did not return a complete transaction list. Try CSV.');
-   extracted=data;renderPdfFields();reviewPdfTransactions();if(appState.bankDraft)el('bank-message').textContent='Transactions ready. Check every page and tick the business payments below. Nothing has been saved. '+(appState.bankFileWarning||'');
-  }catch(e){if(stillCurrent(user,g,token)){extracted=null;el('bank-pdf-fields').replaceChildren();el('bank-message').textContent=e.message;}}
+   extracted=data;renderPdfFields();reviewPdfTransactions();if(appState.bankDraft){el('bank-message').textContent='Transactions ready. Check every page and tick the business payments below. Nothing has been saved. '+(appState.bankFileWarning||'');statementProcessingBanner('ready','Your transactions are organised. Review each payment and confirm all statement pages before saving.');if(typeof showToast==='function')showToast('Your bank statement is ready to review!');}
+  }catch(e){if(stillCurrent(user,g,token)){extracted=null;el('bank-pdf-fields').replaceChildren();el('bank-message').textContent=e.message;statementProcessingBanner('error','We could not finish reading this statement. Try again or upload a CSV.');}}
   finally{if(stillCurrent(user,g,token))unlock();}
  }
  function invalidatePdfReview(){appState.bankPdfChecked=false;appState.bankDraft=null;el('bank-review')?.replaceChildren();if(el('bank-pdf-confirm'))el('bank-pdf-confirm').checked=false;}
