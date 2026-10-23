@@ -48,7 +48,7 @@ Deno.serve(async (req: Request) => {
     const includeItems = body?.mode !== "summary";
     const path = String(body?.path || "");
     const categories = Array.isArray(body?.categories)
-      ? body.categories.map((x: unknown) => String(x)).filter(Boolean).slice(0, 30)
+      ? body.categories.slice(0, 30).map((x: unknown) => String(x).slice(0, 120)).filter(Boolean)
       : [];
 
     if (!path || !path.startsWith(user.id + "/")) {
@@ -57,9 +57,9 @@ Deno.serve(async (req: Request) => {
 
     if(path.split("/").some(part=>part===".."||part==="."))return new Response(JSON.stringify({error:"Invalid receipt path"}),{status:400,headers:cors});
     const quotaClient=createClient(supabaseUrl,serviceKey);
-    const {data:allowed,error:quotaError}=await quotaClient.rpc("consume_api_request",{p_user_id:user.id,p_service:"receipt_scan"});
+    const {data:allowed,error:quotaError}=await quotaClient.rpc("consume_paid_api_request",{p_user_id:user.id,p_service:"receipt_scan"});
     if(quotaError)return new Response(JSON.stringify({error:"Scanning is temporarily unavailable. Please retry shortly."}),{status:503,headers:cors});
-    if(!allowed)return new Response(JSON.stringify({error:"Too many scan requests. Please wait a minute and try again."}),{status:429,headers:{...cors,"Retry-After":"60"}});
+    if(allowed!==true)return new Response(JSON.stringify({error:"Scan usage limit reached. Try later. Daily limits reset at midnight UTC."}),{status:429,headers:{...cors,"Retry-After":"60"}});
     const downloadStarted = Date.now();
     let dataUrl: string;
     if (body?.image !== undefined) {

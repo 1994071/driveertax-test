@@ -31,6 +31,9 @@ Deno.serve(async(req:Request)=>{
   if(saved.data===1&&to&&key&&from){
    const claim=await admin.rpc('claim_app_health_alert',{p_code:body.code});
    if(claim.error||!claim.data)return reply(200,{ok:true});
+   // Alerts are nonessential: record the event, but never send when quota is denied/unavailable.
+   const paid=await admin.rpc('consume_paid_api_request',{p_user_id:data.user.id,p_service:'operator_email'});
+   if(paid.error||paid.data!==true)return reply(200,{ok:true});
    try{const sent=await fetch('https://api.resend.com/emails',{method:'POST',signal:AbortSignal.timeout(5000),headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({from,to:[to],subject:'Earnavik app health: '+body.code,text:'The app recorded '+body.code+'. Review the private app health counters and deployment logs. No customer content is included.'})});if(!sent.ok)console.error('Operator alert delivery failed',sent.status);}catch{console.error('Operator alert delivery unavailable');}
   }
   return reply(200,{ok:true});
