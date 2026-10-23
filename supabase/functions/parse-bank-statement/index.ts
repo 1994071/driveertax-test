@@ -3,7 +3,7 @@ import {createClient} from "npm:@supabase/supabase-js@2.118.0";
 import {inspectPdf} from "./readable-pdf.ts";
 import {MAX_PDF_BYTES,MAX_PDF_PAGES,validateExtraction,extractionSchema} from './validation.ts';
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type','Access-Control-Allow-Methods':'POST, OPTIONS','Content-Type':'application/json','Cache-Control':'no-store'};
-const reply=(status:number,body:object)=>new Response(JSON.stringify(body),{status,headers:cors});
+const reply=(status:number,body:object)=>new Response(JSON.stringify(body),{status,headers:{...cors,...(status===429?{'Retry-After':'60'}:{})}});
 async function readBounded(req:Request){const reader=req.body?.getReader();if(!reader)throw Error('Choose a PDF file.');const parts:Uint8Array[]=[];let size=0;for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>MAX_PDF_BYTES+65536){await reader.cancel();throw Error('Choose a PDF no larger than 5 MB.');}parts.push(value);}const bytes=new Uint8Array(size);let p=0;for(const v of parts){bytes.set(v,p);p+=v.length;}return new Response(bytes,{headers:{'Content-Type':req.headers.get('content-type')||''}}).formData();}
 function base64(bytes:Uint8Array){let s='';for(let i=0;i<bytes.length;i+=32768)s+=String.fromCharCode(...bytes.subarray(i,i+32768));return btoa(s);}
 export async function handleBankPdf(req:Request){
@@ -20,7 +20,7 @@ export async function handleBankPdf(req:Request){
   const bytes=new Uint8Array(await file.arrayBuffer());if(new TextDecoder().decode(bytes.subarray(0,5))!=='%PDF-')return reply(415,{error:'This file is not a valid PDF. Renaming a file does not convert it.'});
   const key=Deno.env.get('OPENAI_API_KEY');if(!key)return reply(503,{error:'PDF reading is not activated yet. You can still import a bank CSV.'});
   const admin=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
-  const quota=await admin.rpc('consume_bank_pdf_request',{p_user_id:data.user.id});if(quota.error)return reply(503,{error:'PDF reading is temporarily unavailable. Try again shortly.'});if(!quota.data)return reply(429,{error:'Please wait a minute before reading another PDF.'});
+  const quota=await admin.rpc('consume_paid_api_request',{p_user_id:data.user.id,p_service:'bank_pdf'});if(quota.error)return reply(503,{error:'PDF reading is temporarily unavailable. Try again shortly.'});if(quota.data!==true)return reply(429,{error:'PDF usage limit reached. Try later. Daily limits reset at midnight UTC.'});
   let inspected;try{inspected=await inspectPdf(bytes);}catch(e){return reply(422,{error:(e as Error).message});}
   const {pages}=inspected;
   if(pages<1||pages>MAX_PDF_PAGES)return reply(413,{error:'Upload a PDF of up to 10 pages. Download a shorter statement or use CSV.'});

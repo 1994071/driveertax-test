@@ -50,9 +50,9 @@ Deno.serve(async (req: Request) => {
     }
 
     const quotaClient=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const {data:allowed,error:quotaError}=await quotaClient.rpc("consume_api_request",{p_user_id:auth.user.id,p_service:"report_email"});
+    const {data:allowed,error:quotaError}=await quotaClient.rpc("consume_paid_api_request",{p_user_id:auth.user.id,p_service:"report_email"});
     if(quotaError)return new Response(JSON.stringify({error:"Email sending is temporarily unavailable. Please retry shortly."}),{status:503,headers:{...corsHeaders,"Content-Type":"application/json"}});
-    if(!allowed)return new Response(JSON.stringify({error:"Too many email requests. Please wait a minute and try again."}),{status:429,headers:{...corsHeaders,"Content-Type":"application/json","Retry-After":"60"}});
+    if(allowed!==true)return new Response(JSON.stringify({error:"Email usage limit reached. Try later. Daily limits reset at midnight UTC."}),{status:429,headers:{...corsHeaders,"Content-Type":"application/json","Retry-After":"60"}});
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       signal: AbortSignal.timeout(20000),
