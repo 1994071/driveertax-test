@@ -14,7 +14,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
   if(name==='claim_owner_invoice_push')return {data:claim?{...device,due:2,overdue:3,day:'2026-10-24'}:null};throw Error(name);
  }};
  const raw=fs.readFileSync(__dirname+'/../supabase/functions/owner-invoice-push/index.ts','utf8').replace(/^import .*;\s*$/gm,'');const compiled=ts.transpileModule(raw,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS},reportDiagnostics:true});assert.equal(compiled.diagnostics.filter(d=>d.category===ts.DiagnosticCategory.Error).length,0);
- const ctx={Request,Response,URL,Uint8Array,TextEncoder,crypto:webcrypto,Date,Set,AbortSignal,atob,console,webpush,createClient:()=>db,Deno:{env:{get:()=> 'test-only'},serve:fn=>handler=fn},fetch:async(url,args)=>{calls++;assert.equal(args.redirect,'error');assert.equal(url,sub.endpoint);assert.ok(!Buffer.from(args.body).toString().includes('daily invoice'));assert.ok(args.headers.Authorization||args.headers.authorization);return new Response('',{status});}};vm.createContext(ctx);vm.runInContext(compiled.outputText,ctx);
+ const ctx={Request,Response,URL,Uint8Array,TextEncoder,crypto:webcrypto,Date,Set,AbortSignal,atob,console,webpush,createClient:()=>db,Deno:{env:{get:()=> 'test-only'},serve:fn=>handler=fn},fetch:async(url,args)=>{calls++;assert.equal(args.redirect,'error');assert.ok(!Object.keys(args.headers).some(k=>k.toLowerCase()==='topic'),'Do not send optional Topic headers that Apple can reject');assert.equal(url,sub.endpoint);assert.ok(!Buffer.from(args.body).toString().includes('daily invoice'));assert.ok(args.headers.Authorization||args.headers.authorization);return new Response('',{status});}};vm.createContext(ctx);vm.runInContext(compiled.outputText,ctx);
  const req=(body,auth='user-jwt',origin='https://earnavik.com')=>handler(new Request('https://example.test',{method:'POST',headers:{Authorization:'Bearer '+auth,Origin:origin},body:JSON.stringify(body)}));
  assert.equal((await req({action:'test',endpoint:sub.endpoint},'user-jwt','https://attacker.test')).status,403);assert.equal(calls,0);
  user=false;assert.equal((await req({action:'status'})).status,401);user=true;
@@ -28,6 +28,8 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
  status=410;assert.equal((await req({action:'test',endpoint:sub.endpoint})).status,502);assert.equal(device.enabled,false);device.enabled=true;status=201;
  await req({action:'run_daily'},token);assert.equal(calls,3);assert.equal(updates.at(-1).data.status,'accepted');
  claim=false;await req({action:'run_daily'},token);assert.equal(calls,3);
+ status=400;const rejected=await req({action:'test',endpoint:sub.endpoint});assert.equal(rejected.status,502);assert.ok((await rejected.json()).error.includes('HTTP 400'));
+ status=200;assert.equal((await req({action:'test',endpoint:sub.endpoint})).status,200);
  // Service worker: generic fallback protects old-account payloads, and click destinations are fixed.
  const handlers={},notifications=[],messages=[];let saved={user_id:'owner',binding:device.binding},focused=false;
  const tab={url:'https://earnavik.com/',get focused(){return focused},visibilityState:'visible',postMessage:m=>messages.push(m),focus:async()=>{}};

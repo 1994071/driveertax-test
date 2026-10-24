@@ -53,25 +53,28 @@ Deno.serve(async(req: Request)=>{
   }
   async function send(device: any,payload: any){
    // The library prepares encrypted VAPID data; native fetch enforces timeout and no redirects.
-   if(!validSubscription(device.subscription))return false;
-   const details=webpush.generateRequestDetails(device.subscription,JSON.stringify(payload),{vapidDetails:{subject:'https://earnavik.com',publicKey:config.public_key,privateKey:config.private_key},TTL:3600,urgency:'normal',topic:payload.test?'earnavik-invoice-test':'earnavik-invoice-daily'});
+   if(!validSubscription(device.subscription))return {accepted:false,status:400,reason:'InvalidSubscription'};
+   const details=webpush.generateRequestDetails(device.subscription,JSON.stringify(payload),{vapidDetails:{subject:'https://earnavik.com',publicKey:config.public_key,privateKey:config.private_key},TTL:3600,urgency:'normal'});
    const response=await fetch(details.endpoint,{method:'POST',headers:details.headers,body:new Uint8Array(details.body),redirect:'error',signal:AbortSignal.timeout(10000)});
    if(response.status===404||response.status===410)await db.from('owner_push_devices').update({enabled:false}).eq('endpoint_hash',await sha(device.subscription.endpoint)).eq('user_id',device.user_id);
-   return response.status===201||response.status===202;
+   let reason='';try{const body=await response.json();if(/^[A-Za-z0-9_-]{1,80}$/.test(body?.reason||''))reason=body.reason;}catch(_){}
+   const accepted=response.status>=200&&response.status<300;
+   if(!accepted)console.error('Owner push rejected',response.status,reason||'Unspecified');
+   return {accepted,status:response.status,reason};
   }
   if(body.action==='test'){
    if(typeof body.endpoint!=='string'||body.endpoint.length>2048)return reply(400,{error:'Enable this device first'});
    const {data:device,error}=await db.from('owner_push_devices').select('*').eq('endpoint_hash',await sha(body.endpoint)).eq('user_id',owner).eq('enabled',true).maybeSingle();if(error||!device)return reply(400,{error:'Enable notifications on this device first'});
    const quota=await db.rpc('consume_paid_api_request',{p_user_id:owner,p_service:'owner_push'});if(quota.error||quota.data!==true)return reply(429,{error:'Notification limit reached. Try later.'});
-   const accepted=await send(device,{test:true,user_id:owner,binding:device.binding,sound:device.sound,title:'Earnavik test notification',body:'Notifications are ready. Tap to open your invoices.'});
-   return reply(accepted?200:502,accepted?{ok:true,accepted:true}:{error:'Push service did not accept the notification. Try enabling this device again.'});
+   const delivery=await send(device,{test:true,user_id:owner,binding:device.binding,sound:device.sound,title:'Earnavik test notification',body:'Notifications are ready. Tap to open your invoices.'});
+   return reply(delivery.accepted?200:502,delivery.accepted?{ok:true,accepted:true}:{error:'Push service rejected this notification (HTTP '+delivery.status+(delivery.reason?' · '+delivery.reason:'')+'). Please report this message.'});
   }
   if(body.action!=='run_daily')return reply(400,{error:'Unknown notification action'});
   const {data:jobs,error}=await db.rpc('list_owner_invoice_push');if(error)throw error;let accepted=0,failed=0;
   for(const job of jobs||[]){
    const quota=await db.rpc('consume_paid_api_request',{p_user_id:job.user_id,p_service:'owner_push'});if(quota.error||quota.data!==true)continue;
    const {data:device,error:claimError}=await db.rpc('claim_owner_invoice_push',{p_hash:job.endpoint_hash,p_user_id:job.user_id});if(claimError||!device)continue;
-   let ok=false;try{ok=await send(device,{test:false,user_id:device.user_id,binding:device.binding,sound:device.sound,title:'Your daily invoice reminder',body:Number(device.due)+' due today · '+Number(device.overdue)+' overdue. Tap to review your invoices.'});}catch(_){}
+   let ok=false;try{ok=(await send(device,{test:false,user_id:device.user_id,binding:device.binding,sound:device.sound,title:'Your daily invoice reminder',body:Number(device.due)+' due today · '+Number(device.overdue)+' overdue. Tap to review your invoices.'})).accepted;}catch(_){}
    const result=await db.from('owner_push_deliveries').update({status:ok?'accepted':'failed'}).eq('endpoint_hash',job.endpoint_hash).eq('user_id',job.user_id).eq('day',device.day);if(result.error)console.error('Owner push result could not be recorded');
    if(ok)accepted++;else failed++;
   }
