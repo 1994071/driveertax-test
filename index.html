@@ -1218,6 +1218,16 @@
                 <button id="invoice-email-btn" type="button" onclick="sendInvoiceEmail()" class="w-full min-h-[48px] flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-300 text-slate-950 rounded-xl px-4 py-3 text-sm font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"><span aria-hidden="true">✉️</span> Send invoice</button>
                 <p id="invoice-email-status" class="text-xs text-slate-300" aria-live="polite">Send the invoice PDF by email.</p>
             </div>
+            <section id="invoice-reminders-panel" class="bg-slate-900 border border-slate-700 rounded-2xl p-4 mb-4 space-y-3" aria-label="Automatic invoice reminders">
+                <h3 class="font-bold text-white">🔔 Automatic email reminders</h3>
+                <p class="text-xs text-slate-300">Optional: email the customer on the due date and once seven days later if unpaid, between 9 am and 6 pm UK time. Works while the app is closed. No past reminders are sent later.</p>
+                <label class="flex gap-2 text-sm text-white"><input id="invoice-reminders-enabled" type="checkbox" disabled> Enable reminders for this invoice</label>
+                <label class="block text-xs text-slate-300">Reminder recipient<input id="invoice-reminders-recipient" type="email" maxlength="180" disabled class="w-full bg-slate-950 border border-slate-600 rounded-xl p-3 text-sm text-white mt-1"></label>
+                <button id="invoice-reminders-save" type="button" onclick="saveInvoiceReminders()" disabled class="w-full bg-slate-800 border border-slate-600 rounded-xl p-3 text-sm font-bold text-white disabled:opacity-50">Save reminder settings</button>
+                <p id="invoice-reminders-status" class="text-xs text-slate-300" role="status" aria-live="polite">Loading reminder settings…</p>
+                <p id="invoice-reminders-history" class="text-xs text-slate-300 whitespace-pre-line"></p>
+                <p class="text-xs text-slate-400">Mark invoices paid promptly to stop future reminders. Paid, cancelled and archived invoices are skipped. Turning reminders off cannot recall an email already being processed. Reminder emails contain invoice totals and payment details, without a PDF attachment.</p>
+            </section>
             <div id="invoice-detail-content" class="space-y-3 text-xs text-slate-300"></div>
             <div class="grid grid-cols-2 gap-2 mt-4"><button type="button" onclick="shareInvoice('download')" class="bg-blue-400 text-slate-950 rounded-xl p-3 text-xs font-bold">Download PDF</button><button type="button" onclick="shareInvoice('whatsapp')" class="bg-emerald-500/15 text-emerald-200 border border-emerald-400/30 rounded-xl p-3 text-xs font-bold">WhatsApp / Share</button></div>
             <div id="invoice-share-fallback" class="hidden bg-slate-900 border border-slate-700 rounded-xl p-3 mt-3 space-y-2 text-xs text-slate-300"></div>
@@ -2925,6 +2935,7 @@
             ['invoice-mark-paid-btn','invoice-cancel-btn'].forEach(id=>document.getElementById(id).classList.toggle('hidden',inv.status!=='unpaid'));
             document.getElementById('invoice-action-error').classList.add('hidden');document.getElementById('invoice-share-fallback').classList.add('hidden');
             document.getElementById('invoice-detail-modal').classList.remove('hidden');
+            if(typeof window.loadInvoiceReminders==='function')window.loadInvoiceReminders(id);
         }
         function buildInvoicePdfBlob(inv){
             if(!window.jspdf?.jsPDF)throw new Error('PDF generator unavailable');
@@ -6166,6 +6177,7 @@ function renderRegularCostLists() {
         });
     </script>
 <script src="invoice-workspace.js"></script>
+<script src="invoice-reminders.js"></script>
 <script src="bookkeeping-workspace.js"></script>
 <script src="uber-workspace.js"></script>
 <script src="bank-pdf-workspace.js"></script>

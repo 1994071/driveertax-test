@@ -1,6 +1,6 @@
 // Inventory guard: adding a remote fetch requires an explicit provider/quota review.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
-const endpoints={'scan-receipt':'receipt_scan','parse-bank-statement':'bank_pdf','email-tax-report':'report_email','report-app-health':'operator_email'};
+const endpoints={'scan-receipt':'receipt_scan','parse-bank-statement':'bank_pdf','email-tax-report':'report_email','invoice-reminders':'report_email','report-app-health':'operator_email'};
 function walk(dir){return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(dir,e.name)):[path.join(dir,e.name)]);}
 const root=path.join(__dirname,'../supabase/functions');
 for(const file of walk(root).filter(f=>/\.[tj]s$/.test(f))){
