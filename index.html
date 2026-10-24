@@ -2921,7 +2921,7 @@
             document.getElementById('invoice-archive-btn').textContent=inv.archived?'Restore from archive':'Archive invoice';document.getElementById('invoice-credit-pdf-btn').classList.toggle('hidden',!(inv.vat_enabled&&inv.status==='cancelled'));
             document.getElementById('invoice-undo-payment-btn').classList.toggle('hidden',inv.status!=='paid');
             document.getElementById('invoice-send-email').value=inv.customer_email||'';
-            document.getElementById('invoice-email-status').textContent='Send the invoice PDF by email.';
+            document.getElementById('invoice-email-status').textContent='Send the invoice PDF by email.';document.getElementById('invoice-email-status').className='text-xs text-slate-300';document.getElementById('invoice-email-status').setAttribute('role','status');
             ['invoice-mark-paid-btn','invoice-cancel-btn'].forEach(id=>document.getElementById(id).classList.toggle('hidden',inv.status!=='unpaid'));
             document.getElementById('invoice-action-error').classList.add('hidden');document.getElementById('invoice-share-fallback').classList.add('hidden');
             document.getElementById('invoice-detail-modal').classList.remove('hidden');
@@ -2984,19 +2984,59 @@
                 const link=document.createElement('a');link.href='https://wa.me/';link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open WhatsApp';link.className='block text-emerald-200 font-bold';box.appendChild(link);
             }catch(err){showToast(err.message||'Could not prepare invoice PDF');}finally{appState.invoiceSharing=false;}
         }
+        let invoiceEmailAudioContext=null;
+        function prepareInvoiceEmailChime(){
+            try{
+                const Audio=window.AudioContext||window.webkitAudioContext;
+                if(!Audio)return;
+                if(!invoiceEmailAudioContext)invoiceEmailAudioContext=new Audio();
+                if(invoiceEmailAudioContext.state==='suspended')invoiceEmailAudioContext.resume().catch(()=>{});
+            }catch(_){}
+        }
+        function playInvoiceEmailChime(){
+            try{
+                const ctx=invoiceEmailAudioContext;if(!ctx||ctx.state!=='running')return;
+                [660,880].forEach((frequency,index)=>{
+                    const tone=ctx.createOscillator(),gain=ctx.createGain(),at=ctx.currentTime+.02+index*.16;
+                    tone.type='sine';tone.frequency.value=frequency;
+                    gain.gain.setValueAtTime(.0001,at);gain.gain.exponentialRampToValueAtTime(.1,at+.015);gain.gain.exponentialRampToValueAtTime(.0001,at+.4);
+                    tone.connect(gain);gain.connect(ctx.destination);tone.start(at);tone.stop(at+.42);
+                });
+            }catch(_){}
+        }
+        function showInvoiceEmailStatus(message,state='error'){
+            const note=document.getElementById('invoice-email-status');
+            note.textContent=message;note.setAttribute('role',state==='error'?'alert':'status');
+            note.className='text-sm font-bold rounded-xl border p-3 '+(state==='success'?'text-emerald-200 border-emerald-400/50 bg-emerald-500/10':state==='sending'?'text-blue-200 border-blue-400/50 bg-blue-500/10':'text-amber-200 border-amber-400/50 bg-amber-500/10');
+            note.scrollIntoView?.({block:'nearest',behavior:'smooth'});
+        }
         async function sendInvoiceEmail(){
-            const inv=invoiceById();if(!inv||appState.invoiceEmailing)return;
-            const to=document.getElementById('invoice-send-email').value.trim(),note=document.getElementById('invoice-email-status'),button=document.getElementById('invoice-email-btn');
-            if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){note.textContent='Enter a valid recipient email.';return;}
-            if(inv.status==='cancelled'){note.textContent='This invoice was cancelled. Create a replacement before sending.';return;}
-            appState.invoiceEmailing=true;button.disabled=true;note.textContent='Sending…';
+            if(appState.invoiceEmailing)return;
+            const inv=invoiceById();
+            if(!inv){showInvoiceEmailStatus('Reopen the invoice, then try sending again.');return;}
+            if(!appState.currentUser){showInvoiceEmailStatus('Sign in again to send your invoice.');return;}
+            const to=document.getElementById('invoice-send-email').value.trim(),button=document.getElementById('invoice-email-btn');
+            if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){showInvoiceEmailStatus('Enter a valid recipient email.');return;}
+            if(inv.status==='cancelled'){showInvoiceEmailStatus('This invoice was cancelled. Create a replacement before sending.');return;}
+            prepareInvoiceEmailChime();
+            const owner=appState.currentUser.id,invoiceId=inv.id;
+            const stillCurrent=()=>appState.currentUser?.id===owner&&appState.selectedInvoiceId===invoiceId;
+            appState.invoiceEmailing=true;button.disabled=true;button.textContent='Sending…';showInvoiceEmailStatus('Preparing and sending your invoice PDF…','sending');
             try{
                 const file=invoicePdfFile(inv),content=await fileToBase64(file);
+                if(!stillCurrent())return;
                 const {data,error}=await supabaseClient.functions.invoke('email-tax-report',{body:{to,subject:'Invoice '+inv.invoice_number+' from '+(inv.trading_name||inv.seller_name),text:'Please find invoice '+inv.invoice_number+' attached.\nTotal: £'+Number(inv.total).toFixed(2)+'\nDue: '+formatUkDate(inv.due_date)+'\nFrom: '+inv.seller_name,attachments:[{filename:file.name,content}]}});
                 if(error)throw error;if(data?.ok!==true||!data?.id)throw new Error(data?.error||'The provider did not confirm acceptance');
-                note.textContent='Accepted for sending to '+to+'. Check delivery with the recipient.';
-            }catch(err){reportAppHealth('invoice_email_failed');let message=err.message||'Could not send invoice';try{const body=await err?.context?.json();if(body?.error)message=body.error;}catch{}note.textContent=message+' You can still download and share the PDF.';}
-            finally{appState.invoiceEmailing=false;button.disabled=false;}
+                if(!stillCurrent())return;
+                showInvoiceEmailStatus('✓ Accepted for sending to '+to+'. Ask the recipient to check their inbox and spam folder.','success');
+                showToast('Invoice email accepted for sending');playInvoiceEmailChime();
+            }catch(err){
+                if(!stillCurrent())return;
+                reportAppHealth('invoice_email_failed');let message=err.message||'Could not send invoice';
+                try{const body=await err?.context?.json();if(body?.error)message=body.error;}catch{}
+                if(!stillCurrent())return;
+                showInvoiceEmailStatus(message+' You can still download and share the PDF.');showToast('Invoice email failed — see the message above');
+            }finally{appState.invoiceEmailing=false;button.disabled=false;button.textContent='✉️ Send invoice';}
         }
         function openInvoicePayment(){
             const inv=invoiceById();if(!inv||inv.status!=='unpaid')return;

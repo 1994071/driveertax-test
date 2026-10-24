@@ -1,9 +1,10 @@
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict'),{parseHTML}=require('linkedom'),{jsPDF}=require('jspdf'),{webcrypto}=require('node:crypto');
-const html=fs.readFileSync(__dirname+'/../index.html','utf8'),{window}=parseHTML(html);let ctx,calls=[],emails=[],shares=[],shareError=null;
+const html=fs.readFileSync(__dirname+'/../index.html','utf8'),{window}=parseHTML(html);let ctx,calls=[],emails=[],shares=[],shareError=null,emailResult={data:{ok:true,id:"accepted"},error:null},tones=0;
+window.AudioContext=class {constructor(){this.state='running';this.currentTime=0;this.destination={};}createOscillator(){return {frequency:{},connect(){},start(){tones++;},stop(){}};}createGain(){return {gain:{setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){}};}};
 window.jspdf={jsPDF};window.supabase={createClient:()=>({rpc:async(name,payload)=>{calls.push({name,payload});
  if(name==='create_driver_invoice'){
  const p=payload.p_invoice,inv={...p,id:'issued',invoice_number:'DT-2026-0001',status:'unpaid',total:150,items:p.items.map(i=>({...i,line_total:150}))};vm.runInContext('appState.invoices=[]',ctx);ctx.fixture=inv;vm.runInContext('appState.invoices=[fixture]',ctx);return {data:inv.id,error:null};}
- return {data:'income-id',error:null};},functions:{invoke:async(name,payload)=>{emails.push(payload.body);return {data:{ok:true,id:'accepted'},error:null}}}})};
+ return {data:'income-id',error:null};},functions:{invoke:async(name,payload)=>{emails.push(payload.body);return emailResult}}})};
 const navigator={canShare:()=>true,share:async payload=>{if(shareError)throw shareError;shares.push(payload);}};
 ctx=vm.createContext({window,document:window.document,console,Date,setTimeout:()=>0,Blob,File,URL,navigator,crypto:webcrypto,confirm:()=>true});
 const script=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x=>x[1]).find(x=>x.includes('let appState'));vm.runInContext(script,ctx);const run=s=>vm.runInContext(s,ctx),doc=window.document;
@@ -39,6 +40,13 @@ assert.equal(run('calculateInvoiceTotal([{quantity:1.1,unit_price:10.01}])'),11.
  await run('recordInvoicePayment()');assert.equal(calls.length,1);doc.getElementById('invoice-payment-income').value='existing';await run('recordInvoicePayment()');assert.equal(calls[1].payload.p_income_id,'existing');
  run("appState.transactions=[];appState.periodEntries=[{period_start:driverToday(),period_end:driverToday()}];renderInvoicePaymentOptions()");assert.ok(doc.getElementById('invoice-payment-hint').textContent.includes('catch-up'));assert.ok(!doc.getElementById('invoice-payment-income').textContent.includes('Add a new'));
  ctx.encodeBase64=file=>file.arrayBuffer().then(a=>Buffer.from(a).toString('base64'));run('fileToBase64=encodeBase64');await run('sendInvoiceEmail()');assert.equal(emails.length,1);assert.equal(emails[0].attachments[0].filename,'DT-2026-0001.pdf');assert.ok(doc.getElementById('invoice-email-status').textContent.includes('Accepted'));
+ assert.equal(tones,2,'Ding only after provider acceptance');assert.equal(doc.getElementById('invoice-email-status').getAttribute('role'),'status');assert.ok(!doc.getElementById('invoice-email-btn').disabled);
+ emailResult={data:null,error:{message:'Provider rejected',context:{json:async()=>({error:'Sender domain not verified'})}}};
+ await run('sendInvoiceEmail()');assert.ok(doc.getElementById('invoice-email-status').textContent.includes('Sender domain not verified'));assert.equal(doc.getElementById('invoice-email-status').getAttribute('role'),'alert');assert.equal(tones,2,'Failures must not play a success ding');assert.ok(!doc.getElementById('invoice-email-btn').disabled);
+ emailResult={data:{ok:true},error:null};await run('sendInvoiceEmail()');assert.ok(doc.getElementById('invoice-email-status').textContent.includes('did not confirm'));assert.equal(tones,2);
+ const attempts=emails.length;run("appState.selectedInvoiceId='missing'");await run('sendInvoiceEmail()');assert.ok(doc.getElementById('invoice-email-status').textContent.includes('Reopen'));assert.equal(emails.length,attempts);run("appState.selectedInvoiceId='issued'");
+ doc.getElementById('invoice-send-email').value='invalid';await run('sendInvoiceEmail()');assert.ok(doc.getElementById('invoice-email-status').textContent.includes('valid recipient'));assert.equal(emails.length,attempts);
+ window.AudioContext=undefined;run('invoiceEmailAudioContext=null');doc.getElementById('invoice-send-email').value='another@example.test';emailResult={data:{ok:true,id:'accepted'},error:null};await run('sendInvoiceEmail()');assert.ok(doc.getElementById('invoice-email-status').textContent.includes('another@example.test'));assert.equal(tones,2,'Sending works without audio support');
  run("appState.invoices[0].customer_name='<img src=x onerror=alert(1)>';openInvoiceDetail('issued')");assert.equal(doc.getElementById('invoice-detail-content').querySelector('img'),null);
  console.log('PASS: invoice form/rounding/non-VAT validation, issuance payload, no unpaid income, real PDF, share fallback, existing-income matching/catch-up guard, mocked email and escaped customer details. No real invoice emailed.');
 })().catch(e=>{console.error(e);process.exit(1)});
