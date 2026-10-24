@@ -72,11 +72,13 @@
   if(!supported())return;
   try{registration=registration||await navigator.serviceWorker.getRegistration('/');if(token!==generation)return;await bindDevice(null,null);const sub=await registration?.pushManager.getSubscription();if(token!==generation)return;if(sub){if(disableRemote&&owner===appState.currentUser?.id){try{await call('disable',{endpoint:sub.endpoint});}catch(_){}}await sub.unsubscribe();}}catch(_){}
  }
+ Object.assign(window,{loadOwnerPushSettings,enableOwnerPush,disableOwnerPush,testOwnerPush,openOwnerNotificationInvoices,resetOwnerPushDevice});
+ try{
  if(supported())navigator.serviceWorker.getRegistration('/').then(async reg=>{if(generation===0&&reg){registration=reg;await bindDevice(null,null);}}).catch(()=>{});
  if(supported())navigator.serviceWorker.addEventListener('message',event=>{
   if(event.source?.scriptURL!==new URL('/owner-push-sw.js',location.origin).href)return;
   if(event.data?.type==='OPEN_INVOICES'){pendingOpen=true;openOwnerNotificationInvoices();}
   if(event.data?.type==='OWNER_INVOICE_DING'&&document.hasFocus()&&event.data.user_id===appState.currentUser?.id&&binding&&event.data.binding===binding&&typeof playInvoiceEmailChime==='function')playInvoiceEmailChime();
  });
- Object.assign(window,{loadOwnerPushSettings,enableOwnerPush,disableOwnerPush,testOwnerPush,openOwnerNotificationInvoices,resetOwnerPushDevice});
+ }catch(_){note("Notification setup could not start. Use Check notification setup to retry.");}
 })();

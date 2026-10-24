@@ -1077,10 +1077,12 @@
                     <h3 id="owner-push-title" class="font-bold text-white">🔔 Your invoice notifications</h3>
                     <p class="text-xs text-slate-300">One daily summary on this device when invoices are due or overdue, from 9 am UK time. Tap a notification to review your invoices. No notification is sent when nothing is due.</p>
                     <label class="flex gap-2 text-sm text-white"><input id="owner-push-sound" type="checkbox" checked> Allow notification sound</label>
-                    <p class="text-xs text-slate-400">Sound and delivery depend on your phone/browser, mute and Focus settings. This switch is saved when you enable or save notifications. Summary counts may appear on your lock screen; customer names and amounts are not included.</p>
+                    <p class="text-xs text-slate-400">The checkbox sets your sound preference; it does not enable notifications. Sound and delivery depend on your phone/browser, mute and Focus settings. This switch is saved when you enable or save notifications. Summary counts may appear on your lock screen; customer names and amounts are not included.</p>
+                    <p class="text-xs text-blue-200">On iPhone/iPad: in Safari, choose Share → Add to Home Screen. Open Earnavik from the new icon, sign in, then return here to enable notifications.</p>
+                    <button id="owner-push-check" type="button" onclick="checkOwnerPushSetup()" class="w-full border border-blue-400/50 text-blue-200 rounded-xl p-3 text-sm font-bold">Check notification setup</button>
                     <button id="owner-push-enable" type="button" onclick="enableOwnerPush()" disabled class="w-full bg-emerald-400 text-slate-950 rounded-xl p-3 text-sm font-bold disabled:opacity-50">Enable notifications</button>
                     <div class="grid grid-cols-2 gap-2"><button id="owner-push-test" type="button" onclick="testOwnerPush()" disabled class="bg-slate-800 rounded-xl p-3 text-sm text-white disabled:opacity-50">Send test notification</button><button id="owner-push-off" type="button" onclick="disableOwnerPush()" disabled class="border border-slate-600 rounded-xl p-3 text-sm text-white disabled:opacity-50">Turn off on this device</button></div>
-                    <p id="owner-push-status" class="text-xs text-blue-200" role="status" aria-live="polite">Open your profile to check notification settings.</p>
+                    <p id="owner-push-status" class="text-xs text-blue-200" role="status" aria-live="polite">Tap Check notification setup. On iPhone/iPad, open Earnavik from its Home Screen icon first.</p>
                     <p class="text-xs text-slate-400">These reminders are for you. Customer email reminders have a separate switch on each invoice. Signing out stops push notifications on this device until you enable them again.</p>
                 </section>
                 <section id="uber-driver-card" class="hidden bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3" aria-labelledby="uber-driver-title">
@@ -3740,7 +3742,13 @@
         function addProfileCustomPlatform(){const el=document.getElementById('profile-custom-platform'),v=el.value.trim();if(!v)return;if(!appState.selectedPlatforms.includes(v))appState.selectedPlatforms.push(v);el.value='';renderProfilePreferenceChips();}
         function addProfileCustomExpense(){const el=document.getElementById('profile-custom-expense'),v=el.value.trim();if(!v)return;if(!appState.selectedExpenses.includes(v))appState.selectedExpenses.push(v);el.value='';renderProfilePreferenceChips();}
 
-function openAccountModal() {
+function checkOwnerPushSetup(){
+            const message=document.getElementById('owner-push-status');
+            if(typeof window.loadOwnerPushSettings==='function'){
+                Promise.resolve(window.loadOwnerPushSettings()).catch(()=>{message.textContent='Notification setup could not be checked. Refresh Earnavik and try again.';});
+            }else message.textContent='Notification setup has not loaded. Refresh Earnavik. On iPhone/iPad, add Earnavik to your Home Screen and open it from its icon.';
+        }
+        function openAccountModal() {
             const p=appState.profile || {};
             const email=appState.currentUser?.email || '';
             const name=p.full_name || appState.currentUser?.user_metadata?.full_name || email.split('@')[0] || 'Driver';

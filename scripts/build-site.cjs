@@ -6,3 +6,7 @@ for(const file of ['index.html','invoice-workspace.js','invoice-reminders.js','o
 console.log('Built app and security headers.');
 
 fs.cpSync(path.join(root,'icons'),path.join(out,'icons'),{recursive:true});
+
+// Bundle notification setup with the page so a separate script load cannot leave disabled controls without feedback.
+const htmlPath=path.join(out,'index.html');
+fs.writeFileSync(htmlPath,fs.readFileSync(htmlPath,'utf8').replace('<script src="owner-push.js"></script>','<script data-earnavik-owner-notifications>\n'+fs.readFileSync(path.join(root,'owner-push.js'),'utf8')+'\n</script>'));

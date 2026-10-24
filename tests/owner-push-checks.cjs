@@ -49,5 +49,10 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
  log=[];await window.enableOwnerPush();assert.equal(permissionCalls,1);assert.equal(log[0],'permission');assert.equal(enabled,true);assert.equal(window.document.getElementById('owner-push-test').disabled,false);
  await window.testOwnerPush();assert.ok(window.document.getElementById('owner-push-status').textContent.includes('accepted'));
  await window.disableOwnerPush();assert.equal(enabled,false);assert.equal(unsubscribed,true);
+ // iPhone browser tabs must explain Home Screen installation without asking permission.
+ ui.navigator.userAgent='iPhone';ui.navigator.standalone=false;await window.loadOwnerPushSettings();assert.ok(window.document.getElementById('owner-push-status').textContent.includes('Add to Home Screen'));assert.equal(window.document.getElementById('owner-push-enable').disabled,true);assert.equal(permissionCalls,1);
+ // A synchronous browser startup failure must not prevent setup handlers from being exported.
+ ui.navigator.userAgent='Desktop';ui.navigator.serviceWorker.getRegistration=()=>{throw Error('Browser startup unavailable')};
+ vm.runInContext(fs.readFileSync(__dirname+'/../owner-push.js','utf8'),ui);assert.equal(typeof window.loadOwnerPushSettings,'function');assert.ok(window.document.getElementById('owner-push-status').textContent.includes('Check notification setup'));
  console.log('PASS owner push: authenticated owner-only test, private key non-disclosure, SSRF restrictions, quotas, encrypted VAPID payload, expired subscription handling, cron auth/claims, cross-account SW privacy, sound preference, fixed click target, gesture-only permission, enable/test/off UI. Network mocked.');
 })().catch(e=>{console.error(e);process.exit(1)});
