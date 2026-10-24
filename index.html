@@ -12,6 +12,10 @@
     }})();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/icons/earnavik-180.png">
+    <meta name="theme-color" content="#020617">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Earnavik — Income, Expenses & Tax Tracker</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -1069,6 +1073,16 @@
                         <button type="submit" class="w-full bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs">Save Profile</button>
                     </div>
                 </form>
+                <section id="owner-push-card" class="bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3" aria-labelledby="owner-push-title">
+                    <h3 id="owner-push-title" class="font-bold text-white">🔔 Your invoice notifications</h3>
+                    <p class="text-xs text-slate-300">One daily summary on this device when invoices are due or overdue, from 9 am UK time. Tap a notification to review your invoices. No notification is sent when nothing is due.</p>
+                    <label class="flex gap-2 text-sm text-white"><input id="owner-push-sound" type="checkbox" checked> Allow notification sound</label>
+                    <p class="text-xs text-slate-400">Sound and delivery depend on your phone/browser, mute and Focus settings. This switch is saved when you enable or save notifications. Summary counts may appear on your lock screen; customer names and amounts are not included.</p>
+                    <button id="owner-push-enable" type="button" onclick="enableOwnerPush()" disabled class="w-full bg-emerald-400 text-slate-950 rounded-xl p-3 text-sm font-bold disabled:opacity-50">Enable notifications</button>
+                    <div class="grid grid-cols-2 gap-2"><button id="owner-push-test" type="button" onclick="testOwnerPush()" disabled class="bg-slate-800 rounded-xl p-3 text-sm text-white disabled:opacity-50">Send test notification</button><button id="owner-push-off" type="button" onclick="disableOwnerPush()" disabled class="border border-slate-600 rounded-xl p-3 text-sm text-white disabled:opacity-50">Turn off on this device</button></div>
+                    <p id="owner-push-status" class="text-xs text-blue-200" role="status" aria-live="polite">Open your profile to check notification settings.</p>
+                    <p class="text-xs text-slate-400">These reminders are for you. Customer email reminders have a separate switch on each invoice. Signing out stops push notifications on this device until you enable them again.</p>
+                </section>
                 <section id="uber-driver-card" class="hidden bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3" aria-labelledby="uber-driver-title">
                     <h3 id="uber-driver-title" class="font-bold text-white">Uber driver connection</h3>
                     <p class="text-xs text-slate-300">For taxi and private-hire work. Authorise on Uber’s website to connect your account and preview recent payments.</p>
@@ -1467,6 +1481,7 @@
                         maybeOpenHomeCalendar();
                     },0);
                 } else if (event === 'SIGNED_OUT') {
+                    if(window.resetOwnerPushDevice)resetOwnerPushDevice();
                     setCurrentAccount(null);appState.taxPayments=[];appState.taxYearAccounts=[];appState.taxPaymentsLoaded=false;appState.taxPaymentsUser=null;appState.pendingTaxPayment=null;
                     appState.dashboardPeriod='week';appState.dashboardPreferences=null;appState.dashboardPreferenceKey=null;appState.homeCalendarOpened=false;
                     document.getElementById('shift-reminder-banner').classList.add('hidden');
@@ -1496,6 +1511,7 @@
         function setCurrentAccount(user){
             if(appState.currentUser?.id!==user?.id){
                 if(window.resetUberWorkspace)resetUberWorkspace();if(window.resetBankStatement)resetBankStatement();
+                if(appState.currentUser?.id&&window.resetOwnerPushDevice)resetOwnerPushDevice();
                 const timer=appState.driverReminderTimer;appState=newAppState();appState.driverReminderTimer=timer;accountGeneration++;
                 document.querySelectorAll('[id$="-modal"]').forEach(el=>el.classList.add('hidden'));
                 const gate=document.getElementById('account-data-gate');if(gate)gate.classList.toggle('hidden',!user);
@@ -2084,6 +2100,7 @@
         }
 
         async function signOutUser() {
+            if(window.resetOwnerPushDevice)await resetOwnerPushDevice(true);
             const {error}=await supabaseClient.auth.signOut();
             if(error){showToast('Could not sign out. Please check your connection and retry.');return;}
             setCurrentAccount(null);appState.taxPayments=[];appState.taxYearAccounts=[];appState.taxPaymentsLoaded=false;appState.taxPaymentsUser=null;appState.pendingTaxPayment=null;
@@ -2225,6 +2242,8 @@
                 renderUI();
                 if(window.__earnavikUberCallbackReady)window.__earnavikUberCallbackReady();
                 document.getElementById('account-data-gate')?.classList.add('hidden');
+                if(window.openOwnerNotificationInvoices)openOwnerNotificationInvoices();
+                if(window.loadOwnerPushSettings)loadOwnerPushSettings();
                 document.getElementById('data-sync-warning')?.classList.add('hidden');
                 refreshTaxPayments().catch(()=>{appState.taxPaymentsLoaded=false;renderTaxDueCards();});
             } catch (err) {
@@ -3740,6 +3759,7 @@ function openAccountModal() {
             refreshAvatarPreview();
             loadDeletionRequest();
             if(window.loadUberConnection)loadUberConnection();
+            if(window.loadOwnerPushSettings)loadOwnerPushSettings();
             document.getElementById('account-modal')?.classList.remove('hidden');
         }
 
@@ -6178,6 +6198,7 @@ function renderRegularCostLists() {
     </script>
 <script src="invoice-workspace.js"></script>
 <script src="invoice-reminders.js"></script>
+<script src="owner-push.js"></script>
 <script src="bookkeeping-workspace.js"></script>
 <script src="uber-workspace.js"></script>
 <script src="bank-pdf-workspace.js"></script>
