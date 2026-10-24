@@ -35,7 +35,7 @@
   // Request permission synchronously from this button gesture, before any network await.
   let sub=null;
   try{
-   const permission=Notification.requestPermission();if(typeof prepareInvoiceEmailChime==='function')prepareInvoiceEmailChime();
+   const permission=Notification.requestPermission();
    if(await permission!=='granted')throw Error('Notifications were not allowed. You can enable them later in device settings.');
    if(owner!==appState.currentUser?.id)return;
    sub=await registration.pushManager.getSubscription()||await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:keyBytes(publicKey)});
@@ -58,7 +58,7 @@
  }
  async function testOwnerPush(){
   if(busy||loadedOwner!==appState.currentUser?.id)return;const owner=loadedOwner;busy=true;el('owner-push-test').disabled=true;
-  if(typeof prepareInvoiceEmailChime==='function')prepareInvoiceEmailChime();
+
   try{const sub=await registration?.pushManager.getSubscription();if(!sub)throw Error('Enable this device first.');const result=await call('test',{endpoint:sub.endpoint});if(owner===appState.currentUser?.id)note(result.accepted?'Test accepted by the push service. Look for the notification; sound depends on phone/browser settings.':'Test was not accepted.');}
   catch(e){if(owner===appState.currentUser?.id)note(e.message);}
   finally{busy=false;if(owner===appState.currentUser?.id)el('owner-push-test').disabled=false;}
@@ -78,7 +78,6 @@
  if(supported())navigator.serviceWorker.addEventListener('message',event=>{
   if(event.source?.scriptURL!==new URL('/owner-push-sw.js',location.origin).href)return;
   if(event.data?.type==='OPEN_INVOICES'){pendingOpen=true;openOwnerNotificationInvoices();}
-  if(event.data?.type==='OWNER_INVOICE_DING'&&document.hasFocus()&&event.data.user_id===appState.currentUser?.id&&binding&&event.data.binding===binding&&typeof playInvoiceEmailChime==='function')playInvoiceEmailChime();
  });
  }catch(_){note("Notification setup could not start. Use Check notification setup to retry.");}
 })();

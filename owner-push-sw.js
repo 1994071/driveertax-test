@@ -11,13 +11,11 @@ self.addEventListener('push',event=>event.waitUntil((async()=>{
  let payload={};try{payload=event.data?.json()||{};}catch(_){}
  let binding=null;try{const saved=await(await caches.open(bindingCache)).match(bindingUrl);if(saved)binding=await saved.json();}catch(_){}
  const matched=!!binding&&binding.user_id===payload.user_id&&binding.binding===payload.binding;
- const tabs=await self.clients.matchAll({type:'window',includeUncontrolled:true});const foreground=matched&&tabs.find(tab=>tab.focused&&tab.visibilityState==='visible');
  await self.registration.showNotification(matched?String(payload.title||'Earnavik invoice reminder'):'Earnavik reminder',{
   body:matched?String(payload.body||'Open Earnavik to review your invoices.'):'Sign in to Earnavik to review your notifications.',
   icon:'/icons/earnavik-192.png',badge:'/icons/earnavik-192.png',tag:payload.test?'earnavik-invoice-test':'earnavik-invoice-daily',
-  silent:!matched||payload.sound===false||!!foreground,data:{url:'/?open=invoices'},renotify:matched&&payload.sound!==false&&!foreground
+  silent:!matched||payload.sound===false,data:{url:'/?open=invoices'},renotify:matched&&payload.sound!==false
  });
- if(foreground&&payload.sound!==false)foreground.postMessage({type:'OWNER_INVOICE_DING',user_id:payload.user_id,binding:payload.binding});
 })()));
 self.addEventListener('notificationclick',event=>{
  event.notification.close();event.waitUntil((async()=>{const target=new URL('/?open=invoices',self.location.origin).href;const tabs=await self.clients.matchAll({type:'window',includeUncontrolled:true});for(const tab of tabs){if(new URL(tab.url).origin===self.location.origin){await tab.focus();tab.postMessage({type:'OPEN_INVOICES'});return;}}await self.clients.openWindow(target);})());
