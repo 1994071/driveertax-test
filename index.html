@@ -291,6 +291,7 @@
                     <button type="button" onclick="openVatCentre()" class="text-[11px] text-blue-200 font-bold">VAT & return review →</button>
                     <p id="dash-vat-coverage" class="hidden text-[10px] text-amber-100"></p>
                 </div>
+                <section id="dash-job-photos" class="border border-emerald-400/40 bg-slate-900 rounded-2xl p-4 space-y-3"><h3 class="text-sm font-bold text-white">📸 Job photos</h3><p class="text-xs text-slate-300">Before-and-after photos, customer job folders and reports.</p><button type="button" onclick="openJobPhotos()" class="w-full bg-emerald-400 text-slate-950 rounded-xl p-3 text-sm font-bold">Open your jobs</button></section>
                 <div id="shift-reminder-banner" class="hidden border border-blue-400/30 bg-blue-500/10 rounded-2xl p-4 space-y-2" aria-live="polite">
                     <p class="text-sm font-bold text-white">Finished your shift?</p><p class="text-[11px] text-blue-200">When you're parked, take a moment to add your income and check your receipts.</p>
                     <div class="flex gap-3"><button type="button" onclick="dismissShiftReminder();startDailyEntry(driverToday())" class="text-xs text-blue-200 font-bold">Add income</button><button type="button" onclick="dismissShiftReminder()" class="text-xs text-slate-300">Dismiss today</button></div>
@@ -1363,7 +1364,7 @@
         };}
         let appState = newAppState();
         let accountGeneration = 0;
-        const ACCOUNT_EXPORT_TABLES = [{"table":"cis_deductions","owner":"user_id","order":["id"]},{"table":"accountant_access","owner":"user_id","order":["id"]},{"table":"accountant_access_events","owner":"user_id","order":["id"]},{"table":"merchant_category_rules","owner":"user_id","order":["merchant_key"]},{"table":"expense_category_batches","owner":"user_id","order":["created_at","id"]},{"table":"invoice_preferences","owner":"user_id","order":["user_id"]},{"table":"profiles","owner":"id","order":["id"]},{"table":"income","owner":"user_id","order":["id"]},{"table":"expenses","owner":"user_id","order":["id"]},{"table":"receipts","owner":"user_id","order":["id"]},{"table":"mileage","owner":"user_id","order":["id"]},{"table":"tax_reserve","owner":"user_id","order":["id"]},{"table":"period_entries","owner":"user_id","order":["id"]},{"table":"recurring_expenses","owner":"user_id","order":["id"]},{"table":"tax_profiles","owner":"user_id","order":["user_id"]},{"table":"invoice_counters","owner":"user_id","order":["user_id"]},{"table":"invoices","owner":"user_id","order":["id"]},{"table":"vat_profiles","owner":"user_id","order":["user_id"]},{"table":"invoice_drafts","owner":"user_id","order":["id"]},{"table":"invoice_credits","owner":"user_id","order":["invoice_id"]},{"table":"vat_purchases","owner":"user_id","order":["expense_id"]},{"table":"vat_classifications","owner":"user_id","order":["id"]},{"table":"vat_return_reviews","owner":"user_id","order":["id"]},{"table":"receipt_cleanup_queue","owner":"user_id","order":["user_id","file_path"]},{"table":"bank_import_batches","owner":"user_id","order":["id"]},{"table":"bank_import_rows","owner":"user_id","order":["id"]},{"table":"tax_year_accounts","owner":"user_id","order":["user_id","tax_year"]},{"table":"tax_payment_records","owner":"user_id","order":["id"]},{"table":"account_deletion_requests","owner":"user_id","order":["id"]}];
+        const ACCOUNT_EXPORT_TABLES = [{"table":"customer_jobs","owner":"user_id","order":["id"]},{"table":"job_photos","owner":"user_id","order":["id"]},{"table":"cis_deductions","owner":"user_id","order":["id"]},{"table":"accountant_access","owner":"user_id","order":["id"]},{"table":"accountant_access_events","owner":"user_id","order":["id"]},{"table":"merchant_category_rules","owner":"user_id","order":["merchant_key"]},{"table":"expense_category_batches","owner":"user_id","order":["created_at","id"]},{"table":"invoice_preferences","owner":"user_id","order":["user_id"]},{"table":"profiles","owner":"id","order":["id"]},{"table":"income","owner":"user_id","order":["id"]},{"table":"expenses","owner":"user_id","order":["id"]},{"table":"receipts","owner":"user_id","order":["id"]},{"table":"mileage","owner":"user_id","order":["id"]},{"table":"tax_reserve","owner":"user_id","order":["id"]},{"table":"period_entries","owner":"user_id","order":["id"]},{"table":"recurring_expenses","owner":"user_id","order":["id"]},{"table":"tax_profiles","owner":"user_id","order":["user_id"]},{"table":"invoice_counters","owner":"user_id","order":["user_id"]},{"table":"invoices","owner":"user_id","order":["id"]},{"table":"vat_profiles","owner":"user_id","order":["user_id"]},{"table":"invoice_drafts","owner":"user_id","order":["id"]},{"table":"invoice_credits","owner":"user_id","order":["invoice_id"]},{"table":"vat_purchases","owner":"user_id","order":["expense_id"]},{"table":"vat_classifications","owner":"user_id","order":["id"]},{"table":"vat_return_reviews","owner":"user_id","order":["id"]},{"table":"receipt_cleanup_queue","owner":"user_id","order":["user_id","file_path"]},{"table":"bank_import_batches","owner":"user_id","order":["id"]},{"table":"bank_import_rows","owner":"user_id","order":["id"]},{"table":"tax_year_accounts","owner":"user_id","order":["user_id","tax_year"]},{"table":"tax_payment_records","owner":"user_id","order":["id"]},{"table":"account_deletion_requests","owner":"user_id","order":["id"]}];
         let privacyBusy=false;
         function samePrivacyAccount(uid,generation){return appState.currentUser?.id===uid&&accountGeneration===generation;}
         async function exportAccountData(){
@@ -1386,9 +1387,9 @@
                     records[spec.table]=rows;
                 }
                 if(!samePrivacyAccount(uid,generation))return;
-                const payload={format:'earnavik-account-export-v1',exported_at:new Date().toISOString(),account:{id:uid,email},notes:['Contains saved account records and receipt file references. Original images/PDFs must be downloaded separately from Evidence.','Records can change while this export is running. This is a personal download, not a server backup or tax return.'],records};
+                const payload={format:'earnavik-account-export-v1',exported_at:new Date().toISOString(),account:{id:uid,email},notes:['Contains saved account records and receipt/job-photo file references. Receipt files must be downloaded separately from Evidence; stored job photos can be downloaded from Job photos.','Records can change while this export is running. This is a personal download, not a server backup or tax return.'],records};
                 downloadBlob(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),'earnavik-account-'+driverToday()+'.json');
-                message.textContent='Download prepared. Keep it private. Download original receipt images/PDFs separately from Evidence.';
+                message.textContent='Download prepared. Keep it private. Download receipt files from Evidence and stored job photos from Job photos separately.';
             }catch{
                 if(samePrivacyAccount(uid,generation))message.textContent='Download could not be completed. Nothing was deleted. Reconnect and try again.';
             }finally{privacyBusy=false;button.disabled=false;}
@@ -1516,6 +1517,7 @@
             if(appState.currentUser?.id!==user?.id){
                 if(window.resetUberWorkspace)resetUberWorkspace();if(window.resetBankStatement)resetBankStatement();
                 if(window.resetAccountantCis)resetAccountantCis();
+                if(window.resetJobPhotos)resetJobPhotos();
                 if(appState.currentUser?.id&&window.resetOwnerPushDevice)resetOwnerPushDevice();
                 const timer=appState.driverReminderTimer;appState=newAppState();appState.driverReminderTimer=timer;accountGeneration++;
                 document.querySelectorAll('[id$="-modal"]').forEach(el=>el.classList.add('hidden'));
@@ -2968,6 +2970,7 @@
             document.getElementById('invoice-action-error').classList.add('hidden');document.getElementById('invoice-share-fallback').classList.add('hidden');
             document.getElementById('invoice-detail-modal').classList.remove('hidden');
             if(typeof window.loadInvoiceReminders==='function')window.loadInvoiceReminders(id);
+            const jobButton=document.createElement('button');jobButton.type='button';jobButton.className='w-full bg-slate-800 border border-emerald-400/40 rounded-xl p-3 text-sm text-emerald-200 font-bold';jobButton.textContent='📸 View or link job photos';jobButton.onclick=()=>window.openJobPhotos(id);document.getElementById('invoice-detail-content').append(jobButton);
         }
         function buildInvoicePdfBlob(inv){
             if(!window.jspdf?.jsPDF)throw new Error('PDF generator unavailable');
@@ -6227,5 +6230,6 @@ function renderRegularCostLists() {
 <script src="uber-workspace.js"></script>
 <script src="bank-pdf-workspace.js"></script>
 <script src="accountant-cis.js"></script>
+<script src="job-photos.js"></script>
 </body>
 </html>
