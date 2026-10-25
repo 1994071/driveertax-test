@@ -22,6 +22,8 @@ jobs:
           cache: npm
       - name: Install locked test dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Build and validate deployed script assets
+        run: node scripts/build-site.cjs
       - name: Run bookkeeping and security regression checks
         run: npm test
       - name: Install test browser
