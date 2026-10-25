@@ -1,7 +1,7 @@
 // All provider calls are mocked. This runner never needs production credentials.
 const {spawnSync}=require('node:child_process'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const root=path.resolve(__dirname,'..');
-const checks=['owner-push-checks','invoice-reminders-checks','paid-api-coverage-checks','paged-cloud-checks','tax-payment-refresh-checks','privacy-health-checks','privacy-request-checks','reliability-security-checks','edge-security-checks','invoice-checks','invoice-centre-vat-checks','bookkeeping-batch-checks','scottish-relief-checks','expense-tax-checks','tax-history-checks','hmrc-reference-examples','paye-onboarding-checks','onboarding-refresh-checks','trade-income-services-checks','receipt-items-edge-checks','invoice-discount-checks','monthly-category-checks','uber-driver-checks','bank-pdf-checks'];
+const checks=['accountant-access-checks','accountant-cis-checks','owner-push-checks','invoice-reminders-checks','paid-api-coverage-checks','paged-cloud-checks','tax-payment-refresh-checks','privacy-health-checks','privacy-request-checks','reliability-security-checks','edge-security-checks','invoice-checks','invoice-centre-vat-checks','bookkeeping-batch-checks','scottish-relief-checks','expense-tax-checks','tax-history-checks','hmrc-reference-examples','paye-onboarding-checks','onboarding-refresh-checks','trade-income-services-checks','receipt-items-edge-checks','invoice-discount-checks','monthly-category-checks','uber-driver-checks','bank-pdf-checks'];
 const browserChecks=['compact-auth-browser','receipt-upload-browser','catchup-save-browser','tax-payment-browser','delete-summary-browser','clear-records-browser-checks','invoice-selection-browser','invoice-workspace-browser','monthly-category-browser','uber-driver-browser','bank-pdf-browser'];
 function execute(file,args=[],env=process.env){const r=spawnSync(process.execPath,[file,...args],{cwd:root,env,stdio:'inherit',timeout:120000});if(r.error)throw r.error;if(r.status!==0)throw new Error(path.basename(file)+' failed');}
 try{
@@ -9,7 +9,7 @@ try{
   const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'earnavik-css-'));
   try{
    fs.writeFileSync(path.join(tmp,'input.css'),'@tailwind base;\n@tailwind components;\n@tailwind utilities;');
-   execute(require.resolve('tailwindcss/lib/cli.js'),['-i',path.join(tmp,'input.css'),'-o',path.join(tmp,'app.css'),'--content',path.join(root,'index.html')+','+path.join(root,'invoice-workspace.js')+','+path.join(root,'bookkeeping-workspace.js')+','+path.join(root,'uber-workspace.js')+','+path.join(root,'bank-pdf-workspace.js'),'--minify']);
+   execute(require.resolve('tailwindcss/lib/cli.js'),['-i',path.join(tmp,'input.css'),'-o',path.join(tmp,'app.css'),'--content',path.join(root,'index.html')+','+path.join(root,'invoice-workspace.js')+','+path.join(root,'bookkeeping-workspace.js')+','+path.join(root,'uber-workspace.js')+','+path.join(root,'bank-pdf-workspace.js')+','+path.join(root,'accountant-cis.js'),'--minify']);
    const css=fs.readFileSync(path.join(tmp,'app.css'),'utf8'),loader=path.join(tmp,'styles.js');
    fs.writeFileSync(loader,'document.head.appendChild(Object.assign(document.createElement("style"),{textContent:'+JSON.stringify(css)+'}));');
    for(const test of browserChecks)execute(path.join(root,'tests',test+'.cjs'),[],{...process.env,TEST_TAILWIND_PATH:loader});
