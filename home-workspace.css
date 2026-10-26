@@ -1,0 +1,74 @@
+/* A compact overview with dedicated homes for detailed workflows. */
+:root{--workspace-line:#253247;--workspace-muted:#9cabc0;--workspace-surface:#121d2e}
+#earnavik-shell{background:#090f1c;height:100dvh}
+#app-header{background:#0c1422;border-color:var(--workspace-line);min-height:78px;padding:15px 20px;gap:12px}
+#app-header h1{font-size:17px;line-height:1.3}
+#app-header p{font-size:11px;color:var(--workspace-muted);margin-top:4px}
+#app-header button{height:42px;width:42px;border-radius:14px;border:1px solid var(--workspace-line);background:#152133}
+#app-main{padding-bottom:100px;scroll-padding-top:18px;overscroll-behavior:contain}
+#app-main>section{padding:20px 18px}
+#view-dashboard{display:flex;flex-direction:column;gap:18px}
+#view-dashboard.hidden{display:none}
+#view-dashboard>*{margin-top:0!important;margin-bottom:0!important}
+#view-dashboard #home-quick-actions{gap:12px}
+#home-quick-actions>button{min-height:88px;padding:14px 16px;align-items:flex-start;justify-content:center;border:1px solid #2a3850;box-shadow:none;gap:8px;border-radius:20px}
+#home-quick-actions #dash-add-income{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border-color:#477cf0}
+#home-quick-actions #dash-add-expense{background:#162132;color:#f8fafc}
+#home-quick-actions>button>span:first-child{font-size:23px;line-height:1}
+#home-quick-actions>button>span:last-child{font-size:14px;font-weight:750}
+#home-profit-card{background:linear-gradient(135deg,#152238,#14232b);border:1px solid #2a3a4d;padding:20px;border-radius:24px;box-shadow:none}
+#home-profit-card>[role=group]{padding:4px;background:#0a1421;border:1px solid #29364a;border-radius:13px;gap:4px}
+#home-profit-card>[role=group] button{min-height:39px;font-size:13px;border-radius:9px}
+#home-profit-card>button{margin-top:20px;text-align:left;display:block}
+#home-profit-card #dash-profit-label{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#a7b6ca;line-height:1.5}
+#home-profit-card>button .text-blue-300{font-size:12px}
+#home-profit-card #dash-today-profit{font-size:42px;line-height:1.15;letter-spacing:-1.5px;font-weight:800;margin-top:8px;overflow-wrap:anywhere}
+#home-profit-card #dash-period-dates{font-size:12px;line-height:1.5;margin:6px 0 0;color:#adbacd}
+#home-profit-card>.grid:not([role=group]){gap:10px;margin-top:19px;padding-top:17px;border-color:#2b3b4b}
+#home-profit-card>.grid:not([role=group])>div{border:1px solid #203047;background:#0b1423b0;border-radius:15px;padding:12px;min-width:0}
+#home-profit-card>.grid:not([role=group])>div>span:first-child{font-size:11px;line-height:1.4;min-height:30px;color:#a7b6ca}
+#home-profit-card>.grid:not([role=group])>div>span:last-child{font-size:20px;line-height:1.3;letter-spacing:-.5px;display:block;margin-top:5px;overflow-wrap:anywhere}
+#home-figures-help{margin-top:15px;border-top:1px solid #293b4b;padding-top:12px}
+#home-figures-help summary{font-size:11px;color:#b0bfd1;cursor:pointer;min-height:28px;padding-top:5px}
+#home-figures-help p{font-size:11px;line-height:1.65;margin:9px 0 0}
+.home-shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.home-shortcut{display:grid;grid-template-columns:28px 1fr;gap:9px;align-items:start;min-width:0;padding:16px 12px;text-align:left;background:var(--workspace-surface);border:1px solid var(--workspace-line);border-radius:18px;min-height:96px;color:#d6e0ed}
+.home-shortcut>span:last-child{display:none}
+.home-shortcut strong{display:block;color:#f8fafc;font-size:13px;font-weight:700;line-height:1.5}
+.home-shortcut small{display:block;color:var(--workspace-muted);font-size:11px;line-height:1.5;margin-top:4px;overflow-wrap:anywhere}
+.home-shortcut .home-attention{color:#facc75}
+.home-shortcut .home-attention:empty{display:none}
+.home-shortcut-icon{color:#5ee2b8;font-size:25px;line-height:1.1}
+#view-dashboard #recent-activity-list>div:nth-child(n+4),#view-dashboard #recent-activity-list>button:nth-child(n+4){display:none}
+#view-dashboard #recent-activity-list [class*=rounded]{box-shadow:none}
+.workspace-heading h2{font-size:25px;font-weight:750;letter-spacing:-.5px;color:#f8fafc}
+.workspace-heading h3{font-size:15px;font-weight:700;color:#f8fafc}
+.workspace-heading p{font-size:12px;color:var(--workspace-muted);line-height:1.7;margin-top:5px}
+.workspace-disclosure{border:1px solid var(--workspace-line);background:#111b2b;border-radius:18px;padding:16px}
+.workspace-disclosure>summary{font-size:14px;font-weight:650;cursor:pointer;min-height:28px;color:#e5edf9}
+.workspace-disclosure>div,.workspace-disclosure>button{margin-top:14px}
+.tools-section{border:1px solid var(--workspace-line);background:#101a29;border-radius:20px;padding:16px}
+.tools-section>h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9aabc2;font-weight:700;margin-bottom:13px}
+.tools-section #dash-invoice-centre,.tools-section #dash-job-photos{background:transparent;border:0;padding:0;box-shadow:none}
+.tools-section #dash-job-photos{border-top:1px solid var(--workspace-line);padding-top:17px;margin-top:18px}
+.tools-section #dash-job-photos h3,.tools-section #dash-invoice-centre h3{font-size:16px}
+.tools-section #batch-tools{margin-top:10px;gap:10px}
+.tools-section #batch-tools button{background:#162538;border-color:#344258;font-size:11px;padding:13px 8px}
+.tool-entry{display:flex;align-items:center;gap:12px;text-align:left;width:100%;padding:13px 0;color:#e2e8f0}
+.tool-entry>span:first-child{font-size:25px;color:#5ee2b8}
+.tool-entry>span:nth-child(2){flex:1;min-width:0}
+.tool-entry strong{display:block;font-size:14px;font-weight:650}
+.tool-entry small{display:block;color:var(--workspace-muted);font-size:11px;line-height:1.6;margin-top:3px}
+#view-records #bookkeeping-month-card{background:var(--workspace-surface);border-color:var(--workspace-line);border-radius:20px}
+#dashboard-week-chart{border:0;background:transparent;padding:5px 0}
+#dashboard-chart-bars button>.h-28{height:76px}
+#dashboard-chart-bars button .min-h-\[24px\]{font-size:8px;min-height:18px}
+#view-tax #dashboard-year-summary{background:var(--workspace-surface);border-color:var(--workspace-line)}
+#app-main button:focus-visible,#earnavik-shell nav button:focus-visible{outline:2px solid #5ee2b8;outline-offset:3px}
+#earnavik-shell>nav{background:#0c1422f5;border-color:#263347;min-height:72px;padding:10px 8px max(12px,env(safe-area-inset-bottom));gap:4px}
+#earnavik-shell>nav button{min-height:44px;flex:1;gap:5px;border-radius:12px}
+#earnavik-shell>nav button[aria-current=page]{background:#12322f;color:#54ddb0}
+#earnavik-shell>nav button i{font-size:18px}
+#earnavik-shell>nav button span{font-size:10px;font-weight:650}
+@media(min-width:640px){#earnavik-shell{max-width:460px;height:min(920px,94dvh);border-radius:32px;border-width:1px}}
+@media(max-width:350px){#app-main>section{padding:16px 12px}.home-shortcuts{gap:9px}.home-shortcut{padding:13px 10px;grid-template-columns:23px 1fr}#home-profit-card{padding:16px}#home-profit-card #dash-today-profit{font-size:36px}}

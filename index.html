@@ -17,7 +17,7 @@
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Earnavik — Income, Expenses & Tax Tracker</title>
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -38,6 +38,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="/home-workspace.css">
     <style>
         body { font-family: 'Inter', sans-serif; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -81,18 +82,7 @@
 <body class="bg-slate-950 text-slate-100 flex items-center justify-center min-h-screen p-0 sm:p-4">
     <div id="runtime-recovery" role="alert" class="hidden fixed top-4 inset-x-4 z-[200] max-w-md mx-auto bg-slate-900 border border-amber-400 rounded-2xl p-4 text-xs text-white"><p>Something went wrong. Check whether your last save completed before trying again. Reloading discards unsaved entries.</p><button type="button" onclick="location.reload()" class="font-bold text-emerald-300 p-2">Reload app</button><button type="button" onclick="document.getElementById('runtime-recovery').classList.add('hidden')" class="p-2">Dismiss</button></div>
 
-    <div class="w-full sm:max-w-[400px] h-[100vh] sm:h-[844px] bg-darkBg sm:rounded-[48px] sm:border-[8px] sm:border-slate-800 shadow-2xl flex flex-col relative overflow-hidden">
-        
-        <!-- iPhone Status Bar -->
-        <div class="bg-slate-900/90 backdrop-blur-md pt-3 pb-2 px-6 flex justify-between items-center text-xs font-semibold text-slate-300 z-50 shrink-0">
-            <span>12:21</span>
-            <div class="w-20 h-4 bg-slate-800 rounded-full absolute left-1/2 transform -translate-x-1/2 top-2 hidden sm:block"></div>
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-signal text-[10px]"></i>
-                <i class="fa-solid fa-wifi text-[10px]"></i>
-                <i class="fa-solid fa-battery-full text-emerald-400"></i>
-            </div>
-        </div>
+    <div id="earnavik-shell" class="w-full sm:max-w-[400px] h-[100vh] sm:h-[844px] bg-darkBg sm:rounded-[48px] sm:border-[8px] sm:border-slate-800 shadow-2xl flex flex-col relative overflow-hidden">
 
         <!-- One compact auth page; secondary actions reuse the same form. -->
         <div id="auth-screen" class="absolute inset-0 bg-slate-950 z-50 overflow-y-auto">
@@ -207,36 +197,47 @@
             </div>
         </div>
 
-        <header class="px-5 py-3 bg-slate-900 border-b border-slate-800 flex justify-between items-center shrink-0">
+        <header id="app-header" class="px-5 py-3 bg-slate-900 border-b border-slate-800 flex justify-between items-center shrink-0">
             <div class="flex items-center space-x-3">
                 <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center font-bold text-white shadow-lg shadow-emerald-900/40">
-                    <i class="fa-solid fa-taxi text-sm"></i>
+                    <span aria-hidden="true">E</span>
                 </div>
                 <div>
                     <h1 class="font-bold text-sm leading-tight text-white" id="user-display-name">CabTax UK</h1>
                     <p class="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Supabase Sync Active
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Your business workspace
                     </p>
                 </div>
             </div>
             <div class="flex items-center space-x-2">
-                <button onclick="openAccountModal()" title="Account" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-400 flex items-center justify-center text-slate-300 transition">
+                <button onclick="openAccountModal()" title="Account" aria-label="Open account" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-400 flex items-center justify-center text-slate-300 transition">
                     <i class="fa-solid fa-user text-xs"></i>
                 </button>
-                <button onclick="signOutUser()" title="Sign Out" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center text-slate-300 transition">
-                    <i class="fa-solid fa-right-from-bracket text-xs"></i>
+                <button onclick="switchTab('tools')" title="Tools" aria-label="Open tools" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center text-slate-300 transition">
+                    <i class="fa-solid fa-bars text-xs"></i>
                 </button>
             </div>
         </header>
 
         <!-- Main Content Area -->
-        <main class="flex-1 overflow-y-auto no-scrollbar relative pb-24">
+        <main id="app-main" class="flex-1 overflow-y-auto no-scrollbar relative pb-24">
 
             <!-- VIEW 1: DASHBOARD -->
             <section id="view-dashboard" class="p-5 space-y-4">
-                <div id="dashboard-tax-due" aria-live="polite"></div>
-                
-                <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700/60 rounded-2xl p-4 shadow-lg space-y-3">
+<div id="home-quick-actions" class="grid grid-cols-2 gap-2">
+                    <button id="dash-add-income" type="button" aria-label="Add income" onclick="startDailyEntry(driverToday())" class="bg-blue-400 hover:bg-blue-300 text-slate-950 font-bold py-3 px-3 rounded-2xl flex items-center justify-center flex-col gap-1 shadow-lg shadow-emerald-500/20 transition transform active:scale-95">
+                        <span aria-hidden="true" class="text-xl leading-none">💷</span>
+                        <span class="text-xs font-bold">+ Add income</span>
+                    </button>
+                    <button id="dash-add-expense" type="button" onclick="openExpenseModal()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-3 px-3 rounded-2xl flex items-center justify-center flex-col gap-1 shadow-lg transition transform active:scale-95">
+                        <span aria-hidden="true" class="text-xl leading-none">🧾</span>
+                        <span class="text-xs font-bold">+ Add expense</span>
+                    </button>
+
+                </div>
+
+
+                <div id="home-profit-card" class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700/60 rounded-2xl p-4 shadow-lg space-y-3">
                     <div class="grid grid-cols-3 gap-1 rounded-xl bg-slate-950 p-1" role="group" aria-label="Dashboard period">
                         <button id="dash-period-today" type="button" onclick="setDashboardPeriod('today')" class="rounded-lg py-2 text-xs font-bold text-slate-300">Today</button>
                         <button id="dash-period-week" type="button" onclick="setDashboardPeriod('week')" class="rounded-lg py-2 text-xs font-bold bg-emerald-400 text-slate-950">Week</button>
@@ -247,99 +248,49 @@
                         <h2 id="dash-today-profit" class="text-3xl font-extrabold text-white mt-1">£0.00</h2>
                         <p id="dash-period-dates" class="text-[10px] text-slate-400 mt-1"></p>
                     </button>
-                    <p id="dash-today-note" class="text-[11px] text-slate-300"></p>
-                    <p id="dash-comparison" class="text-[11px] text-slate-300"></p>
-                    <p id="dash-period-coverage" class="hidden text-[10px] text-amber-200 bg-amber-500/10 rounded-lg p-2"></p>
                     <div class="grid grid-cols-2 gap-2.5 pt-3 border-t border-slate-700/50">
                         <div class="bg-slate-950/40 p-2.5 rounded-xl"><span class="text-[10px] text-slate-400 block">Turnover</span><span id="dash-today-earnings" class="text-sm font-bold text-emerald-300">£0.00</span></div>
                         <div class="bg-slate-950/40 p-2.5 rounded-xl"><span class="text-[10px] text-slate-400 block">Expenses incl. regular costs</span><span id="dash-today-expenses" class="text-sm font-bold text-rose-300">£0.00</span></div>
                         <div class="bg-slate-950/40 p-2.5 rounded-xl"><span id="dash-tax-label" class="text-[10px] text-slate-400 block">Tax reserve for this week</span><span id="dash-today-tax" class="text-sm font-bold text-amber-300">£0.00</span></div>
                         <div class="bg-slate-950/40 p-2.5 rounded-xl"><span class="text-[10px] text-slate-400 block">Estimated take-home</span><span id="dash-today-net" class="text-sm font-bold text-emerald-300">£0.00</span></div>
                     </div>
-                    <p id="dash-tax-year-note" class="text-[10px] text-slate-300"></p><p class="text-[9px] text-slate-400">Tax reserve uses estimated allowable costs, which can differ from recorded spending. Review expense treatment in Tax. No annual earnings forecast is assumed.</p>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <button id="dash-add-income" type="button" onclick="startDailyEntry(driverToday())" class="bg-blue-400 hover:bg-blue-300 text-slate-950 font-bold py-3 px-3 rounded-2xl flex items-center justify-center flex-col gap-1 shadow-lg shadow-emerald-500/20 transition transform active:scale-95">
-                        <span aria-hidden="true" class="text-xl leading-none">💷</span>
-                        <span class="text-xs font-bold">+ Add Income</span>
-                    </button>
-                    <button onclick="openExpenseModal()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-3 px-3 rounded-2xl flex items-center justify-center flex-col gap-1 shadow-lg transition transform active:scale-95">
-                        <span aria-hidden="true" class="text-xl leading-none">🧾</span>
-                        <span class="text-xs font-bold">+ Add Expense</span>
-                    </button>
-                    
+                    <details id="home-figures-help"><summary>About these figures</summary><p id="daily-entry-help" class="text-[10px] text-slate-400">Add Income starts your daily record: income → expenses → mileage. You can skip a step.</p>                    <p id="dash-today-note" class="text-[11px] text-slate-300"></p>
+                    <p id="dash-comparison" class="text-[11px] text-slate-300"></p>
+                    <p id="dash-period-coverage" class="hidden text-[10px] text-amber-200 bg-amber-500/10 rounded-lg p-2"></p>
+                    <p id="dash-tax-year-note" class="text-[10px] text-slate-300"></p><p class="text-[9px] text-slate-400">Tax reserve uses estimated allowable costs, which can differ from recorded spending. Review expense treatment in Tax. No annual earnings forecast is assumed.</p></details>
                 </div>
 
-                <p id="daily-entry-help" class="text-[10px] text-slate-400">Add Income starts your daily record: income → expenses → mileage. You can skip a step.</p>
-                <section id="bookkeeping-month-card" class="rounded-2xl bg-slate-900 border border-emerald-400/30 p-4 space-y-3" aria-label="Monthly summary">
-                    <div class="flex items-center justify-between gap-2"><button type="button" onclick="changeBookkeepingMonth(-1)" aria-label="Previous month" class="rounded-xl bg-slate-800 p-3">‹</button><h3 id="bookkeeping-month-title" class="text-sm font-bold text-white"></h3><button type="button" onclick="changeBookkeepingMonth(1)" aria-label="Next month" class="rounded-xl bg-slate-800 p-3">›</button></div>
-                    <label class="block text-xs text-slate-300">Choose month<input id="bookkeeping-month" type="month" min="2000-01" max="2100-12" onchange="selectBookkeepingMonth(this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-white"></label>
-                    <div class="grid grid-cols-3 gap-2"><button type="button" onclick="openBookkeepingMonth('income')" class="min-w-0 rounded-xl bg-slate-950 p-2 text-left"><span class="block text-[10px] text-slate-300">Income</span><b id="bookkeeping-month-income" class="block text-xs text-emerald-300 mt-2"></b></button><button type="button" onclick="openBookkeepingMonth('expense')" class="min-w-0 rounded-xl bg-slate-950 p-2 text-left"><span class="block text-[10px] text-slate-300">Expenses</span><b id="bookkeeping-month-expenses" class="block text-xs text-rose-300 mt-2"></b></button><button type="button" onclick="openBookkeepingMonth('profit')" class="min-w-0 rounded-xl bg-slate-950 p-2 text-left"><span class="block text-[10px] text-slate-300">Profit</span><b id="bookkeeping-month-profit" class="block text-xs text-white mt-2"></b></button></div><p id="bookkeeping-month-note" class="text-[10px] text-slate-400"></p><p class="text-[10px] text-blue-200">Swipe or use the arrows. Tap a total to view its records.</p>
-                </section>
-                <div id="dashboard-week-chart" class="bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3">
-                    <div class="flex items-center justify-between gap-2"><h3 class="text-sm font-bold text-white">Your week</h3><div class="flex gap-2"><button type="button" onclick="changeDashboardChartWeek(-1)" aria-label="Previous week" class="bg-slate-800 rounded-lg px-3 py-2">‹</button><button type="button" onclick="changeDashboardChartWeek(1)" aria-label="Next week" class="bg-slate-800 rounded-lg px-3 py-2">›</button></div></div>
-                    <p id="dashboard-chart-dates" class="text-xs text-slate-300"></p>
-                    <p class="text-[10px] text-slate-300"><span class="text-emerald-300">● Income</span> · <span class="text-orange-300">● Expenses incl. regular costs</span></p>
-                    <div id="dashboard-chart-bars" class="grid grid-cols-7 gap-1"></div>
-                    <div id="dashboard-chart-totals" class="grid grid-cols-3 gap-2 text-[10px]"></div>
-                    <p id="dashboard-chart-note" class="text-[10px] text-slate-400"></p>
-                    <p class="text-[10px] text-blue-200">Tap a day to view. Double-tap to edit, or use its Edit button.</p>
-                </div>
-                <div id="dash-invoice-centre" class="border border-blue-400/40 bg-gradient-to-br from-blue-500/20 to-slate-900 rounded-2xl p-4 space-y-3">
-                    <h3 class="text-sm font-bold text-white">📄 Invoice Centre</h3><p id="dash-invoice-outstanding" class="text-xs text-blue-100"></p><p id="dash-invoice-alert" class="text-[11px] text-amber-200" aria-live="polite"></p>
-                    <div class="grid grid-cols-2 gap-2"><button id="dash-create-invoice" type="button" onclick="openInvoiceCreate()" class="bg-blue-400 text-slate-950 rounded-xl p-3 text-xs font-bold">+ Create invoice</button><button type="button" onclick="openInvoices()" class="bg-slate-800 border border-slate-600 text-white rounded-xl p-3 text-xs font-bold">View invoices</button></div>
-                    <button type="button" onclick="openVatCentre()" class="text-[11px] text-blue-200 font-bold">VAT & return review →</button>
-                    <p id="dash-vat-coverage" class="hidden text-[10px] text-amber-100"></p>
-                </div>
-                <section id="dash-job-photos" class="border border-emerald-400/40 bg-slate-900 rounded-2xl p-4 space-y-3"><h3 class="text-sm font-bold text-white">📸 Job photos</h3><p class="text-xs text-slate-300">Before-and-after photos, customer job folders and reports.</p><button type="button" onclick="openJobPhotos()" class="w-full bg-emerald-400 text-slate-950 rounded-xl p-3 text-sm font-bold">Open your jobs</button></section>
+
+
+
+
+
+
+<div id="home-shortcuts" class="home-shortcuts" aria-label="Your business shortcuts">
+<button type="button" class="home-shortcut" onclick="openInvoices()"><span class="home-shortcut-icon" aria-hidden="true">▤</span><span><strong>Invoices</strong><small id="home-invoices-summary">View invoices</small><small id="home-invoices-alert" class="home-attention"></small></span><span aria-hidden="true">›</span></button>
+<button type="button" class="home-shortcut" onclick="switchTab('tax')"><span class="home-shortcut-icon" aria-hidden="true">▥</span><span><strong id="home-tax-year-title">Tax overview</strong><small id="home-tax-preview">View your estimate</small></span><span aria-hidden="true">›</span></button>
+<button type="button" class="home-shortcut" onclick="openJobPhotos()"><span class="home-shortcut-icon" aria-hidden="true">▧</span><span><strong>Jobs & photos</strong><small>Customers and reports</small></span><span aria-hidden="true">›</span></button>
+<button type="button" class="home-shortcut" onclick="openCalendarTab()"><span class="home-shortcut-icon" aria-hidden="true">▦</span><span><strong>Calendar</strong><small>View or edit a day</small></span><span aria-hidden="true">›</span></button></div>
                 <div id="shift-reminder-banner" class="hidden border border-blue-400/30 bg-blue-500/10 rounded-2xl p-4 space-y-2" aria-live="polite">
                     <p class="text-sm font-bold text-white">Finished your shift?</p><p class="text-[11px] text-blue-200">When you're parked, take a moment to add your income and check your receipts.</p>
                     <div class="flex gap-3"><button type="button" onclick="dismissShiftReminder();startDailyEntry(driverToday())" class="text-xs text-blue-200 font-bold">Add income</button><button type="button" onclick="dismissShiftReminder()" class="text-xs text-slate-300">Dismiss today</button></div>
                 </div>
-                <section id="dashboard-year-summary" class="bg-slate-900 border border-blue-400/30 rounded-2xl p-4 space-y-3" aria-live="polite"></section>
-                <div id="past-earnings-warning" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-[10px] text-amber-200"></div>
-                <button id="dash-past-earnings" type="button" onclick="openPastEarnings()" class="w-full text-left bg-blue-500/15 border border-blue-400/40 p-4 rounded-2xl flex items-center gap-3">
-                    <span aria-hidden="true" class="text-2xl leading-none">🗓️</span>
-                    <div class="flex-1"><h3 class="text-sm font-bold text-white">Add past earnings</h3><p class="text-[10px] text-blue-200 mt-1">Catch up on previous weeks or months. We check existing records.</p></div>
-                    <i class="fa-solid fa-chevron-right text-blue-300"></i>
-                </button>
 
 
 
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
-                    <div class="flex justify-between gap-2 items-center"><h3 class="text-sm font-bold text-white"><span aria-hidden="true">🎯</span> Your weekly profit goal</h3><button type="button" onclick="openDashboardSettings()" class="text-xs text-blue-300 font-bold">Set goal & reminders</button></div>
-                    <p id="dash-goal-text" class="text-xs text-slate-300">Choose a goal that suits your week.</p>
-                    <div id="dash-goal-track" role="progressbar" aria-label="Weekly profit goal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" class="hidden h-2 rounded-full bg-slate-800 overflow-hidden"><div id="dash-goal-fill" class="h-full bg-emerald-400 rounded-full" style="width:0%"></div></div>
-                    <p id="dash-goal-message" class="text-[11px] text-emerald-300" aria-live="polite"></p>
-                    <p id="dash-reminder-status" class="text-[10px] text-slate-400">Shift reminder off</p>
-                </div>
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
-                    <div class="flex items-center justify-between gap-2"><h3 class="text-sm font-bold text-white"><span aria-hidden="true">✅</span> Review this week so far</h3><button type="button" onclick="openWeeklyReview()" class="text-xs text-blue-300 font-bold">Weekly overview</button></div>
-                    <p class="text-[10px] text-slate-400">Tick each item after checking your records. This does not verify your tax figures.</p>
-                    <label class="flex gap-2 items-center text-xs text-slate-200"><input id="weekly-review-income" type="checkbox" onchange="setWeeklyReview('income',this.checked)" class="accent-emerald-400">Income checked</label>
-                    <label class="flex gap-2 items-center text-xs text-slate-200"><input id="weekly-review-expenses" type="checkbox" onchange="setWeeklyReview('expenses',this.checked)" class="accent-emerald-400">Receipts and expenses checked</label>
-                    <label data-mileage-control class="flex gap-2 items-center text-xs text-slate-200"><input id="weekly-review-mileage" type="checkbox" onchange="setWeeklyReview('mileage',this.checked)" class="accent-emerald-400">Mileage checked, or not needed</label>
-                    <p id="weekly-review-status" class="text-[11px] text-slate-300" aria-live="polite"></p>
-                </div>
 
-                <button onclick="openCalendarModal()" class="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between transition group">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-sm">
-                            <span aria-hidden="true" class="text-xl">📅</span>
-                        </div>
-                        <div class="text-left">
-                            <h4 class="text-xs font-bold text-white group-hover:text-blue-400 transition">Calendar</h4>
-                            <p class="text-[10px] text-slate-400">Review income and expenses by day</p>
-                        </div>
-                    </div>
-                    <i class="fa-solid fa-chevron-right text-xs text-slate-500"></i>
-                </button>
 
-                
+
+
+
+
+
+
+
 
                 <div>
                     <div class="flex justify-between items-center mb-3">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Recent Transactions</h3>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Recent activity</h3>
                         <button onclick="switchTab('records')" class="text-xs text-emerald-400 hover:underline font-semibold">View All</button>
                     </div>
                     <div id="recent-activity-list" class="space-y-2.5"></div>
@@ -349,10 +300,26 @@
             <!-- VIEW 2: RECORDS -->
             <section id="view-records" class="p-5 space-y-4 hidden">
                 <div>
-                    <div class="flex items-center justify-between"><h2 class="text-lg font-bold text-white">Records</h2><button type="button" onclick="switchTab('dashboard')" class="text-xs font-bold text-emerald-400">Back to Dashboard</button></div>
+                    <div class="flex items-center justify-between"><h2 class="text-lg font-bold text-white">Records</h2><button type="button" onclick="switchTab('dashboard')" class="text-xs font-bold text-emerald-400">Back to Home</button></div>
                     <p class="text-[11px] text-slate-400 mt-1">Your business records in one place.</p>
                 </div>
-                <div class="grid grid-cols-4 gap-1.5 bg-slate-900 border border-slate-800 rounded-2xl p-1.5">
+<div class="workspace-heading"><h3>Explore your records</h3><p>Browse a month, check a week or review earlier earnings.</p></div><div id="past-earnings-warning" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-[10px] text-amber-200"></div><section id="bookkeeping-month-card" class="rounded-2xl bg-slate-900 border border-emerald-400/30 p-4 space-y-3" aria-label="Monthly summary">
+                    <div class="flex items-center justify-between gap-2"><button type="button" onclick="changeBookkeepingMonth(-1)" aria-label="Previous month" class="rounded-xl bg-slate-800 p-3">‹</button><h3 id="bookkeeping-month-title" class="text-sm font-bold text-white"></h3><button type="button" onclick="changeBookkeepingMonth(1)" aria-label="Next month" class="rounded-xl bg-slate-800 p-3">›</button></div>
+                    <label class="block text-xs text-slate-300">Choose month<input id="bookkeeping-month" type="month" min="2000-01" max="2100-12" onchange="selectBookkeepingMonth(this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-white"></label>
+                    <div class="grid grid-cols-3 gap-2"><button type="button" onclick="openBookkeepingMonth('income')" class="min-w-0 rounded-xl bg-slate-950 p-2 text-left"><span class="block text-[10px] text-slate-300">Income</span><b id="bookkeeping-month-income" class="block text-xs text-emerald-300 mt-2"></b></button><button type="button" onclick="openBookkeepingMonth('expense')" class="min-w-0 rounded-xl bg-slate-950 p-2 text-left"><span class="block text-[10px] text-slate-300">Expenses</span><b id="bookkeeping-month-expenses" class="block text-xs text-rose-300 mt-2"></b></button><button type="button" onclick="openBookkeepingMonth('profit')" class="min-w-0 rounded-xl bg-slate-950 p-2 text-left"><span class="block text-[10px] text-slate-300">Profit</span><b id="bookkeeping-month-profit" class="block text-xs text-white mt-2"></b></button></div><p id="bookkeeping-month-note" class="text-[10px] text-slate-400"></p><p class="text-[10px] text-blue-200">Swipe or use the arrows. Tap a total to view its records.</p>
+                </section><details class="workspace-disclosure"><summary>Weekly chart & daily records</summary><div id="dashboard-week-chart" class="bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between gap-2"><h3 class="text-sm font-bold text-white">Your week</h3><div class="flex gap-2"><button type="button" onclick="changeDashboardChartWeek(-1)" aria-label="Previous week" class="bg-slate-800 rounded-lg px-3 py-2">‹</button><button type="button" onclick="changeDashboardChartWeek(1)" aria-label="Next week" class="bg-slate-800 rounded-lg px-3 py-2">›</button></div></div>
+                    <p id="dashboard-chart-dates" class="text-xs text-slate-300"></p>
+                    <p class="text-[10px] text-slate-300"><span class="text-emerald-300">● Income</span> · <span class="text-orange-300">● Expenses incl. regular costs</span></p>
+                    <div id="dashboard-chart-bars" class="grid grid-cols-7 gap-1"></div>
+                    <div id="dashboard-chart-totals" class="grid grid-cols-3 gap-2 text-[10px]"></div>
+                    <p id="dashboard-chart-note" class="text-[10px] text-slate-400"></p>
+                    <p class="text-[10px] text-blue-200">Tap a day to view. Double-tap to edit, or use its Edit button.</p>
+                </div></details><details class="workspace-disclosure"><summary>Add or review past earnings</summary><button id="dash-past-earnings" type="button" onclick="openPastEarnings()" class="w-full text-left bg-blue-500/15 border border-blue-400/40 p-4 rounded-2xl flex items-center gap-3">
+                    <span aria-hidden="true" class="text-2xl leading-none">🗓️</span>
+                    <div class="flex-1"><h3 class="text-sm font-bold text-white">Add past earnings</h3><p class="text-[10px] text-blue-200 mt-1">Catch up on previous weeks or months. We check existing records.</p></div>
+                    <i class="fa-solid fa-chevron-right text-blue-300"></i>
+                </button></details><div class="workspace-heading"><h3>Transactions</h3></div>                <div class="grid grid-cols-4 gap-1.5 bg-slate-900 border border-slate-800 rounded-2xl p-1.5">
                     <button id="records-filter-all" onclick="setRecordsFilter('all')" class="records-filter bg-emerald-500 text-slate-950 rounded-xl py-2 text-[10px] font-bold">All</button>
                     <button id="records-filter-income" onclick="setRecordsFilter('income')" class="records-filter text-slate-400 rounded-xl py-2 text-[10px] font-bold">Income</button>
                     <button id="records-filter-expense" onclick="setRecordsFilter('expense')" class="records-filter text-slate-400 rounded-xl py-2 text-[10px] font-bold">Expenses</button>
@@ -366,6 +333,29 @@
                 <div class="flex flex-wrap gap-2"><button type="button" onclick="openCategoryWorkspace()" class="rounded-xl bg-blue-400 text-slate-950 p-3 text-xs font-bold">Select & categorise expenses</button><button type="button" onclick="openCategoryRules()" class="rounded-xl border border-slate-600 p-3 text-xs text-blue-200">Remembered choices</button></div><div id="records-list" class="space-y-2.5"></div>
             </section>
 
+<section id="view-tools" class="p-5 space-y-4 hidden"><div class="workspace-heading"><h2>Tools</h2><p>Everything you need to run your business.</p></div>
+<div class="tools-section"><h3>Capture & import</h3><button class="tool-entry" type="button" onclick="switchTab('scan')"><span aria-hidden="true">▣</span><span><strong>Scan a receipt</strong><small>Photograph it, then check and save</small></span><span aria-hidden="true">›</span></button><div id="tools-imports"></div></div>
+<div class="tools-section"><h3>Customers & work</h3><div id="dash-invoice-centre" class="border border-blue-400/40 bg-gradient-to-br from-blue-500/20 to-slate-900 rounded-2xl p-4 space-y-3">
+                    <h3 class="text-sm font-bold text-white">📄 Invoice Centre</h3><p id="dash-invoice-outstanding" class="text-xs text-blue-100"></p><p id="dash-invoice-alert" class="text-[11px] text-amber-200" aria-live="polite"></p>
+                    <div class="grid grid-cols-2 gap-2"><button id="dash-create-invoice" type="button" onclick="openInvoiceCreate()" class="bg-blue-400 text-slate-950 rounded-xl p-3 text-xs font-bold">+ Create invoice</button><button type="button" onclick="openInvoices()" class="bg-slate-800 border border-slate-600 text-white rounded-xl p-3 text-xs font-bold">View invoices</button></div>
+                    <button type="button" onclick="openVatCentre()" class="text-[11px] text-blue-200 font-bold">VAT & return review →</button>
+                    <p id="dash-vat-coverage" class="hidden text-[10px] text-amber-100"></p>
+                </div><section id="dash-job-photos" class="border border-emerald-400/40 bg-slate-900 rounded-2xl p-4 space-y-3"><h3 class="text-sm font-bold text-white">📸 Job photos</h3><p class="text-xs text-slate-300">Before-and-after photos, customer job folders and reports.</p><button type="button" onclick="openJobPhotos()" class="w-full bg-emerald-400 text-slate-950 rounded-xl p-3 text-sm font-bold">Open your jobs</button></section></div>
+<details class="workspace-disclosure"><summary>Weekly goals & check-in</summary><div id="tools-weekly-goal" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                    <div class="flex justify-between gap-2 items-center"><h3 class="text-sm font-bold text-white"><span aria-hidden="true">🎯</span> Your weekly profit goal</h3><button type="button" onclick="openDashboardSettings()" class="text-xs text-blue-300 font-bold">Set goal & reminders</button></div>
+                    <p id="dash-goal-text" class="text-xs text-slate-300">Choose a goal that suits your week.</p>
+                    <div id="dash-goal-track" role="progressbar" aria-label="Weekly profit goal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" class="hidden h-2 rounded-full bg-slate-800 overflow-hidden"><div id="dash-goal-fill" class="h-full bg-emerald-400 rounded-full" style="width:0%"></div></div>
+                    <p id="dash-goal-message" class="text-[11px] text-emerald-300" aria-live="polite"></p>
+                    <p id="dash-reminder-status" class="text-[10px] text-slate-400">Shift reminder off</p>
+                </div><div id="tools-weekly-review" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between gap-2"><h3 class="text-sm font-bold text-white"><span aria-hidden="true">✅</span> Review this week so far</h3><button type="button" onclick="openWeeklyReview()" class="text-xs text-blue-300 font-bold">Weekly overview</button></div>
+                    <p class="text-[10px] text-slate-400">Tick each item after checking your records. This does not verify your tax figures.</p>
+                    <label class="flex gap-2 items-center text-xs text-slate-200"><input id="weekly-review-income" type="checkbox" onchange="setWeeklyReview('income',this.checked)" class="accent-emerald-400">Income checked</label>
+                    <label class="flex gap-2 items-center text-xs text-slate-200"><input id="weekly-review-expenses" type="checkbox" onchange="setWeeklyReview('expenses',this.checked)" class="accent-emerald-400">Receipts and expenses checked</label>
+                    <label data-mileage-control class="flex gap-2 items-center text-xs text-slate-200"><input id="weekly-review-mileage" type="checkbox" onchange="setWeeklyReview('mileage',this.checked)" class="accent-emerald-400">Mileage checked, or not needed</label>
+                    <p id="weekly-review-status" class="text-[11px] text-slate-300" aria-live="polite"></p>
+                </div></details>
+<div class="tools-section"><h3>Your account</h3><button class="tool-entry" type="button" onclick="openAccountModal()"><span aria-hidden="true">○</span><span><strong>Profile & settings</strong><small>Business details, notifications and regular costs</small></span><span aria-hidden="true">›</span></button><button type="button" onclick="signOutUser()" class="text-xs text-slate-400 py-3">Sign out</button></div></section>
             <!-- VIEW 3: AI RECEIPT SCANNER -->
             <section id="view-scan" class="p-5 space-y-5 hidden">
                 <div class="text-center space-y-1">
@@ -462,6 +452,7 @@
 
             <!-- VIEW 5: TAX SUMMARY -->
             <section id="view-tax" class="p-5 space-y-5 hidden">
+<div id="dashboard-tax-due" aria-live="polite"></div><section id="dashboard-year-summary" class="bg-slate-900 border border-blue-400/30 rounded-2xl p-4 space-y-3" aria-live="polite"></section>
                 <div>
                     <h2 class="text-lg font-bold text-white">Estimated Tax Summary</h2>
                     <p class="text-xs text-slate-400">2026/27 estimate from records saved in this app. Other income or tax circumstances can change the final amount.</p>
@@ -492,9 +483,9 @@
 
         <!-- Navigation Bar -->
         <nav class="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-2 py-2.5 flex justify-around items-center z-40">
-            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex flex-col items-center space-y-1 text-emerald-400 transition"><i class="fa-solid fa-house text-base"></i><span class="text-[10px] font-semibold">Dashboard</span></button>
-            <button onclick="openCalendarTab()" id="nav-calendar" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 transition"><i class="fa-solid fa-calendar-days text-base"></i><span class="text-[10px] font-semibold">Calendar</span></button>
-            <button onclick="switchTab('scan')" id="nav-scan" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 transition"><i class="fa-solid fa-camera text-base"></i><span class="text-[10px] font-semibold">Scan</span></button>
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex flex-col items-center space-y-1 text-emerald-400 transition"><i class="fa-solid fa-house text-base"></i><span class="text-[10px] font-semibold">Home</span></button>
+            <button onclick="switchTab('records')" id="nav-records" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 transition"><i class="fa-solid fa-clipboard-list text-base"></i><span class="text-[10px] font-semibold">Records</span></button>
+            <button onclick="switchTab('tools')" id="nav-tools" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 transition"><i class="fa-solid fa-grip text-base"></i><span class="text-[10px] font-semibold">Tools</span></button>
             <button onclick="switchTab('tax')" id="nav-tax" class="nav-btn flex flex-col items-center space-y-1 text-slate-400 transition"><i class="fa-solid fa-file-invoice-dollar text-base"></i><span class="text-[10px] font-semibold">Tax</span></button>
         </nav>
 
@@ -736,7 +727,7 @@
                         <i class="fa-solid fa-xmark text-xs"></i>
                     </button>
                 </div>
-                
+
                 <form id="income-form" onsubmit="handleSaveIncome(event)" class="space-y-3">
                     <div>
                         <p class="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-2">Quick source</p>
@@ -795,7 +786,7 @@
                         <i class="fa-solid fa-xmark text-xs"></i>
                     </button>
                 </div>
-                
+
                 <form id="expense-form" onsubmit="handleSaveExpense(event)" class="space-y-3">
                     <div>
                         <p class="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-2">Quick category</p>
@@ -900,7 +891,7 @@
             </div>
         </div>
 
-        
+
         <!-- Today Details -->
         <div id="today-details-modal" class="hidden absolute inset-0 bg-slate-950 z-[86] overflow-y-auto">
             <div class="p-5 space-y-4 pb-28">
@@ -2280,7 +2271,7 @@
         function ensureBatchFeatures(){
             if(document.getElementById('batch-tools'))return;
             const bar=document.createElement('div');bar.id='batch-tools';bar.className='grid grid-cols-2 gap-2';bar.innerHTML=`<button type="button" onclick="openEvidenceFolder()" class="${batchButton}">🗂️ Receipts & evidence</button><button type="button" onclick="openBankImport()" class="${batchButton}">🏦 Import statement</button>`;
-            document.getElementById('view-dashboard').insertBefore(bar,document.getElementById('view-dashboard').children[1]);
+            (document.getElementById('tools-imports')||document.getElementById('view-dashboard')).appendChild(bar);
             const actions=document.createElement('div');actions.className='space-y-2';actions.innerHTML=`<pre id="expense-split-summary" class="whitespace-pre-wrap text-xs text-slate-300"></pre><button type="button" onclick="openItemSplit(appState.selectedExpenseId)" class="${batchButton}">🧾 Split items / categories</button>`;document.getElementById('expense-detail-notes').after(actions);
             const option=document.createElement('label');option.className='block text-xs text-slate-200';option.innerHTML='<input type="checkbox" id="receipt-split-after"> Split products into categories after saving';document.getElementById('receipt-confirm-btn').parentElement.before(option);
             ['expense','receipt','recurring'].forEach(prefix=>{const anchor=document.getElementById(prefix+'-tax-preview');if(!anchor)return;const b=document.createElement('button');b.type='button';b.className='block text-xs text-emerald-300 underline py-2';b.textContent='🍽️ Help with food and meal expenses';b.onclick=()=>openMealGuide(prefix);anchor.after(b);});
@@ -2353,12 +2344,13 @@
                 btn.classList.remove('text-emerald-400');
                 btn.classList.add('text-slate-400');
             });
-            const activeBtn = document.getElementById(`nav-${tabId==='records'?'dashboard':tabId}`);
+            const activeBtn = document.getElementById(`nav-${tabId==='scan'?'tools':tabId}`);
             if (activeBtn) {
                 activeBtn.classList.remove('text-slate-400');
                 activeBtn.classList.add('text-emerald-400');
             }
 
+            document.getElementById('app-main').scrollTop=0;
             renderUI();
             if(tabId==='records') renderRecords();
         }
@@ -3380,6 +3372,7 @@
 
             renderDriverDashboard();
             renderInvoices();
+            if(window.renderCompactHome)renderCompactHome();
 
             const exceeded=(appState.periodEntries||[]).filter(p=>p.reconciled&&periodTotalsExceeded(p));
             const warning=document.getElementById('past-earnings-warning');
@@ -3516,7 +3509,7 @@
         function openCalendarTab() {
             appState.calendarReturnTab=appState.activeTab||'dashboard';
             document.querySelectorAll('.nav-btn').forEach(btn => { btn.classList.remove('text-emerald-400'); btn.classList.add('text-slate-400'); });
-            const btn=document.getElementById('nav-calendar'); if(btn){btn.classList.remove('text-slate-400');btn.classList.add('text-emerald-400');}
+            const btn=document.getElementById('nav-records'); if(btn){btn.classList.remove('text-slate-400');btn.classList.add('text-emerald-400');}
             openCalendarModal();
         }
 
@@ -3742,7 +3735,7 @@
             img?.classList.add('hidden'); fallback?.classList.remove('hidden');
         }
 
-        
+
         function chipButton(value,selected,handler,color='emerald'){
             const safe=escapeHtml(JSON.stringify(value));
             return '<button type="button" onclick="'+handler+"("+safe+")"+'" class="px-3 py-2 rounded-xl border text-[10px] font-bold '+(selected?'border-'+color+'-500 bg-'+color+'-500/10 text-'+color+'-300':'border-slate-800 bg-slate-950 text-slate-400')+'">'+escapeHtml(value)+'</button>';
@@ -3825,7 +3818,7 @@ function checkOwnerPushSetup(){
             await fetchUserData(appState.currentUser.id); openAccountModal(); showToast('Profile photo updated');
         }
 
-        
+
         function openTaxProfileModal(){
             const p=appState.taxProfile||{};
             const val=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v??'';};
@@ -6231,5 +6224,6 @@ function renderRegularCostLists() {
 <script src="bank-pdf-workspace.js"></script>
 <script src="accountant-cis.js"></script>
 <script src="job-photos.js"></script>
+<script src="home-workspace.js"></script>
 </body>
 </html>
