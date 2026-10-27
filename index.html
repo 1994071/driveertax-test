@@ -233,6 +233,10 @@
                         <span aria-hidden="true" class="text-xl leading-none">🧾</span>
                         <span class="text-xs font-bold">+ Add expense</span>
                     </button>
+                    <button id="dash-scan-receipt" type="button" onclick="switchTab('scan')" aria-label="Scan receipt" class="home-scan-receipt">
+                        <svg class="home-camera-icon" aria-hidden="true" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="4"/></svg>
+                        <span>Scan receipt</span>
+                    </button>
 
                 </div>
 
@@ -1082,8 +1086,7 @@
                     <h3 id="uber-driver-title" class="font-bold text-white">Uber driver connection</h3>
                     <p class="text-xs text-slate-300">For taxi and private-hire work. Authorise on Uber’s website to connect your account and preview recent payments.</p>
                     <p id="uber-driver-status" role="status" class="text-xs text-blue-200">Checking availability…</p>
-                    <label id="uber-driver-consent-label" class="hidden flex gap-2 text-xs text-slate-300"><input id="uber-driver-consent" type="checkbox">Allow Earnavik to read my Uber driver profile and payments until I disconnect.</label>
-                    <button id="uber-driver-connect" type="button" disabled onclick="connectUber()" class="w-full bg-white text-slate-950 rounded-xl p-3 text-sm font-bold disabled:opacity-50">Connect Uber</button>
+                    <label id="uber-driver-consent-label" hidden class="hidden flex gap-2 text-xs text-slate-300"><input id="uber-driver-consent" type="checkbox">Allow Earnavik to read my Uber driver profile and payments until I disconnect.</label>
                     <button id="uber-driver-refresh" type="button" onclick="previewUberPayments()" class="hidden w-full bg-slate-800 rounded-xl p-3 text-sm text-white">Preview recent payments</button>
                     <button id="uber-driver-disconnect" type="button" onclick="disconnectUber()" class="hidden w-full border border-rose-500/40 text-rose-200 rounded-xl p-3 text-sm">Disconnect Uber</button>
                     <button id="uber-driver-status-check" type="button" onclick="loadUberConnection()" class="text-xs text-blue-200 underline p-2">Check connection status</button>

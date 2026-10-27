@@ -20,8 +20,6 @@ function uberTaxiProfile(profile){
   const eligible=uberTaxiProfile(appState.profile),hasConnection=data.status!=='disconnected';
   // Former taxi users retain disconnect controls; no new connection or data reads.
   el('uber-driver-card').classList.toggle('hidden',!eligible&&!hasConnection);
-  el('uber-driver-connect').classList.toggle('hidden',!eligible||data.status==='connected');
-  el('uber-driver-connect').disabled=!data.available;
   el('uber-driver-consent-label').classList.toggle('hidden',!eligible||!data.available||data.status==='connected');
   el('uber-driver-refresh').classList.toggle('hidden',!eligible||data.status!=='connected');
   el('uber-driver-disconnect').classList.toggle('hidden',!hasConnection);
@@ -32,7 +30,7 @@ function uberTaxiProfile(profile){
   const user=appState.currentUser?.id;if(!user)return;
   if(owner!==user){resetUberWorkspace();owner=user;}const token=version;
   const eligible=uberTaxiProfile(appState.profile);el('uber-driver-card').classList.toggle('hidden',!eligible);
-  el('uber-driver-connect').disabled=true;el('uber-driver-status').textContent='Checking Uber connection…';
+  if(el('uber-driver-connect'))el('uber-driver-connect').disabled=true;el('uber-driver-status').textContent='Checking Uber connection…';
   try{const data=await call('status');if(!same(user,token))return;paint(data);if(pending){const callback=pending;pending=null;await completeUber(callback,user,token);}}
   catch(e){if(same(user,token))el('uber-driver-status').textContent=e.message;}
  }
