@@ -81,7 +81,7 @@
 /* Give invoices a prominent full-width Home shortcut. */
 #home-shortcuts>.home-shortcut[onclick="openInvoices()"]{grid-column:1/-1;grid-template-columns:44px 1fr 20px;align-items:center;min-height:104px;padding:20px;background:linear-gradient(135deg,#173b58,#152d44);border-color:#4298c9;gap:14px;border-radius:20px}
 #home-shortcuts>.home-shortcut[onclick="openInvoices()"]:hover{background:#1b405c}
-#home-shortcuts>.home-shortcut[onclick="openInvoices()"] .home-shortcut-icon{font-size:0;width:38px;height:42px;background:center/contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 28' fill='none' stroke='%238ed7ff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H4v24h16V8zM14 2v6h6M8 13h8M8 18h8M8 22h5'/%3E%3C/svg%3E")}
+#home-shortcuts>.home-shortcut[onclick="openInvoices()"] .home-shortcut-icon{font-size:0;width:38px;height:42px;background:center/contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 28' fill='none' stroke='%235ee2b8' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H4v24h16V8zM14 2v6h6M8 13h8M8 18h8M8 22h5'/%3E%3C/svg%3E")}
 #home-shortcuts>.home-shortcut[onclick="openInvoices()"] strong{font-size:18px}
 #home-shortcuts>.home-shortcut[onclick="openInvoices()"] small{font-size:12px}
 #home-shortcuts>.home-shortcut[onclick="openInvoices()"]>span:last-child{display:block;font-size:28px;color:#8ed7ff}
