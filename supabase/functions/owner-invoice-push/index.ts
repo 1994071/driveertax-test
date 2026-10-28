@@ -24,7 +24,7 @@ Deno.serve(async(req: Request)=>{
   const token=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'');if(!token)return reply(401,{error:'Sign in to manage notifications'});
   const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   let owner=null;
-  if(body.action==='run_daily'){
+  if(body.action==='run_daily'||body.action==='run_bookkeeping'){
    if(!/^[a-f0-9]{64}$/.test(token))return reply(401,{error:'Unauthorized'});
    const {data:worker,error}=await db.from('invoice_reminder_worker').select('token_hash').eq('id',true).single();
    if(error||worker?.token_hash!==await sha(token))return reply(401,{error:'Unauthorized'});
@@ -34,8 +34,8 @@ Deno.serve(async(req: Request)=>{
   const {data:config,error:configError}=await db.from('owner_push_config').select('public_key,private_key').eq('id',true).single();
   if(configError||!config)return reply(503,{error:'Notifications are not configured'});
   if(body.action==='status'){
-   let device=null;if(typeof body.endpoint==='string'&&body.endpoint.length<=2048){const result=await db.from('owner_push_devices').select('enabled,sound,binding').eq('endpoint_hash',await sha(body.endpoint)).eq('user_id',owner).maybeSingle();if(result.error)throw result.error;device=result.data;}
-   return reply(200,{publicKey:config.public_key,enabled:!!device?.enabled,sound:device?.sound??true,binding:device?.binding||null});
+   let device=null;if(typeof body.endpoint==='string'&&body.endpoint.length<=2048){const result=await db.from('owner_push_devices').select('enabled,sound,binding,bookkeeping_enabled,bookkeeping_time').eq('endpoint_hash',await sha(body.endpoint)).eq('user_id',owner).maybeSingle();if(result.error)throw result.error;device=result.data;}
+   return reply(200,{publicKey:config.public_key,enabled:!!device?.enabled,sound:device?.sound??true,binding:device?.binding||null,bookkeepingEnabled:device?.bookkeeping_enabled??false,bookkeepingTime:String(device?.bookkeeping_time||'20:00').slice(0,5)});
   }
   if(body.action==='disable'){
    if(typeof body.endpoint!=='string'||body.endpoint.length>2048)return reply(400,{error:'Device subscription missing'});
@@ -43,12 +43,13 @@ Deno.serve(async(req: Request)=>{
   }
   if(body.action==='subscribe'){
    if(!validSubscription(body.subscription)||typeof body.sound!=='boolean'||!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(body.binding||''))return reply(400,{error:'Invalid device subscription'});
+   if((body.bookkeepingEnabled!==undefined&&typeof body.bookkeepingEnabled!=='boolean')||(body.bookkeepingTime!==undefined&&(typeof body.bookkeepingTime!=='string'||!/^([01][0-9]|2[0-3]):[0-5]0$/.test(body.bookkeepingTime))))return reply(400,{error:'Choose a UK reminder time in 10-minute steps'});
    const hash=await sha(body.subscription.endpoint);
    const {data:devices,error}=await db.from('owner_push_devices').select('endpoint_hash').eq('user_id',owner).eq('enabled',true);if(error)throw error;
    if(devices.length>=5&&!devices.some((d: any)=>d.endpoint_hash===hash))return reply(400,{error:'Turn off a device before enabling more than five devices'});
    const quota=await db.rpc('consume_paid_api_request',{p_user_id:owner,p_service:'owner_push'});if(quota.error||quota.data!==true)return reply(429,{error:'Notification limit reached. Try later.'});
    const sub={endpoint:body.subscription.endpoint,keys:{p256dh:body.subscription.keys.p256dh,auth:body.subscription.keys.auth}};
-   const result=await db.from('owner_push_devices').upsert({endpoint_hash:hash,user_id:owner,subscription:sub,binding:body.binding,sound:body.sound,enabled:true,updated_at:new Date().toISOString()},{onConflict:'endpoint_hash'});if(result.error)throw result.error;
+   const result=await db.from('owner_push_devices').upsert({endpoint_hash:hash,user_id:owner,subscription:sub,binding:body.binding,sound:body.sound,enabled:true,...(body.bookkeepingEnabled!==undefined?{bookkeeping_enabled:body.bookkeepingEnabled}:{}),...(body.bookkeepingTime!==undefined?{bookkeeping_time:body.bookkeepingTime}:{}),updated_at:new Date().toISOString()},{onConflict:'endpoint_hash'});if(result.error)throw result.error;
    return reply(200,{ok:true});
   }
   async function send(device: any,payload: any){
@@ -66,16 +67,17 @@ Deno.serve(async(req: Request)=>{
    if(typeof body.endpoint!=='string'||body.endpoint.length>2048)return reply(400,{error:'Enable this device first'});
    const {data:device,error}=await db.from('owner_push_devices').select('*').eq('endpoint_hash',await sha(body.endpoint)).eq('user_id',owner).eq('enabled',true).maybeSingle();if(error||!device)return reply(400,{error:'Enable notifications on this device first'});
    const quota=await db.rpc('consume_paid_api_request',{p_user_id:owner,p_service:'owner_push'});if(quota.error||quota.data!==true)return reply(429,{error:'Notification limit reached. Try later.'});
-   const delivery=await send(device,{test:true,user_id:owner,binding:device.binding,sound:device.sound,title:'Earnavik test notification',body:'Notifications are ready. Tap to open your invoices.'});
+   const delivery=await send(device,{test:true,user_id:owner,binding:device.binding,sound:device.sound,kind:body.kind==='bookkeeping'?'bookkeeping':'invoices',title:body.kind==='bookkeeping'?'Keep your books up to date':'Earnavik test notification',body:body.kind==='bookkeeping'?'Finished for today? Add your income and expenses to keep your figures up to date.':'Notifications are ready. Tap to open your invoices.'});
    return reply(delivery.accepted?200:502,delivery.accepted?{ok:true,accepted:true}:{error:'Push service rejected this notification (HTTP '+delivery.status+(delivery.reason?' · '+delivery.reason:'')+'). Please report this message.'});
   }
-  if(body.action!=='run_daily')return reply(400,{error:'Unknown notification action'});
-  const {data:jobs,error}=await db.rpc('list_owner_invoice_push');if(error)throw error;let accepted=0,failed=0;
+  if(body.action!=='run_daily'&&body.action!=='run_bookkeeping')return reply(400,{error:'Unknown notification action'});
+  const bookkeeping=body.action==='run_bookkeeping';
+  const {data:jobs,error}=await db.rpc(bookkeeping?'list_owner_bookkeeping_push':'list_owner_invoice_push');if(error)throw error;let accepted=0,failed=0;
   for(const job of jobs||[]){
    const quota=await db.rpc('consume_paid_api_request',{p_user_id:job.user_id,p_service:'owner_push'});if(quota.error||quota.data!==true)continue;
-   const {data:device,error:claimError}=await db.rpc('claim_owner_invoice_push',{p_hash:job.endpoint_hash,p_user_id:job.user_id});if(claimError||!device)continue;
-   let ok=false;try{ok=(await send(device,{test:false,user_id:device.user_id,binding:device.binding,sound:device.sound,title:'Your daily invoice reminder',body:Number(device.due)+' due today · '+Number(device.overdue)+' overdue. Tap to review your invoices.'})).accepted;}catch(_){}
-   const result=await db.from('owner_push_deliveries').update({status:ok?'accepted':'failed'}).eq('endpoint_hash',job.endpoint_hash).eq('user_id',job.user_id).eq('day',device.day);if(result.error)console.error('Owner push result could not be recorded');
+   const {data:device,error:claimError}=await db.rpc(bookkeeping?'claim_owner_bookkeeping_push':'claim_owner_invoice_push',{p_hash:job.endpoint_hash,p_user_id:job.user_id});if(claimError||!device)continue;
+   let ok=false;try{ok=(await send(device,{test:false,user_id:device.user_id,binding:device.binding,sound:device.sound,kind:bookkeeping?'bookkeeping':'invoices',title:bookkeeping?'Keep your books up to date':'Your daily invoice reminder',body:bookkeeping?'Finished for today? Add your income and expenses to keep your figures up to date.':Number(device.due)+' due today · '+Number(device.overdue)+' overdue. Tap to review your invoices.'})).accepted;}catch(_){}
+   const result=await db.from(bookkeeping?'owner_bookkeeping_push_deliveries':'owner_push_deliveries').update({status:ok?'accepted':'failed'}).eq('endpoint_hash',job.endpoint_hash).eq('user_id',job.user_id).eq('day',device.day);if(result.error)console.error('Owner push result could not be recorded');
    if(ok)accepted++;else failed++;
   }
   return reply(200,{accepted,failed});

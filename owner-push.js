@@ -1,5 +1,5 @@
 (()=>{
- const el=id=>document.getElementById(id);let registration=null,publicKey=null,binding=null,loadedOwner=null,busy=false,generation=0,pendingOpen=new URL(location.href).searchParams.get('open')==='invoices';
+ const el=id=>document.getElementById(id);let registration=null,publicKey=null,binding=null,loadedOwner=null,busy=false,generation=0,pendingOpen=['invoices','bookkeeping'].includes(new URL(location.href).searchParams.get('open'))?new URL(location.href).searchParams.get('open'):null;
  const supported=()=>!!(window.isSecureContext&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window);
  const isIPhoneTab=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
  const standalone=()=>window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
@@ -11,7 +11,7 @@
   await new Promise((resolve,reject)=>{const channel=new MessageChannel(),timer=setTimeout(()=>reject(Error('Device setup timed out. Refresh and retry.')),5000);channel.port1.onmessage=()=>{clearTimeout(timer);resolve();};registration.active.postMessage({type:'PUSH_BINDING',user_id,binding:deviceBinding},[channel.port2]);});
  }
  async function loadOwnerPushSettings(){
-  const owner=appState.currentUser?.id,token=++generation;loadedOwner=null;publicKey=null;binding=null;
+  const owner=appState.currentUser?.id,token=++generation;loadedOwner=null;publicKey=null;binding=null;el('owner-push-bookkeeping').checked=false;el('owner-push-bookkeeping-time').value='20:00';
   el('owner-push-enable').disabled=true;el('owner-push-test').disabled=true;el('owner-push-off').disabled=true;
   if(!owner){note('Sign in to enable notifications.');return;}
   if(!supported()||(isIPhoneTab()&&!standalone())){note(isIPhoneTab()?'On iPhone/iPad: open Earnavik in Safari, tap Share → Add to Home Screen, then open it from that icon to enable notifications.':'This browser does not support notifications. You can still check invoice statuses in the app.');return;}
@@ -21,17 +21,18 @@
    registration=await navigator.serviceWorker.register('/owner-push-sw.js',{scope:'/'});await navigator.serviceWorker.ready;
    const sub=await registration.pushManager.getSubscription(),data=await call('status',{endpoint:sub?.endpoint||''});
    if(token!==generation||owner!==appState.currentUser?.id)return;
-   publicKey=data.publicKey;binding=data.binding;loadedOwner=owner;el('owner-push-sound').checked=data.sound;
+   publicKey=data.publicKey;binding=data.binding;loadedOwner=owner;el('owner-push-sound').checked=data.sound;el('owner-push-bookkeeping').checked=!!data.bookkeepingEnabled;el('owner-push-bookkeeping-time').value=data.bookkeepingTime||'20:00';
    el('owner-push-enable').textContent=data.enabled?'Save notification settings':'Enable notifications';el('owner-push-enable').disabled=false;
    el('owner-push-test').disabled=!data.enabled;el('owner-push-off').disabled=!data.enabled;
    if(data.enabled&&binding)await bindDevice(owner,binding);else await bindDevice(null,null);
    if(token!==generation||owner!==appState.currentUser?.id)return;
-   note(data.enabled?'Daily invoice notifications are on for this device. Send a test to check notification and sound settings.':'Notifications are off on this device. Tap Enable notifications to allow them.');
+   note(data.enabled?(data.bookkeepingEnabled?'Daily income & expenses reminders are on at '+data.bookkeepingTime+' UK time. Invoice reminders stay on too.':'Invoice notifications are on. You can also turn on the daily income & expenses reminder above.'):'Notifications are off on this device. Choose your reminders, then tap Enable notifications.');
   }catch(e){if(token===generation&&owner===appState.currentUser?.id)note(e.message);}
  }
  async function enableOwnerPush(){
   if(busy||loadedOwner!==appState.currentUser?.id||!publicKey||!registration)return;
-  const owner=loadedOwner,sound=el('owner-push-sound').checked;busy=true;el('owner-push-enable').disabled=true;
+  const owner=loadedOwner,sound=el('owner-push-sound').checked,bookkeepingEnabled=el('owner-push-bookkeeping').checked,bookkeepingTime=el('owner-push-bookkeeping-time').value;
+  if(!/^([01][0-9]|2[0-3]):[0-5]0$/.test(bookkeepingTime)){note('Choose a reminder time in 10-minute steps, for example 20:00 or 20:10.');return;}busy=true;el('owner-push-enable').disabled=true;
   // Request permission synchronously from this button gesture, before any network await.
   let sub=null;
   try{
@@ -40,7 +41,7 @@
    if(owner!==appState.currentUser?.id)return;
    sub=await registration.pushManager.getSubscription()||await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:keyBytes(publicKey)});
    if(owner!==appState.currentUser?.id){await sub.unsubscribe();return;}
-   const nextBinding=crypto.randomUUID();await call('subscribe',{subscription:sub.toJSON(),sound,binding:nextBinding});
+   const nextBinding=crypto.randomUUID();await call('subscribe',{subscription:sub.toJSON(),sound,binding:nextBinding,bookkeepingEnabled,bookkeepingTime});
    if(owner!==appState.currentUser?.id){await sub.unsubscribe();return;}
    binding=nextBinding;await bindDevice(owner,binding);await loadOwnerPushSettings();
   }catch(e){if(owner===appState.currentUser?.id)note(e.message+' Notification setup is not confirmed.');}
@@ -59,13 +60,13 @@
  async function testOwnerPush(){
   if(busy||loadedOwner!==appState.currentUser?.id)return;const owner=loadedOwner;busy=true;el('owner-push-test').disabled=true;
 
-  try{const sub=await registration?.pushManager.getSubscription();if(!sub)throw Error('Enable this device first.');const result=await call('test',{endpoint:sub.endpoint});if(owner===appState.currentUser?.id)note(result.accepted?'Test accepted by the push service. Look for the notification; sound depends on phone/browser settings.':'Test was not accepted.');}
+  try{const sub=await registration?.pushManager.getSubscription();if(!sub)throw Error('Enable this device first.');const result=await call('test',{endpoint:sub.endpoint,kind:el('owner-push-bookkeeping').checked?'bookkeeping':'invoices'});if(owner===appState.currentUser?.id)note(result.accepted?'Test accepted by the push service. Look for the notification; sound depends on phone/browser settings.':'Test was not accepted.');}
   catch(e){if(owner===appState.currentUser?.id)note(e.message);}
   finally{busy=false;if(owner===appState.currentUser?.id)el('owner-push-test').disabled=false;}
  }
  function openOwnerNotificationInvoices(){
   if(!pendingOpen||!appState.currentUser||!document.getElementById('account-data-gate')?.classList.contains('hidden'))return;
-  pendingOpen=false;appState.homeCalendarOpened=true;closeAccountModal();openInvoices();const url=new URL(location.href);url.searchParams.delete('open');history.replaceState(null,'',url.pathname+url.search+url.hash);
+  const destination=pendingOpen;pendingOpen=null;appState.homeCalendarOpened=true;closeAccountModal();if(destination==='bookkeeping'){switchTab('dashboard');startDailyEntry(driverToday());}else openInvoices();const url=new URL(location.href);url.searchParams.delete('open');history.replaceState(null,'',url.pathname+url.search+url.hash);
  }
  async function resetOwnerPushDevice(disableRemote=false){
   const token=++generation,owner=appState.currentUser?.id;binding=null;publicKey=null;loadedOwner=null;
@@ -77,7 +78,7 @@
  if(supported())navigator.serviceWorker.getRegistration('/').then(async reg=>{if(generation===0&&reg){registration=reg;await bindDevice(null,null);}}).catch(()=>{});
  if(supported())navigator.serviceWorker.addEventListener('message',event=>{
   if(event.source?.scriptURL!==new URL('/owner-push-sw.js',location.origin).href)return;
-  if(event.data?.type==='OPEN_INVOICES'){pendingOpen=true;openOwnerNotificationInvoices();}
+  if(event.data?.type==='OPEN_INVOICES'||event.data?.type==='OPEN_BOOKKEEPING'){pendingOpen=event.data.type==='OPEN_BOOKKEEPING'?'bookkeeping':'invoices';openOwnerNotificationInvoices();}
  });
  }catch(_){note("Notification setup could not start. Use Check notification setup to retry.");}
 })();

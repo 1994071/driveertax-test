@@ -1071,8 +1071,15 @@
                     </div>
                 </form>
                 <section id="owner-push-card" class="bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3" aria-labelledby="owner-push-title">
-                    <h3 id="owner-push-title" class="font-bold text-white">🔔 Your invoice notifications</h3>
+                    <h3 id="owner-push-title" class="font-bold text-white">🔔 Your notifications</h3>
                     <p class="text-xs text-slate-300">One daily summary on this device when invoices are due or overdue, from 9 am UK time. Tap a notification to review your invoices. No notification is sent when nothing is due.</p>
+                    <div class="border border-emerald-400/30 bg-emerald-500/5 rounded-xl p-3 space-y-3">
+                        <label class="flex gap-2 text-sm text-white"><input id="owner-push-bookkeeping" type="checkbox">Daily income &amp; expenses reminder</label>
+                        <label class="block text-xs text-slate-300" for="owner-push-bookkeeping-time">Reminder time (UK time)</label>
+                        <input id="owner-push-bookkeeping-time" type="time" value="20:00" step="600" class="bg-slate-950 border border-slate-600 text-white rounded-xl p-3 text-sm">
+                        <p class="text-xs text-slate-300">“Finished for today? Add your income and expenses to keep your figures up to date.”</p>
+                        <p class="text-xs text-slate-400">Optional, once a day on this device. Sent from your chosen time, checked every 10 minutes. Delivery depends on your phone and connection. UK summer time is handled automatically. Tap the reminder to add today's records.</p>
+                    </div>
                     <label class="flex gap-2 text-sm text-white"><input id="owner-push-sound" type="checkbox" checked> Allow notification sound</label>
                     <p class="text-xs text-slate-400">The checkbox sets your sound preference; it does not enable notifications. Sound and delivery depend on your phone/browser, mute and Focus settings. This switch is saved when you enable or save notifications. Summary counts may appear on your lock screen; customer names and amounts are not included.</p>
                     <p class="text-xs text-blue-200">On iPhone/iPad: in Safari, choose Share → Add to Home Screen. Open Earnavik from the new icon, sign in, then return here to enable notifications.</p>
