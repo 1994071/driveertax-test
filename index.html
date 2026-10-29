@@ -5761,6 +5761,10 @@ function renderRegularCostLists() {
         async function handleSaveIncome(e) {
             e.preventDefault();
             if (!appState.currentUser) return;
+            const owner=appState.currentUser.id;
+            if(appState.incomeSaveAttempt?.owner===owner)return;
+            const attempt={owner};appState.incomeSaveAttempt=attempt;
+            const isCurrent=()=>appState.currentUser?.id===owner&&appState.incomeSaveAttempt===attempt;
 
             const submitBtn = document.getElementById('income-submit-btn');
             submitBtn.disabled = true;
@@ -5771,8 +5775,23 @@ function renderRegularCostLists() {
             const earned_on = document.getElementById('income-date').value || isoDate(new Date());
             const notes = document.getElementById('income-notes').value;
             const editId = appState.editingIncomeId;
+            let saved=false;
 
             try {
+                if(!Number.isFinite(amount)||amount<0||Math.abs(amount*100-Math.round(amount*100))>0.00001)throw new Error('Enter a valid amount with no more than two decimal places.');
+                if(!/^\d{4}-\d{2}-\d{2}$/.test(earned_on)||isoDate(parseIsoDate(earned_on))!==earned_on)throw new Error('Choose a valid income date.');
+                if(!editId){
+                    const matches=await supabaseClient.from('income').select('id,source,amount,earned_on').eq('user_id',owner).eq('earned_on',earned_on).eq('amount',amount).limit(5);
+                    if(!isCurrent())return;
+                    if(matches.error)throw new Error('Could not check existing income. Your entry has not been saved. Please retry.');
+                    if(!Array.isArray(matches.data))throw new Error('Could not confirm the duplicate check. Please retry.');
+                    if(appState.editingIncomeId!==editId||document.getElementById('income-source').value!==source||Number(document.getElementById('income-amount').value)!==amount||(document.getElementById('income-date').value||isoDate(new Date()))!==earned_on||document.getElementById('income-notes').value!==notes)throw new Error('Income details changed during the check. Review them and save again.');
+                    if(matches.data.length){
+                        const existing=matches.data.slice(0,3).map(r=>String(r.source||'Income').slice(0,80)).join(', ');
+                        if(!window.confirm('Possible duplicate income: £'+amount.toFixed(2)+' is already recorded on '+earned_on+' ('+existing+'). This may include a bank import or invoice payment. Choose Cancel to review it. Choose OK only if this is a separate payment and you want to save another income entry.'))return;
+                    }
+                }
+                if(!isCurrent())return;
                 let error;
                 if (editId) {
                     ({ error } = await supabaseClient.from('income').update({
@@ -5780,10 +5799,10 @@ function renderRegularCostLists() {
                         amount,
                         earned_on,
                         notes
-                    }).eq('id',editId).eq('user_id',appState.currentUser.id));
+                    }).eq('id',editId).eq('user_id',owner));
                 } else {
                     ({ error } = await supabaseClient.from('income').insert([{
-                        user_id: appState.currentUser.id,
+                        user_id: owner,
                         source,
                         amount,
                         earned_on,
@@ -5792,27 +5811,31 @@ function renderRegularCostLists() {
                 }
 
                 if (error) throw error;
+                saved=true;
+                if(!isCurrent())return;
 
                 showToast(editId ? 'Income updated' : 'Income saved');
                 appState.editingIncomeId = null;
                 closeIncomeModal(false);
                 document.getElementById('income-form').reset();
                 setDateField('income-date','income-date-label',isoDate(new Date()));
-                await fetchUserData(appState.currentUser.id);
+                await fetchUserData(owner);
+                if(!isCurrent())return;
 
                 resetEditState();
                 appState.dailyEntryMode = true;
                 appState.dailyEntryDate = earned_on;
                 openDailyExpenseStep();
             } catch (err) {
+                if(!isCurrent())return;
                 console.error("Save income error:", err);
-                showToast(editId ? 'Failed to update income' : 'Failed to save. Click retry.');
-                submitBtn.disabled = false;
-                setDailyEntryButtons(appState.dailyEntryMode ? 'income' : null);
-                return;
+                showToast(saved?'Income saved, but the screen could not refresh. Reopen your records before adding it again.':err.message||(editId?'Failed to update income':'Failed to save. Please retry.'));
+            } finally {
+                if(appState.incomeSaveAttempt===attempt){
+                    appState.incomeSaveAttempt=null;
+                    if(appState.currentUser?.id===owner){submitBtn.disabled=false;setDailyEntryButtons(appState.dailyEntryMode?'income':null);}
+                }
             }
-            submitBtn.disabled = false;
-            setDailyEntryButtons(appState.dailyEntryMode ? 'income' : null);
         }
 
         async function handleSaveExpense(e) {
