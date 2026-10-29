@@ -85,3 +85,11 @@
 #home-shortcuts>.home-shortcut[onclick="openInvoices()"] strong{font-size:18px}
 #home-shortcuts>.home-shortcut[onclick="openInvoices()"] small{font-size:12px}
 #home-shortcuts>.home-shortcut[onclick="openInvoices()"]>span:last-child{display:block;font-size:28px;color:#8ed7ff}
+
+/* Always-visible receptionist entry, before the other Tools groups. */
+#tools-receptionist{border:1px solid #818cf8;border-radius:22px;padding:20px;background:linear-gradient(135deg,#24244b,#121d2e);color:#f8fafc}
+#tools-receptionist .receptionist-tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.08em;color:#c7d2fe;background:#37306b;border-radius:20px;padding:5px 9px}
+#tools-receptionist h3{font-size:22px;font-weight:750;margin:12px 0 7px}
+#tools-receptionist p{font-size:13px;line-height:1.6;color:#dbe3f2;margin-bottom:16px}
+#tools-receptionist button{display:block;width:100%;padding:15px 12px;background:#6366f1;color:#fff;font-size:15px;font-weight:750;border:1px solid #a5b4fc;border-radius:14px}
+#tools-receptionist small{display:block;font-size:11px;color:#cbd5e1;line-height:1.6;margin-top:12px}

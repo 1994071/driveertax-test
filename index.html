@@ -338,6 +338,8 @@
             </section>
 
 <section id="view-tools" class="p-5 space-y-4 hidden"><div class="workspace-heading"><h2>Tools</h2><p>Everything you need to run your business.</p></div>
+<section id="tools-receptionist" aria-label="Receptionist demo"><span class="receptionist-tag">NEW · TEST VERSION</span><h3>AI receptionist</h3><p>Try a customer enquiry and review the callback details.</p><button id="open-receptionist-pilot" type="button" onclick="if(window.openReceptionistPilot){window.openReceptionistPilot(this)}else{alert('The receptionist is still loading. Please refresh the page and try again.')}" >Open receptionist test →</button><small>Sample enquiries work now. AI voice needs a service connection; no phone line is connected.</small></section>
+
 <div class="tools-section"><h3>Capture & import</h3><button class="tool-entry" type="button" onclick="switchTab('scan')"><span aria-hidden="true">▣</span><span><strong>Scan a receipt</strong><small>Photograph it, then check and save</small></span><span aria-hidden="true">›</span></button><div id="tools-imports"></div></div>
 <div class="tools-section"><h3>Customers & work</h3><div id="dash-invoice-centre" class="border border-blue-400/40 bg-gradient-to-br from-blue-500/20 to-slate-900 rounded-2xl p-4 space-y-3">
                     <h3 class="text-sm font-bold text-white">📄 Invoice Centre</h3><p id="dash-invoice-outstanding" class="text-xs text-blue-100"></p><p id="dash-invoice-alert" class="text-[11px] text-amber-200" aria-live="polite"></p>
@@ -6332,5 +6334,6 @@ function renderRegularCostLists() {
 <script src="job-trade-guidance.js"></script>
 <script src="job-photos.js"></script>
 <script src="home-workspace.js"></script>
+<script src="receptionist-workspace.js"></script>
 </body>
 </html>
