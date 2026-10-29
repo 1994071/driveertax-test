@@ -122,10 +122,7 @@
   }catch(error){if(voice===attempt)stopVoice(error.name==='NotAllowedError'?'Microphone access was declined. You can allow it and try again.':error.message||'Could not start the voice test.');}
  }
  $('rc-voice-start').addEventListener('click',startVoice);
+ window.openReceptionistPilot=button=>{opener=button;openedOwner=appState.currentUser?.id;reset();if(!dialog.open)dialog.showModal();};
  supabaseClient.auth.onAuthStateChange((_event,session)=>{if(dialog.open&&session?.user?.id!==openedOwner)dialog.close();});
- const host=document.getElementById('dash-job-photos')?.parentElement||document.getElementById('view-tools');
- if(!host)return;
- const card=document.createElement('section');card.className='border border-indigo-400/40 bg-slate-900 rounded-2xl p-4 space-y-3';card.setAttribute('aria-label','Receptionist demo');
- card.innerHTML='<h3 class="text-sm font-bold text-white">Business receptionist <span class="text-xs text-indigo-200">· Demo</span></h3><p class="text-xs text-slate-300">Try the receptionist workflow and private AI voice pilot. No phone line connected.</p><button type="button" class="w-full bg-indigo-500 text-white rounded-xl p-3 text-sm font-bold">Open receptionist pilot</button>';
- const button=card.querySelector('button');button.addEventListener('click',()=>{opener=button;openedOwner=appState.currentUser?.id;reset();dialog.showModal();});host.appendChild(card);greeting();
+ greeting();
 })();

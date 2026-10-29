@@ -21,12 +21,12 @@ function fixture({ready=true,holdMic=false}={}){
  $('rc-form').reset=()=>{};for(const el of dialog.querySelectorAll('input,textarea')){el.setCustomValidity=()=>{};el.reportValidity=()=>true;}
  $('rc-audio').pause=()=>{};$('rc-audio').play=async()=>{};
  dialog.showModal=()=>{dialog.open=true;};dialog.close=()=>{dialog.open=false;dialog.dispatchEvent(new window.Event('close'));};
- const button=document.querySelector('[aria-label="Receptionist demo"] button');button.click();
+ const button=document.getElementById('open-receptionist-pilot');window.openReceptionistPilot(button);
  Object.defineProperty($('rc-type'),'value',{value:'quote',writable:true});
  return {$,state,appState,dialog,window,submit:()=>{$('rc-form').dispatchEvent(new window.Event('submit',{cancelable:true}));},tick:()=>new Promise(r=>setImmediate(r))};
 }
 (async()=>{
- let f=fixture();assert.ok(f.dialog.open);assert.equal(f.$('rc-output').hidden,true);
+ let f=fixture();assert.ok(f.dialog.open);assert.equal(f.$('view-tools').children[1].id,'tools-receptionist');assert.equal(f.$('open-receptionist-pilot').textContent,'Open receptionist test →');assert.equal(f.$('rc-output').hidden,true);
  f.$('rc-business').value='<img src=x onerror=alert(1)>';f.$('rc-business').dispatchEvent(new f.window.Event('input'));assert.equal(f.$('rc-greeting').querySelector('img'),null);
  f.$('rc-customer').value='Alex';f.$('rc-request').value='<script>evil()</script>';f.submit();assert.equal(f.$('rc-output').hidden,false);assert.match(f.$('rc-summary').textContent,/Alex/);assert.equal(f.$('rc-summary').querySelector('script'),null);assert.equal(f.state.fetches.length,0);
  f.dialog.close();assert.equal(f.$('rc-summary').children.length,0);assert.equal(f.$('rc-output').hidden,true);

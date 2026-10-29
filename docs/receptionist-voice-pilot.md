@@ -1,6 +1,6 @@
 # Earnavik receptionist voice pilot
 
-First implementation: Tools → Customers & work → Open receptionist pilot.
+Entry point: Tools → AI receptionist → Open receptionist test. The card is static HTML at the top of Tools, so it remains visible even if the feature script fails to load. The button explains a loading failure instead of silently disappearing.
 
 ## Implemented
 
