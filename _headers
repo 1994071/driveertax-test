@@ -3,7 +3,7 @@
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
   Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; object-src 'none'
-  Permissions-Policy: camera=(self), microphone=(), geolocation=()
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=()
   Strict-Transport-Security: max-age=31536000
 
 /owner-push-sw.js
