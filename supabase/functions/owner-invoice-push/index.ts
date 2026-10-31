@@ -76,7 +76,8 @@ Deno.serve(async(req: Request)=>{
   for(const job of jobs||[]){
    const quota=await db.rpc('consume_paid_api_request',{p_user_id:job.user_id,p_service:'owner_push'});if(quota.error||quota.data!==true)continue;
    const {data:device,error:claimError}=await db.rpc(bookkeeping?'claim_owner_bookkeeping_push':'claim_owner_invoice_push',{p_hash:job.endpoint_hash,p_user_id:job.user_id});if(claimError||!device)continue;
-   let ok=false;try{ok=(await send(device,{test:false,user_id:device.user_id,binding:device.binding,sound:device.sound,kind:bookkeeping?'bookkeeping':'invoices',title:bookkeeping?'Keep your books up to date':'Your daily invoice reminder',body:bookkeeping?'Finished for today? Add your income and expenses to keep your figures up to date.':Number(device.due)+' due today · '+Number(device.overdue)+' overdue. Tap to review your invoices.'})).accepted;}catch(_){}
+   if(bookkeeping){const fresh=await db.rpc('get_bookkeeping_day_status',{p_user_id:job.user_id,p_day:device.day});if(fresh.error||fresh.data?.complete!==false)continue;}
+   let ok=false;try{ok=(await send(device,{test:false,day:device.day,user_id:device.user_id,binding:device.binding,sound:device.sound,kind:bookkeeping?'bookkeeping':'invoices',title:bookkeeping?'Keep your books up to date':'Your daily invoice reminder',body:bookkeeping?'Finished for today? Add your income and expenses to keep your figures up to date.':Number(device.due)+' due today · '+Number(device.overdue)+' overdue. Tap to review your invoices.'})).accepted;}catch(_){}
    const result=await db.from(bookkeeping?'owner_bookkeeping_push_deliveries':'owner_push_deliveries').update({status:ok?'accepted':'failed'}).eq('endpoint_hash',job.endpoint_hash).eq('user_id',job.user_id).eq('day',device.day);if(result.error)console.error('Owner push result could not be recorded');
    if(ok)accepted++;else failed++;
   }
