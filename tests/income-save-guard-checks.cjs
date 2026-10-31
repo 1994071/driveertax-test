@@ -5,7 +5,7 @@ function fixture(){
  window.confirm=message=>{state.prompts.push(message);return state.approve;};
  window.supabase={createClient:()=>({from:table=>{
   const query={table,filters:{}};const read={eq:(k,v)=>{query.filters[k]=v;return read;},limit:async n=>{state.reads.push({...query,limit:n});if(state.hold)await state.hold;return {data:state.rows.filter(r=>Object.entries(query.filters).every(([k,v])=>r[k]===v)),error:state.readError?Error('offline'):null};}};
-  const update={eq:(k,v)=>{query.filters[k]=v;return update;},then:resolve=>{state.writes.push(query);return Promise.resolve({error:state.writeError?Error('save failed'):null}).then(resolve);}};
+  const update={eq:(k,v)=>{query.filters[k]=v;return update;},select:()=>update,single:async()=>{state.writes.push(query);return {data:{id:'existing'},error:state.writeError?Error('save failed'):null};},then:resolve=>{state.writes.push(query);return Promise.resolve({error:state.writeError?Error('save failed'):null}).then(resolve);}};
   return {select:()=>read,insert:async rows=>{state.writes.push({table,rows});return {error:state.writeError?Error('save failed'):null};},update:values=>{query.values=values;return update;}};
  }})};
  const ctx=vm.createContext({window,document:doc,console:{log(){},error(){}},Date,setTimeout:()=>0});vm.runInContext(source,ctx);ctx.testState=state;
