@@ -767,7 +767,7 @@
                         </div>
                         <div>
                             <label class="text-[11px] font-semibold text-slate-400 block mb-1">Date</label>
-                            <input type="hidden" id="income-date">
+                            <input type="date" id="income-date" required aria-label="Income date" onchange="setDateField('income-date','income-date-label',this.value)" class="w-full min-h-[44px] bg-slate-950 border border-slate-600 rounded-xl px-3 py-2 text-sm text-white">
                             <button type="button" onclick="openUniversalDatePicker('income-date','income-date-label')" class="w-full min-h-[42px] bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white text-left flex items-center justify-between focus:outline-none focus:border-emerald-500">
                                 <span id="income-date-label">Select date</span>
                                 <i class="fa-regular fa-calendar text-emerald-400"></i>
@@ -785,7 +785,8 @@
                         </button>
                     </div>
 <button type="button" id="income-none-btn" onclick="confirmDailyStepNone('income')" class="hidden w-full mt-2 text-xs text-blue-200 p-2">No income for this day</button>
-                </form>
+                <button type="button" id="income-delete-btn" onclick="deleteEditingRecord('income')" class="hidden w-full min-h-[44px] mt-3 rounded-xl border border-rose-400/50 bg-rose-500/10 text-rose-200 font-bold text-sm">Delete this income record</button>
+</form>
             </div>
         </div>
 
@@ -829,7 +830,7 @@
                     </div>
                     <div>
                         <label class="text-[11px] font-semibold text-slate-400 block mb-1">Date</label>
-                        <input type="hidden" id="expense-date">
+                        <input type="date" id="expense-date" required aria-label="Expense date" onchange="setDateField('expense-date','expense-date-label',this.value)" class="w-full min-h-[44px] bg-slate-950 border border-slate-600 rounded-xl px-3 py-2 text-sm text-white">
                             <button type="button" onclick="openUniversalDatePicker('expense-date','expense-date-label')" class="w-full min-h-[42px] bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white text-left flex items-center justify-between focus:outline-none focus:border-emerald-500">
                                 <span id="expense-date-label">Select date</span>
                                 <i class="fa-regular fa-calendar text-emerald-400"></i>
@@ -846,7 +847,8 @@
                         </button>
                     </div>
 <button type="button" id="expense-none-btn" onclick="confirmDailyStepNone('expenses')" class="hidden w-full mt-2 text-xs text-blue-200 p-2">No expenses for this day</button>
-                </form>
+                <button type="button" id="expense-delete-btn" onclick="deleteEditingRecord('expense')" class="hidden w-full min-h-[44px] mt-3 rounded-xl border border-rose-400/50 bg-rose-500/10 text-rose-200 font-bold text-sm">Delete this expense record</button>
+</form>
             </div>
         </div>
 
@@ -4531,7 +4533,7 @@ function renderRegularCostLists() {
                     '<div class="min-w-0"><p class="text-[11px] font-bold text-white truncate">'+escapeHtml(r.category || 'Regular cost')+'</p>'+
                     '<p class="text-[9px] text-slate-500">£'+Number(r.amount||0).toFixed(2)+' · '+freq+' · from '+formatUkDate(r.start_date)+'</p></div>'+
                     '<div class="flex gap-1 shrink-0">'+
-                    '<button type="button" onclick="editRecurringCost(\''+r.id+'\')" class="bg-slate-800 text-slate-300 px-2 py-1.5 rounded-lg text-[9px] font-bold">Edit</button>'+
+                    '<button type="button" onclick="editRecurringCost(\''+r.id+'\')" class="bg-slate-800 text-slate-300 px-2 py-1.5 rounded-lg text-[9px] font-bold">Edit / delete</button>'+
                     '<button type="button" onclick="stopRecurringCost(\''+r.id+'\')" class="bg-rose-500/10 text-rose-300 px-2 py-1.5 rounded-lg text-[9px] font-bold">Stop</button>'+
                     '</div></div>';
             }).join('');
@@ -5320,7 +5322,7 @@ function renderRegularCostLists() {
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
                             <span class="${isIncome?'text-emerald-400':'text-rose-400'} font-bold">${isIncome?'+':'-'}£${Number(t.amount).toFixed(2)}</span>
-                            <button onclick="${isIncome ? `editIncomeRecord('${t.id}')` : `editExpenseRecord('${t.id}')`}" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1.5 rounded-lg text-[9px] font-bold">Edit</button>
+                            <button onclick="${isIncome ? `editIncomeRecord('${t.id}')` : `editExpenseRecord('${t.id}')`}" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1.5 rounded-lg text-[9px] font-bold">Edit / delete</button>
                         </div>
                     </div>`);
             });
@@ -5333,7 +5335,7 @@ function renderRegularCostLists() {
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
                         <span class="text-blue-400 font-bold">${Number(t.business_miles).toFixed(1).replace('.0','')} mi</span>
-                        <button onclick="editMileageRecord('${t.id}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1.5 rounded-lg text-[9px] font-bold">Edit</button>
+                        <button onclick="editMileageRecord('${t.id}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1.5 rounded-lg text-[9px] font-bold">Edit / delete</button>
                     </div>
                 </div>`));
 
@@ -5430,7 +5432,7 @@ function renderRegularCostLists() {
             setDateField('income-date','income-date-label',t.date);
             document.getElementById('income-notes').value = t.notes || '';
             document.getElementById('income-modal-title').textContent = 'Edit Income';
-            document.getElementById('income-submit-btn').textContent = 'Update & continue to expenses';
+            document.getElementById('income-submit-btn').textContent = 'Save changes';
             document.getElementById('income-skip-btn').style.display = 'none';
         }
 
@@ -5451,7 +5453,7 @@ function renderRegularCostLists() {
             setDateField('expense-date','expense-date-label',t.date);
             document.getElementById('expense-notes').value = t.notes || '';
             document.getElementById('expense-modal-title').textContent = 'Edit Expense';
-            document.getElementById('expense-submit-btn').textContent = 'Update Expense';
+            document.getElementById('expense-submit-btn').textContent = 'Save changes';
             document.getElementById('expense-skip-btn').style.display = 'none';
         }
 
@@ -5515,6 +5517,7 @@ function renderRegularCostLists() {
                 const active = Boolean(appState.dailyEntryMode && name === step);
                 skip.style.display = active ? 'block' : 'none';
                 document.getElementById(name+'-none-btn')?.classList.toggle('hidden',!active);
+                document.getElementById(name+'-delete-btn')?.classList.toggle('hidden',!(name==='income'?appState.editingIncomeId:name==='expense'?appState.editingExpenseId:false));
                 save.classList.toggle('col-span-2', !active);
             });
 
@@ -5529,8 +5532,8 @@ function renderRegularCostLists() {
             if (et) et.textContent = appState.editingExpenseId ? 'Edit Expense' : (appState.dailyEntryMode ? 'Step 2 of '+(mileageEnabled()?3:2)+' · Expense' : 'Add Expense');
             if (mt) mt.textContent = appState.editingMileageId ? 'Edit Mileage' : (appState.dailyEntryMode ? 'Step 3 of 3 · Mileage' : 'Add Mileage');
 
-            if (ib) ib.textContent = appState.editingIncomeId ? 'Update & continue to expenses' : 'Save & continue to expenses';
-            if (eb) eb.textContent = appState.editingExpenseId ? 'Update Expense' : 'Save Expense';
+            if (ib) ib.textContent = appState.editingIncomeId ? 'Save changes' : 'Save & continue to expenses';
+            if (eb) eb.textContent = appState.editingExpenseId ? 'Save changes' : 'Save Expense';
             if (mb) mb.textContent = appState.editingMileageId ? 'Update Mileage' : 'Save Mileage';
         }
 
@@ -5802,14 +5805,14 @@ function renderRegularCostLists() {
                     }
                 }
                 if(!isCurrent())return;
-                let error;
+                let error,updatedRecord;
                 if (editId) {
-                    ({ error } = await supabaseClient.from('income').update({
+                    ({ error,data:updatedRecord } = await supabaseClient.from('income').update({
                         source,
                         amount,
                         earned_on,
                         notes
-                    }).eq('id',editId).eq('user_id',owner));
+                    }).eq('id',editId).eq('user_id',owner).select('id').single());
                 } else {
                     ({ error } = await supabaseClient.from('income').insert([{
                         user_id: owner,
@@ -5821,6 +5824,7 @@ function renderRegularCostLists() {
                 }
 
                 if (error) throw error;
+                if(editId&&!updatedRecord?.id)throw Error('Update was not confirmed. Refresh your records and try again.');
                 saved=true;
                 if(!isCurrent())return;
 
@@ -5834,9 +5838,14 @@ function renderRegularCostLists() {
                 if(!isCurrent())return;
 
                 resetEditState();
-                appState.dailyEntryMode = true;
-                appState.dailyEntryDate = earned_on;
-                openDailyExpenseStep();
+                if(editId){
+                    appState.dailyEntryMode=false;appState.dailyEntryDate=null;
+                    setDailyEntryButtons(null);showCalendarDay(earned_on);
+                }else{
+                    appState.dailyEntryMode = true;
+                    appState.dailyEntryDate = earned_on;
+                    openDailyExpenseStep();
+                }
             } catch (err) {
                 if(!isCurrent())return;
                 console.error("Save income error:", err);
@@ -5853,6 +5862,7 @@ function renderRegularCostLists() {
             if(window.prepareDailyCompletionSound)prepareDailyCompletionSound();
             e.preventDefault();
             if (!appState.currentUser) return;
+            const owner=appState.currentUser.id;
 
             const submitBtn = document.getElementById('expense-submit-btn');
             if(submitBtn.disabled)return;
@@ -5866,7 +5876,9 @@ function renderRegularCostLists() {
             const notes = document.getElementById('expense-notes').value;
             const editId = appState.editingExpenseId;
 
+            let saved=false;
             try {
+                if(!/^\d{4}-\d{2}-\d{2}$/.test(expense_date)||isoDate(parseIsoDate(expense_date))!==expense_date)throw Error('Choose a valid expense date.');
                 if(!Number.isFinite(amount)||amount<0)throw new Error('Enter a valid amount.');
                 const taxFields=readExpenseTaxFields('expense');
                 const splitRecord=appState.transactions.find(t=>t.id===editId);
@@ -5879,10 +5891,10 @@ function renderRegularCostLists() {
                         merchant,
                         expense_date,
                         notes, ...taxFields
-                    }).eq('id',editId).eq('user_id',appState.currentUser.id).select('id').single());
+                    }).eq('id',editId).eq('user_id',owner).select('id').single());
                 } else {
                     ({ error,data } = await supabaseClient.from('expenses').insert([{
-                        user_id: appState.currentUser.id,
+                        user_id: owner,
                         category,
                         amount,
                         merchant,
@@ -5893,6 +5905,7 @@ function renderRegularCostLists() {
 
                 if (error) throw error;
                 if(!data?.id)throw new Error('Save was not confirmed.');
+                saved=true;if(appState.currentUser?.id!==owner)return;
 
                 if(window.refreshDailyBookkeeping)refreshDailyBookkeeping({celebrate:true,day:expense_date});
                 showToast(editId ? 'Expense updated' : 'Expense saved');
@@ -5900,7 +5913,8 @@ function renderRegularCostLists() {
                 closeExpenseModal(false);
                 document.getElementById('expense-form').reset();
                 setDateField('expense-date','expense-date-label',isoDate(new Date()));
-                await fetchUserData(appState.currentUser.id);
+                await fetchUserData(owner);
+                if(appState.currentUser?.id!==owner)return;
 
                 if (editId) {
                     showCalendarDay(expense_date);
@@ -5908,8 +5922,9 @@ function renderRegularCostLists() {
                     openExpenseNextModal();
                 }
             } catch (err) {
+                if(appState.currentUser?.id!==owner)return;
                 console.error("Save expense error:", err);
-                showToast(err.message || 'Could not save expense. Retry?');
+                showToast(saved?'Expense saved, but the screen could not refresh. Reopen your records before adding it again.':err.message || 'Could not save expense. Retry?');
                 submitBtn.disabled = false;
                 setDailyEntryButtons(appState.dailyEntryMode ? 'expense' : null);
                 return;
@@ -5918,13 +5933,27 @@ function renderRegularCostLists() {
             setDailyEntryButtons(appState.dailyEntryMode ? 'expense' : null);
         }
 
+        async function deleteEditingRecord(kind){
+            const owner=appState.currentUser?.id,id=kind==='income'?appState.editingIncomeId:appState.editingExpenseId;
+            if(!owner||!id)return;
+            if(await deleteTransaction(id,kind)&&owner===appState.currentUser?.id){
+                kind==='income'?closeIncomeModal():closeExpenseModal();resetEditState();setDailyEntryButtons(null);
+            }
+        }
         async function deleteTransaction(id, type) {
-            if (!appState.currentUser) return;
+            const owner=appState.currentUser?.id;if(!owner||appState.deletingRecord)return false;
             if(type==='expense'){appState.selectedExpenseId=id;return deleteExpenseFromDetails();}
-            const { error } = await supabaseClient.from('income').delete().eq('id', id).eq('user_id', appState.currentUser.id);
-            if (error) { showToast("Delete failed"); return; }
-            showToast("Record deleted");
-            await fetchUserData(appState.currentUser.id);
+            const linked=(appState.invoices||[]).find(inv=>inv.income_id===id);
+            if(linked){openInvoiceDetail(linked.id);showToast('This income is linked to an invoice. Use Undo recorded payment first.');return false;}
+            if(!confirm('Delete this income record? This cannot be undone.'))return false;
+            appState.deletingRecord=id;let deleted=false;
+            try{
+                const {data,error}=await supabaseClient.from('income').delete().eq('id',id).eq('user_id',owner).select('id').single();
+                if(error)throw error;if(!data?.id)throw Error('Deletion was not confirmed.');deleted=true;
+                if(owner!==appState.currentUser?.id)return false;
+                await fetchUserData(owner);if(owner!==appState.currentUser?.id)return false;showToast('Income record deleted');return true;
+            }catch(err){if(owner===appState.currentUser?.id)showToast(deleted?'Income deleted. Refresh your records to update the screen.':err.message||'Could not delete income');return deleted&&owner===appState.currentUser?.id;}
+            finally{if(owner===appState.currentUser?.id)appState.deletingRecord=null;}
         }
 
         function quickAddFuelPreset(amount) { quickAddPreset('',amount,'Fuel'); }
@@ -5985,7 +6014,7 @@ function renderRegularCostLists() {
                     const sub=(t.merchant||t.vendor)&&String(t.merchant||t.vendor)!==String(t.category)?escapeHtml(t.merchant||t.vendor):'Expense record';
                     return `<button type="button" onclick="openExpenseDetails('${t.id}')" class="record-row w-full text-left bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex justify-between items-center gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-10 h-10 rounded-xl border ${v.tone} flex items-center justify-center shrink-0"><i class="fa-solid ${v.icon} text-sm"></i></div><div class="min-w-0"><div class="flex items-center gap-1.5"><p class="text-xs font-bold text-white truncate">${escapeHtml(label)}</p>${receipt?'<i class="fa-solid fa-paperclip text-[9px] text-emerald-400"></i>':''}</div><p class="text-[10px] text-slate-500 mt-0.5 truncate">${formatUkDate(t.date)} · ${sub}</p><p class="text-[10px] text-amber-200 mt-1">${t.tax_treatment==='allowable'?'Tax deduction £'+expenseTaxDeduction(t).toFixed(2):t.tax_treatment==='excluded'?'No tax deduction':'Tax review needed'}</p></div></div><div class="flex items-center gap-2 shrink-0"><span class="text-xs font-extrabold text-rose-300">-£${Number(t.amount).toFixed(2)}</span><span class="w-7 h-7 rounded-lg bg-slate-800 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-chevron-right text-[9px]"></i></span></div></button>`;
                 }
-                return `<div class="record-row bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex justify-between items-center gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-10 h-10 rounded-xl border ${v.tone} flex items-center justify-center shrink-0"><i class="fa-solid ${v.icon} text-sm"></i></div><div class="min-w-0"><p class="text-xs font-bold text-white truncate">${escapeHtml(label)}</p><p class="text-[10px] text-slate-500 mt-0.5">${formatUkDate(t.date)} · Income record</p></div></div><div class="flex items-center gap-2 shrink-0"><span class="text-xs font-extrabold text-emerald-400">+£${Number(t.amount).toFixed(2)}</span><button onclick="editIncomeRecord('${t.id}')" class="w-7 h-7 rounded-lg bg-slate-800 text-slate-400"><i class="fa-solid fa-pen text-[9px]"></i></button></div></div>`;
+                return `<div class="record-row bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex justify-between items-center gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-10 h-10 rounded-xl border ${v.tone} flex items-center justify-center shrink-0"><i class="fa-solid ${v.icon} text-sm"></i></div><div class="min-w-0"><p class="text-xs font-bold text-white truncate">${escapeHtml(label)}</p><p class="text-[10px] text-slate-500 mt-0.5">${formatUkDate(t.date)} · Income record</p></div></div><div class="flex items-center gap-2 shrink-0"><span class="text-xs font-extrabold text-emerald-400">+£${Number(t.amount).toFixed(2)}</span><button type="button" onclick="editIncomeRecord('${t.id}')" class="min-h-[44px] px-3 rounded-lg bg-slate-800 text-blue-200 text-xs font-bold">Edit / delete</button></div></div>`;
             }).join('')||'<p class="text-center text-xs text-slate-500 py-8">No records found.</p>';
         }
 
@@ -6015,15 +6044,21 @@ function renderRegularCostLists() {
         function closeExpenseDetails(){document.getElementById('expense-details-modal')?.classList.add('hidden');appState.selectedExpenseId=null;}
         function editExpenseFromDetails(){const id=appState.selectedExpenseId;closeExpenseDetails();if(id)editExpenseRecord(id);}
         async function deleteExpenseFromDetails(){
-            const id=appState.selectedExpenseId;if(!id||!appState.currentUser)return;
-            if(!confirm('Delete this expense and its saved receipt? This cannot be undone.'))return;
-            const receipt=receiptForExpense(id);
+            const id=appState.selectedExpenseId,owner=appState.currentUser?.id;if(!id||!owner||appState.deletingRecord)return false;
+            if(!confirm('Delete this expense and its saved receipt? This cannot be undone.'))return false;
+            const receipt=receiptForExpense(id);appState.deletingRecord=id;let deleted=false,cleanupFailed=false;
             try{
-                if(receipt?.file_path){const {error:se}=await supabaseClient.storage.from('receipts').remove([receipt.file_path]);if(se)console.warn('Receipt cleanup warning',se);}
-                if(receipt?.id){const {error:re}=await supabaseClient.from('receipts').delete().eq('id',receipt.id).eq('user_id',appState.currentUser.id);if(re)throw re;}
-                const {error}=await supabaseClient.from('expenses').delete().eq('id',id).eq('user_id',appState.currentUser.id);if(error)throw error;
-                closeExpenseDetails();await fetchUserData(appState.currentUser.id);showToast('Expense and receipt deleted');
-            }catch(err){console.error('Expense delete error',err);showToast('Could not delete expense');}
+                const {data,error}=await supabaseClient.from('expenses').delete().eq('id',id).eq('user_id',owner).select('id').single();
+                if(error)throw error;if(!data?.id)throw Error('Deletion was not confirmed.');deleted=true;
+                if(owner!==appState.currentUser?.id)return false;
+                if(receipt?.file_path){const {error:se}=await supabaseClient.storage.from('receipts').remove([receipt.file_path]);cleanupFailed=!!se;}
+                if(owner!==appState.currentUser?.id)return false;
+                if(receipt?.id&&!cleanupFailed){const {error:re}=await supabaseClient.from('receipts').delete().eq('id',receipt.id).eq('user_id',owner);cleanupFailed=!!re;}
+                if(owner!==appState.currentUser?.id)return false;
+                closeExpenseDetails();await fetchUserData(owner);if(owner!==appState.currentUser?.id)return false;
+                showToast(cleanupFailed?'Expense deleted. Receipt cleanup is incomplete; its evidence record has been kept.':'Expense and receipt deleted');return true;
+            }catch(err){if(owner===appState.currentUser?.id)showToast(deleted?'Expense deleted. Refresh your records; receipt cleanup may need review.':err.message||'Could not delete expense');return deleted&&owner===appState.currentUser?.id;}
+            finally{if(owner===appState.currentUser?.id)appState.deletingRecord=null;}
         }
 
         function getWeekBounds(date=new Date()){
