@@ -2,6 +2,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 (async()=>{
  const pair=webpush.generateVAPIDKeys(),devicePair=webpush.generateVAPIDKeys(),token='a'.repeat(64),digest=Buffer.from(await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode(token))).toString('hex');
  const sub={endpoint:'https://fcm.googleapis.com/fcm/send/test-fixture',keys:{p256dh:devicePair.publicKey,auth:Buffer.alloc(16,1).toString('base64url')}};
+ let dayComplete=false,dayReadError=false;
  let handler,user=true,allowed=true,quotaError=false,claim=true,status=201,calls=0,updates=[],device={endpoint_hash:'hash',user_id:'owner',subscription:sub,binding:'12345678-1234-4234-8234-123456789abc',enabled:true,sound:true};
  class Query{
   constructor(table){this.table=table;this.filters={};}select(){return this}eq(k,v){this.filters[k]=v;return this}update(data){this.updateData=data;return this}upsert(data){device={...device,...data};return this}then(resolve,reject){if(this.updateData){updates.push({table:this.table,data:this.updateData,filters:this.filters});if(this.table==='owner_push_devices')Object.assign(device,this.updateData);}return Promise.resolve({data:this.table==='owner_push_devices'?[device]:null,error:null}).then(resolve,reject)}
@@ -9,6 +10,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
   async maybeSingle(){return {data:device&&device.user_id===this.filters.user_id&&(!('enabled' in this.filters)||device.enabled===this.filters.enabled)?device:null}}
  }
  const db={from:t=>new Query(t),auth:{getUser:async()=>({data:{user:user?{id:'owner'}:null},error:null})},rpc:async(name,args)=>{
+  if(name==='get_bookkeeping_day_status')return {data:{complete:dayComplete},error:dayReadError?'offline':null};
   if(name==='consume_paid_api_request')return {data:allowed,error:quotaError?'fail':null};
   if(name==='list_owner_invoice_push'||name==='list_owner_bookkeeping_push')return {data:[{endpoint_hash:'hash',user_id:'owner'}]};
   if(name==='claim_owner_invoice_push'||name==='claim_owner_bookkeeping_push')return {data:claim?{...device,due:2,overdue:3,day:'2026-10-24'}:null};throw Error(name);
@@ -42,6 +44,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
  const dailyStatus=await(await req({action:'status',endpoint:sub.endpoint})).json();assert.equal(dailyStatus.bookkeepingEnabled,true);assert.equal(dailyStatus.bookkeepingTime,'20:10');
  await req({action:'run_bookkeeping'},token);assert.equal(calls,beforeDaily+1);assert.equal(updates.at(-1).table,'owner_bookkeeping_push_deliveries');assert.equal(updates.at(-1).data.status,'accepted');
  claim=false;await req({action:'run_bookkeeping'},token);assert.equal(calls,beforeDaily+1);
+ claim=true;dayComplete=true;await req({action:'run_bookkeeping'},token);assert.equal(calls,beforeDaily+1,'A completed day never reaches push');dayComplete=false;dayReadError=true;await req({action:'run_bookkeeping'},token);assert.equal(calls,beforeDaily+1,'Unconfirmed status must fail closed');dayReadError=false;
  assert.equal((await req({action:'subscribe',subscription:sub,sound:true,binding:device.binding,bookkeepingEnabled:false,bookkeepingTime:'20:10'})).status,200);assert.equal(device.bookkeeping_enabled,false);
  // Service worker: generic fallback protects old-account payloads, and click destinations are fixed.
  const handlers={},notifications=[],messages=[];let saved={user_id:'owner',binding:device.binding},focused=false;

@@ -26,7 +26,7 @@
    el('owner-push-test').disabled=!data.enabled;el('owner-push-off').disabled=!data.enabled;
    if(data.enabled&&binding)await bindDevice(owner,binding);else await bindDevice(null,null);
    if(token!==generation||owner!==appState.currentUser?.id)return;
-   note(data.enabled?(data.bookkeepingEnabled?'Daily income & expenses reminders are on at '+data.bookkeepingTime+' UK time. Invoice reminders stay on too.':'Invoice notifications are on. You can also turn on the daily income & expenses reminder above.'):'Notifications are off on this device. Choose your reminders, then tap Enable notifications.');
+   note(data.enabled?(data.bookkeepingEnabled?'Daily income & expenses reminders are on at '+data.bookkeepingTime+' UK time, only while that day’s income or expenses are incomplete. Invoice reminders stay on too.':'Invoice notifications are on. You can also turn on the daily income & expenses reminder above.'):'Notifications are off on this device. Choose your reminders, then tap Enable notifications.');
   }catch(e){if(token===generation&&owner===appState.currentUser?.id)note(e.message);}
  }
  async function enableOwnerPush(){

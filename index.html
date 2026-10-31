@@ -275,6 +275,7 @@
 <button type="button" class="home-shortcut" onclick="switchTab('tax')"><span class="home-shortcut-icon" aria-hidden="true">▥</span><span><strong id="home-tax-year-title">Tax overview</strong><small id="home-tax-preview">View your estimate</small></span><span aria-hidden="true">›</span></button>
 <button type="button" class="home-shortcut" onclick="openJobPhotos()"><span class="home-shortcut-icon" aria-hidden="true">▧</span><span><strong>Jobs & photos</strong><small>Customers and reports</small></span><span aria-hidden="true">›</span></button>
 <button type="button" class="home-shortcut" onclick="openCalendarTab()"><span class="home-shortcut-icon" aria-hidden="true">▦</span><span><strong>Calendar</strong><small>View or edit a day</small></span><span aria-hidden="true">›</span></button></div>
+<section id="daily-bookkeeping-card" class="hidden border border-emerald-400/40 bg-slate-900 rounded-2xl p-4 space-y-3" aria-label="Daily bookkeeping check-in"><h3 id="daily-bookkeeping-title" class="text-base font-bold text-white">Your daily check-in</h3><p id="daily-income-status" class="text-xs text-slate-200">Checking income…</p><p id="daily-expenses-status" class="text-xs text-slate-200">Checking expenses…</p><p id="daily-bookkeeping-message" role="status" class="text-xs text-emerald-100">Checking your saved day…</p><div class="flex gap-2"><button id="daily-no-income" type="button" class="bg-slate-800 border border-slate-600 rounded-xl p-3 text-xs text-white">No income today</button><button id="daily-no-expenses" type="button" class="bg-slate-800 border border-slate-600 rounded-xl p-3 text-xs text-white">No expenses today</button></div><div class="flex justify-between gap-2 items-center"><label class="text-xs text-slate-300"><input id="daily-completion-sound" type="checkbox"> Completion sound</label><button id="daily-bookkeeping-retry" type="button" class="text-xs text-blue-200">Refresh / retry</button></div><small class="text-slate-400">Today · UK time. Closing or skipping a step does not confirm completion.</small></section>
                 <div id="shift-reminder-banner" class="hidden border border-blue-400/30 bg-blue-500/10 rounded-2xl p-4 space-y-2" aria-live="polite">
                     <p class="text-sm font-bold text-white">Finished your shift?</p><p class="text-[11px] text-blue-200">When you're parked, take a moment to add your income and check your receipts.</p>
                     <div class="flex gap-3"><button type="button" onclick="dismissShiftReminder();startDailyEntry(driverToday())" class="text-xs text-blue-200 font-bold">Add income</button><button type="button" onclick="dismissShiftReminder()" class="text-xs text-slate-300">Dismiss today</button></div>
@@ -680,7 +681,7 @@
                         <input type="text" id="mileage-notes" placeholder="Skip unless needed" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
                     </div>
                     <div class="grid grid-cols-2 gap-2 mt-2">
-                        <button type="button" id="mileage-skip-btn" onclick="skipDailyMileage()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition">Skip</button>
+                        <button type="button" id="mileage-skip-btn" onclick="skipDailyMileage()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition">Skip for now</button>
                         <button type="submit" id="mileage-submit-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition col-span-2">Save Mileage</button>
                     </div>
                 </form>
@@ -778,11 +779,12 @@
                         <input type="text" id="income-notes" placeholder="e.g. Airport run, peak multiplier" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
                     </div>
                     <div class="grid grid-cols-2 gap-2 mt-2">
-                        <button type="button" id="income-skip-btn" onclick="skipDailyIncome()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition">Skip</button>
+                        <button type="button" id="income-skip-btn" onclick="skipDailyIncome()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition">Skip for now</button>
                         <button type="submit" id="income-submit-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition col-span-2">
                             Save Income
                         </button>
                     </div>
+<button type="button" id="income-none-btn" onclick="confirmDailyStepNone('income')" class="hidden w-full mt-2 text-xs text-blue-200 p-2">No income for this day</button>
                 </form>
             </div>
         </div>
@@ -838,11 +840,12 @@
                         <input type="text" id="expense-notes" placeholder="e.g. Full tank V-Power" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
                     </div>
                     <div class="grid grid-cols-2 gap-2 mt-2">
-                        <button type="button" id="expense-skip-btn" onclick="skipDailyExpense()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition">Skip</button>
+                        <button type="button" id="expense-skip-btn" onclick="skipDailyExpense()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition">Skip for now</button>
                         <button type="submit" id="expense-submit-btn" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 rounded-xl text-xs transition col-span-2">
                             Save Expense
                         </button>
                     </div>
+<button type="button" id="expense-none-btn" onclick="confirmDailyStepNone('expenses')" class="hidden w-full mt-2 text-xs text-blue-200 p-2">No expenses for this day</button>
                 </form>
             </div>
         </div>
@@ -1363,7 +1366,7 @@
         };}
         let appState = newAppState();
         let accountGeneration = 0;
-        const ACCOUNT_EXPORT_TABLES = [{"table":"customer_jobs","owner":"user_id","order":["id"]},{"table":"job_photos","owner":"user_id","order":["id"]},{"table":"cis_deductions","owner":"user_id","order":["id"]},{"table":"accountant_access","owner":"user_id","order":["id"]},{"table":"accountant_access_events","owner":"user_id","order":["id"]},{"table":"merchant_category_rules","owner":"user_id","order":["merchant_key"]},{"table":"expense_category_batches","owner":"user_id","order":["created_at","id"]},{"table":"invoice_preferences","owner":"user_id","order":["user_id"]},{"table":"profiles","owner":"id","order":["id"]},{"table":"income","owner":"user_id","order":["id"]},{"table":"expenses","owner":"user_id","order":["id"]},{"table":"receipts","owner":"user_id","order":["id"]},{"table":"mileage","owner":"user_id","order":["id"]},{"table":"tax_reserve","owner":"user_id","order":["id"]},{"table":"period_entries","owner":"user_id","order":["id"]},{"table":"recurring_expenses","owner":"user_id","order":["id"]},{"table":"tax_profiles","owner":"user_id","order":["user_id"]},{"table":"invoice_counters","owner":"user_id","order":["user_id"]},{"table":"invoices","owner":"user_id","order":["id"]},{"table":"vat_profiles","owner":"user_id","order":["user_id"]},{"table":"invoice_drafts","owner":"user_id","order":["id"]},{"table":"invoice_credits","owner":"user_id","order":["invoice_id"]},{"table":"vat_purchases","owner":"user_id","order":["expense_id"]},{"table":"vat_classifications","owner":"user_id","order":["id"]},{"table":"vat_return_reviews","owner":"user_id","order":["id"]},{"table":"receipt_cleanup_queue","owner":"user_id","order":["user_id","file_path"]},{"table":"bank_import_batches","owner":"user_id","order":["id"]},{"table":"bank_import_rows","owner":"user_id","order":["id"]},{"table":"tax_year_accounts","owner":"user_id","order":["user_id","tax_year"]},{"table":"tax_payment_records","owner":"user_id","order":["id"]},{"table":"account_deletion_requests","owner":"user_id","order":["id"]}];
+        const ACCOUNT_EXPORT_TABLES = [{"table":"daily_bookkeeping_checks","owner":"user_id","order":["day"]},{"table":"customer_jobs","owner":"user_id","order":["id"]},{"table":"job_photos","owner":"user_id","order":["id"]},{"table":"cis_deductions","owner":"user_id","order":["id"]},{"table":"accountant_access","owner":"user_id","order":["id"]},{"table":"accountant_access_events","owner":"user_id","order":["id"]},{"table":"merchant_category_rules","owner":"user_id","order":["merchant_key"]},{"table":"expense_category_batches","owner":"user_id","order":["created_at","id"]},{"table":"invoice_preferences","owner":"user_id","order":["user_id"]},{"table":"profiles","owner":"id","order":["id"]},{"table":"income","owner":"user_id","order":["id"]},{"table":"expenses","owner":"user_id","order":["id"]},{"table":"receipts","owner":"user_id","order":["id"]},{"table":"mileage","owner":"user_id","order":["id"]},{"table":"tax_reserve","owner":"user_id","order":["id"]},{"table":"period_entries","owner":"user_id","order":["id"]},{"table":"recurring_expenses","owner":"user_id","order":["id"]},{"table":"tax_profiles","owner":"user_id","order":["user_id"]},{"table":"invoice_counters","owner":"user_id","order":["user_id"]},{"table":"invoices","owner":"user_id","order":["id"]},{"table":"vat_profiles","owner":"user_id","order":["user_id"]},{"table":"invoice_drafts","owner":"user_id","order":["id"]},{"table":"invoice_credits","owner":"user_id","order":["invoice_id"]},{"table":"vat_purchases","owner":"user_id","order":["expense_id"]},{"table":"vat_classifications","owner":"user_id","order":["id"]},{"table":"vat_return_reviews","owner":"user_id","order":["id"]},{"table":"receipt_cleanup_queue","owner":"user_id","order":["user_id","file_path"]},{"table":"bank_import_batches","owner":"user_id","order":["id"]},{"table":"bank_import_rows","owner":"user_id","order":["id"]},{"table":"tax_year_accounts","owner":"user_id","order":["user_id","tax_year"]},{"table":"tax_payment_records","owner":"user_id","order":["id"]},{"table":"account_deletion_requests","owner":"user_id","order":["id"]}];
         let privacyBusy=false;
         function samePrivacyAccount(uid,generation){return appState.currentUser?.id===uid&&accountGeneration===generation;}
         async function exportAccountData(){
@@ -1517,6 +1520,7 @@
                 if(window.resetUberWorkspace)resetUberWorkspace();if(window.resetBankStatement)resetBankStatement();
                 if(window.resetAccountantCis)resetAccountantCis();
                 if(window.resetJobPhotos)resetJobPhotos();
+                if(window.resetDailyBookkeeping)resetDailyBookkeeping();
                 if(appState.currentUser?.id&&window.resetOwnerPushDevice)resetOwnerPushDevice();
                 const timer=appState.driverReminderTimer;appState=newAppState();appState.driverReminderTimer=timer;accountGeneration++;
                 document.querySelectorAll('[id$="-modal"]').forEach(el=>el.classList.add('hidden'));
@@ -2331,6 +2335,7 @@
                 document.getElementById('account-data-gate')?.classList.add('hidden');
                 if(window.openOwnerNotificationInvoices)openOwnerNotificationInvoices();
                 if(window.loadOwnerPushSettings)loadOwnerPushSettings();
+                if(window.refreshDailyBookkeeping)refreshDailyBookkeeping();
                 document.getElementById('data-sync-warning')?.classList.add('hidden');
                 refreshTaxPayments().catch(()=>{appState.taxPaymentsLoaded=false;renderTaxDueCards();});
             } catch (err) {
@@ -3412,7 +3417,7 @@
         }
         function checkShiftReminder(now=new Date()){
             const clock=driverClock(now),prefs=readDashboardPreferences();
-            const due=!!appState.currentUser&&prefs.reminderEnabled&&clock.time>=prefs.reminderTime&&prefs.dismissedOn!==clock.date;
+            const due=!!appState.currentUser&&prefs.reminderEnabled&&clock.time>=prefs.reminderTime&&prefs.dismissedOn!==clock.date&&!(window.isDailyBookkeepingComplete&&isDailyBookkeepingComplete(clock.date));
             document.getElementById('shift-reminder-banner').classList.toggle('hidden',!due);
             return due;
         }
@@ -3863,6 +3868,7 @@ function checkOwnerPushSetup(){
             loadDeletionRequest();
             if(window.loadUberConnection)loadUberConnection();
             if(window.loadOwnerPushSettings)loadOwnerPushSettings();
+                if(window.refreshDailyBookkeeping)refreshDailyBookkeeping();
             document.getElementById('account-modal')?.classList.remove('hidden');
         }
 
@@ -5508,6 +5514,7 @@ function renderRegularCostLists() {
 
                 const active = Boolean(appState.dailyEntryMode && name === step);
                 skip.style.display = active ? 'block' : 'none';
+                document.getElementById(name+'-none-btn')?.classList.toggle('hidden',!active);
                 save.classList.toggle('col-span-2', !active);
             });
 
@@ -5761,6 +5768,7 @@ function renderRegularCostLists() {
         }
 
         async function handleSaveIncome(e) {
+            if(window.prepareDailyCompletionSound)prepareDailyCompletionSound();
             e.preventDefault();
             if (!appState.currentUser) return;
             const owner=appState.currentUser.id;
@@ -5816,6 +5824,7 @@ function renderRegularCostLists() {
                 saved=true;
                 if(!isCurrent())return;
 
+                if(window.refreshDailyBookkeeping)refreshDailyBookkeeping({celebrate:true,day:earned_on});
                 showToast(editId ? 'Income updated' : 'Income saved');
                 appState.editingIncomeId = null;
                 closeIncomeModal(false);
@@ -5841,6 +5850,7 @@ function renderRegularCostLists() {
         }
 
         async function handleSaveExpense(e) {
+            if(window.prepareDailyCompletionSound)prepareDailyCompletionSound();
             e.preventDefault();
             if (!appState.currentUser) return;
 
@@ -5884,6 +5894,7 @@ function renderRegularCostLists() {
                 if (error) throw error;
                 if(!data?.id)throw new Error('Save was not confirmed.');
 
+                if(window.refreshDailyBookkeeping)refreshDailyBookkeeping({celebrate:true,day:expense_date});
                 showToast(editId ? 'Expense updated' : 'Expense saved');
                 appState.editingExpenseId = null;
                 closeExpenseModal(false);
@@ -6334,6 +6345,7 @@ function renderRegularCostLists() {
 <script src="job-trade-guidance.js"></script>
 <script src="job-photos.js"></script>
 <script src="home-workspace.js"></script>
+<script src="daily-bookkeeping.js"></script>
 <script src="receptionist-workspace.js"></script>
 </body>
 </html>
